@@ -1,2 +1,2 @@
-# straighten-rifle
+# Straighten-Rifle
 shooooter

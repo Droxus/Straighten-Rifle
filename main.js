@@ -19,8 +19,6 @@ scene.add( cube );
 camera.position.z = 5;
 animate();
 
-cube.rotation.x += 0.01;
-cube.rotation.y += 0.01;
 
 function animate() {
     requestAnimationFrame( animate );
@@ -40,3 +38,105 @@ function onResize(){
     camera.updateProjectionMatrix();
     renderer.setSize( window.innerWidth, window.innerHeight );
 }
+
+window.addEventListener('beforeunload', function(e){
+        e.stopPropagation();e.preventDefault();return false;
+    },true);
+window.addEventListener('keydown', onKeyboard)
+window.addEventListener('keyup', offKeyboard)
+
+let goForward, goBack, goLeft, goRight
+let keys = {
+    w: false,
+    a: false,
+    d: false,
+    s: false,
+}
+function onKeyboard(event){
+    if (event.ctrlKey) {
+        event.preventDefault();
+    }  
+    if (event.altKey) {
+        event.preventDefault();
+    }    
+    // console.log(event)
+    switch (event.code) {
+        case 'KeyW':
+            if (!keys.w){
+                goForward = setInterval(() => {
+                    camera.position.z -= 0.1;
+                }, 10)
+                keys.w = true
+            }
+            break;
+        case 'KeyA':
+            if (!keys.a){
+                goLeft = setInterval(() => {
+                    camera.position.x -= 0.1;
+                }, 10)
+                keys.a = true
+            }
+            break;
+        case 'KeyD':
+            if (!keys.d){
+                goRight = setInterval(() => {
+                    camera.position.x += 0.1;
+                }, 10)
+                keys.d = true
+            }
+            break;
+        case 'KeyS':
+            if (!keys.s){
+                goBack = setInterval(() => {
+                    camera.position.z += 0.1;
+                }, 10)
+                keys.s = true
+            }
+            break;
+        case 'Space':
+
+            break;
+        case 'AltLeft':
+            
+            break;
+    }
+}
+function offKeyboard(event){
+    if (event.ctrlKey) {
+        event.preventDefault();
+    }  
+    if (event.altKey) {
+        event.preventDefault();
+    }    
+    // console.log(event)
+    switch (event.code) {
+        case 'KeyW':
+            clearInterval(goForward)
+            keys.w = false
+            break;
+        case 'KeyA':
+            clearInterval(goLeft)
+            keys.a = false
+            break;
+        case 'KeyD':
+            clearInterval(goRight)
+            keys.d = false
+            break;
+        case 'KeyS':
+            clearInterval(goBack)
+            keys.s = false
+            break;
+        case 'Space':
+
+            break;
+        case 'AltLeft':
+            
+            break;
+    }
+}
+
+// window.addEventListener('mousemove', onMouseMove)
+
+// function onMouseMove(){
+//     console.log('lul')
+// }

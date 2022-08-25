@@ -1,11 +1,10 @@
 
 import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r99/three.module.js';
+// import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.121.1/examples/jsm/controls/OrbitControls.js';
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.1, 1000 );
-
-let WIDTH = window.innerWidth;
-let HEIGHT = window.innerHeight;
+const camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.1, 1000 );
+let sensitivity = 1
 
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize( window.innerWidth, window.innerHeight );
@@ -17,6 +16,7 @@ const cube = new THREE.Mesh( geometry, material );
 scene.add( cube );
 
 camera.position.z = 5;
+camera.rotation.order = 'YXZ'
 animate();
 
 
@@ -42,9 +42,6 @@ function onResize(){
 window.addEventListener('beforeunload', function(e){
         e.stopPropagation();e.preventDefault();return false;
     },true);
-window.addEventListener('keydown', onKeyboard)
-window.addEventListener('keyup', offKeyboard)
-
 let goForward, goBack, goLeft, goRight
 let keys = {
     w: false,
@@ -59,12 +56,17 @@ function onKeyboard(event){
     if (event.altKey) {
         event.preventDefault();
     }    
-    // console.log(event)
     switch (event.code) {
         case 'KeyW':
             if (!keys.w){
                 goForward = setInterval(() => {
-                    camera.position.z -= 0.1;
+                    camera.translateZ(-0.1)
+                    document.getElementById('xCords').innerText = camera.position.x
+                    document.getElementById('zCords').innerText = camera.position.z
+                    document.getElementById('yCords').innerText = camera.position.y
+                    document.getElementById('povX').innerText = camera.rotation.x
+                    document.getElementById('povY').innerText = camera.rotation.y
+                    document.getElementById('povZ').innerText = camera.rotation.z
                 }, 10)
                 keys.w = true
             }
@@ -72,7 +74,13 @@ function onKeyboard(event){
         case 'KeyA':
             if (!keys.a){
                 goLeft = setInterval(() => {
-                    camera.position.x -= 0.1;
+                    camera.translateX(-0.1)
+                    document.getElementById('xCords').innerText = camera.position.x
+                    document.getElementById('zCords').innerText = camera.position.z
+                    document.getElementById('yCords').innerText = camera.position.y
+                    document.getElementById('povX').innerText = camera.rotation.x
+                    document.getElementById('povY').innerText = camera.rotation.y
+                    document.getElementById('povZ').innerText = camera.rotation.z
                 }, 10)
                 keys.a = true
             }
@@ -80,7 +88,13 @@ function onKeyboard(event){
         case 'KeyD':
             if (!keys.d){
                 goRight = setInterval(() => {
-                    camera.position.x += 0.1;
+                    camera.translateX(0.1)
+                    document.getElementById('xCords').innerText = camera.position.x
+                    document.getElementById('zCords').innerText = camera.position.z
+                    document.getElementById('yCords').innerText = camera.position.y
+                    document.getElementById('povX').innerText = camera.rotation.x
+                    document.getElementById('povY').innerText = camera.rotation.y
+                    document.getElementById('povZ').innerText = camera.rotation.z
                 }, 10)
                 keys.d = true
             }
@@ -88,7 +102,13 @@ function onKeyboard(event){
         case 'KeyS':
             if (!keys.s){
                 goBack = setInterval(() => {
-                    camera.position.z += 0.1;
+                    camera.translateZ(0.1)
+                    document.getElementById('xCords').innerText = camera.position.x
+                    document.getElementById('zCords').innerText = camera.position.z
+                    document.getElementById('yCords').innerText = camera.position.y
+                    document.getElementById('povX').innerText = camera.rotation.x
+                    document.getElementById('povY').innerText = camera.rotation.y
+                    document.getElementById('povZ').innerText = camera.rotation.z
                 }, 10)
                 keys.s = true
             }
@@ -129,14 +149,95 @@ function offKeyboard(event){
         case 'Space':
 
             break;
+        case 'F2':
+            onAdvancedInfo()
+            break;
         case 'AltLeft':
             
             break;
     }
 }
 
-// window.addEventListener('mousemove', onMouseMove)
 
-// function onMouseMove(){
-//     console.log('lul')
-// }
+document.getElementById('onPlay').addEventListener('click', onPlay)
+
+function onPlay(){
+    document.getElementById('menuBg').style.display = 'none'
+    document.querySelector('canvas').requestPointerLock = document.querySelector('canvas').requestPointerLock ||
+    document.querySelector('canvas').mozRequestPointerLock ||
+    document.querySelector('canvas').webkitRequestPointerLock;
+    document.querySelector('canvas').requestPointerLock()
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('keydown', onKeyboard)
+    window.addEventListener('keyup', offKeyboard)
+}
+function onMenu(){
+    document.getElementById('onPlay').removeEventListener('click', onPlay)
+    document.getElementById('menuBg').style.display = 'grid'
+    window.removeEventListener('mousemove', onMouseMove)
+    window.removeEventListener('keydown', onKeyboard)
+    window.removeEventListener('keyup', offKeyboard)
+    setTimeout(() => {document.getElementById('onPlay').addEventListener('click', onPlay)}, 2500)
+    clearInterval(goForward)
+    clearInterval(goLeft)
+    clearInterval(goRight)
+    clearInterval(goBack)
+    keys = {
+        w: false,
+        a: false,
+        d: false,
+        s: false,
+    }
+}
+
+function onMouseMove(event){
+    camera.rotation.x -= event.movementY / (1 / sensitivity * 1000)
+    camera.rotation.y -= event.movementX / (1 / sensitivity * 1000)
+
+    document.getElementById('povX').innerText = camera.rotation.x
+    document.getElementById('povY').innerText = camera.rotation.y
+    document.getElementById('povZ').innerText = camera.rotation.z
+}
+
+document.addEventListener('pointerlockerror', lockError, false);
+document.addEventListener('mozpointerlockerror', lockError, false);
+document.addEventListener('webkitpointerlockerror', lockError, false);
+
+function lockError(e) {
+    document.getElementById('menuBg').style.display = 'grid'
+}
+
+if ("onpointerlockchange" in document) {
+    document.addEventListener('pointerlockchange', lockChangeAlert, false);
+  } else if ("onmozpointerlockchange" in document) {
+    document.addEventListener('mozpointerlockchange', lockChangeAlert, false);
+  } else if ("onwebkitpointerlockchange" in document) {
+    document.addEventListener('webkitpointerlockchange', lockChangeAlert, false);
+  }
+  
+  function lockChangeAlert() {
+    if(document.pointerLockElement === document.querySelector('canvas') ||
+    document.mozPointerLockElement === document.querySelector('canvas') ||
+    document.webkitPointerLockElement === document.querySelector('canvas')) {
+
+    } else {
+        onMenu()
+    }
+  }
+  function onAdvancedInfo(){
+    if (document.getElementById('advancedInfoBlock').style.display !== 'none'){
+        document.getElementById('advancedInfoBlock').style.display = 'none'
+    } else {
+        document.getElementById('advancedInfoBlock').style.display = 'grid'
+    }
+  }
+document.getElementById('sensSilder').addEventListener('input', onSensSilder)
+document.getElementById('sensInp').addEventListener('input', onSensInp)
+function onSensSilder(){
+    document.getElementById('sensInp').value = document.getElementById('sensSilder').value / 10
+    sensitivity = document.getElementById('sensInp').value
+}
+function onSensInp(){
+    document.getElementById('sensSilder').value = document.getElementById('sensInp').value * 10
+    sensitivity = document.getElementById('sensInp').value
+}

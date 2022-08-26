@@ -8,12 +8,37 @@ let sensitivity = 1
 
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize( window.innerWidth, window.innerHeight );
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild( renderer.domElement );
 
 const geometry = new THREE.BoxGeometry( 1, 1, 1 );
-const material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
+const material = new THREE.MeshStandardMaterial( { color: 0xffea2e } );
 const cube = new THREE.Mesh( geometry, material );
+const floor = new THREE.Mesh( new THREE.BoxGeometry( 100, 0.1, 100 ), new THREE.MeshStandardMaterial( { color: 0x787878 } ) );
 scene.add( cube );
+scene.add(floor)
+cube.position.set(0, 2, 0)
+floor.position.set(0, -1, 0)
+
+
+const light = new THREE.DirectionalLight( 'transparent', 1 );
+// const light = new THREE.SpotLight( 0xffffff );
+// const light = new THREE.PointLight( 'grey', 1, 100 );
+light.position.set( 0, 100, 0 );
+light.castShadow = true; 
+scene.add( light );
+
+
+light.target = cube;
+
+light.shadow.mapSize.width = 512;
+light.shadow.mapSize.height = 512;
+light.shadow.camera.near = 0.5; 
+light.shadow.camera.far = 500;
+
+cube.castShadow = true;
+floor.receiveShadow = true
 
 camera.position.z = 5;
 camera.rotation.order = 'YXZ'
@@ -61,12 +86,7 @@ function onKeyboard(event){
             if (!keys.w){
                 goForward = setInterval(() => {
                     camera.translateZ(-0.1)
-                    document.getElementById('xCords').innerText = camera.position.x
-                    document.getElementById('zCords').innerText = camera.position.z
-                    document.getElementById('yCords').innerText = camera.position.y
-                    document.getElementById('povX').innerText = camera.rotation.x
-                    document.getElementById('povY').innerText = camera.rotation.y
-                    document.getElementById('povZ').innerText = camera.rotation.z
+                    getAdvancedData()
                 }, 10)
                 keys.w = true
             }
@@ -75,12 +95,7 @@ function onKeyboard(event){
             if (!keys.a){
                 goLeft = setInterval(() => {
                     camera.translateX(-0.1)
-                    document.getElementById('xCords').innerText = camera.position.x
-                    document.getElementById('zCords').innerText = camera.position.z
-                    document.getElementById('yCords').innerText = camera.position.y
-                    document.getElementById('povX').innerText = camera.rotation.x
-                    document.getElementById('povY').innerText = camera.rotation.y
-                    document.getElementById('povZ').innerText = camera.rotation.z
+                    getAdvancedData()
                 }, 10)
                 keys.a = true
             }
@@ -89,12 +104,7 @@ function onKeyboard(event){
             if (!keys.d){
                 goRight = setInterval(() => {
                     camera.translateX(0.1)
-                    document.getElementById('xCords').innerText = camera.position.x
-                    document.getElementById('zCords').innerText = camera.position.z
-                    document.getElementById('yCords').innerText = camera.position.y
-                    document.getElementById('povX').innerText = camera.rotation.x
-                    document.getElementById('povY').innerText = camera.rotation.y
-                    document.getElementById('povZ').innerText = camera.rotation.z
+                    getAdvancedData()
                 }, 10)
                 keys.d = true
             }
@@ -103,12 +113,7 @@ function onKeyboard(event){
             if (!keys.s){
                 goBack = setInterval(() => {
                     camera.translateZ(0.1)
-                    document.getElementById('xCords').innerText = camera.position.x
-                    document.getElementById('zCords').innerText = camera.position.z
-                    document.getElementById('yCords').innerText = camera.position.y
-                    document.getElementById('povX').innerText = camera.rotation.x
-                    document.getElementById('povY').innerText = camera.rotation.y
-                    document.getElementById('povZ').innerText = camera.rotation.z
+                    getAdvancedData()
                 }, 10)
                 keys.s = true
             }
@@ -241,3 +246,16 @@ function onSensInp(){
     document.getElementById('sensSilder').value = document.getElementById('sensInp').value * 10
     sensitivity = document.getElementById('sensInp').value
 }
+function getAdvancedData(){
+    document.getElementById('xCords').innerText = camera.position.x
+    document.getElementById('zCords').innerText = camera.position.z
+    document.getElementById('yCords').innerText = camera.position.y
+    document.getElementById('povX').innerText = camera.rotation.x
+    document.getElementById('povY').innerText = camera.rotation.y
+    document.getElementById('povZ').innerText = camera.rotation.z
+}
+
+
+var sky = new THREE.Mesh(new THREE.SphereGeometry(500, 0, 0), new THREE.MeshBasicMaterial({ color: 0xb0b0b0 }));
+sky.material.side = THREE.BackSide;
+scene.add(sky);

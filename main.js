@@ -15,27 +15,28 @@ document.body.appendChild( renderer.domElement );
 const geometry = new THREE.BoxGeometry( 1, 1, 1 );
 const material = new THREE.MeshStandardMaterial( { color: 0xffea2e } );
 const cube = new THREE.Mesh( geometry, material );
-const floor = new THREE.Mesh( new THREE.BoxGeometry( 100, 0.1, 100 ), new THREE.MeshStandardMaterial( { color: 0x787878 } ) );
+const floor = new THREE.Mesh( new THREE.BoxGeometry( 100, 0.1, 100 ), new THREE.MeshLambertMaterial( { color: 0x4f4f4f } ) );
 scene.add( cube );
 scene.add(floor)
 cube.position.set(0, 2, 0)
-floor.position.set(0, -1, 0)
+floor.position.set(0, -0.1, 0)
 
 
-const light = new THREE.DirectionalLight( 'transparent', 1 );
-// const light = new THREE.SpotLight( 0xffffff );
-// const light = new THREE.PointLight( 'grey', 1, 100 );
-light.position.set( 0, 100, 0 );
-light.castShadow = true; 
-scene.add( light );
+scene.background = new THREE.Color( 0xb0b0b0 )
 
+const hemiLight = new THREE.HemisphereLight( 0xffeeb1, 0x080820, 4 );
+scene.add( hemiLight );
+const spotLight = new THREE.SpotLight( 0xffa95c,4 );
+spotLight.castShadow = true;
+spotLight.receiveShadow = true;
+spotLight.shadow.bias = -0.0001;
+spotLight.shadow.mapSize.width = 1024*4
+spotLight.shadow.mapSize.height = 1024*4
+scene.add( spotLight );
 
-light.target = cube;
-
-light.shadow.mapSize.width = 512;
-light.shadow.mapSize.height = 512;
-light.shadow.camera.near = 0.5; 
-light.shadow.camera.far = 500;
+renderer.toneMapping = THREE.ReinhardToneMapping
+renderer.toneMappingExposure = 2.3
+renderer.shadowMap.enabled = true
 
 cube.castShadow = true;
 floor.receiveShadow = true
@@ -52,6 +53,11 @@ function animate() {
     cube.rotation.y += 0.01;
 
     renderer.render( scene, camera );
+    spotLight.position.set(
+        camera.position.x + 10,
+        camera.position.y + 10,
+        camera.position.z + 10,
+    )
 };
 
 window.addEventListener('resize', onResize)
@@ -67,12 +73,14 @@ function onResize(){
 window.addEventListener('beforeunload', function(e){
         e.stopPropagation();e.preventDefault();return false;
     },true);
-let goForward, goBack, goLeft, goRight
+let speed = 0.2
+let goForward, goBack, goLeft, goRight, goSlow
 let keys = {
     w: false,
     a: false,
     d: false,
     s: false,
+    shift: false,
 }
 function onKeyboard(event){
     if (event.ctrlKey) {
@@ -80,49 +88,53 @@ function onKeyboard(event){
     }  
     if (event.altKey) {
         event.preventDefault();
+    }
+    if (event.shiftKey){
+        event.preventDefault();
     }    
     switch (event.code) {
+        case 'ShiftLeft':
+                speed = 0.05
+            keys.shift = true
+            break;
         case 'KeyW':
             if (!keys.w){
                 goForward = setInterval(() => {
-                    camera.translateZ(-0.1)
+                    camera.translateZ(speed * -1)
                     getAdvancedData()
-                }, 10)
+                }, 5)
                 keys.w = true
             }
             break;
         case 'KeyA':
             if (!keys.a){
                 goLeft = setInterval(() => {
-                    camera.translateX(-0.1)
+                    camera.translateX(speed * -1)
                     getAdvancedData()
-                }, 10)
+                }, 5)
                 keys.a = true
             }
             break;
         case 'KeyD':
             if (!keys.d){
                 goRight = setInterval(() => {
-                    camera.translateX(0.1)
+                    camera.translateX(speed)
                     getAdvancedData()
-                }, 10)
+                }, 5)
                 keys.d = true
             }
             break;
         case 'KeyS':
             if (!keys.s){
                 goBack = setInterval(() => {
-                    camera.translateZ(0.1)
+                    camera.translateZ(speed)
                     getAdvancedData()
-                }, 10)
+                }, 5)
                 keys.s = true
             }
             break;
         case 'Space':
 
-            break;
-        case 'AltLeft':
-            
             break;
     }
 }
@@ -133,8 +145,15 @@ function offKeyboard(event){
     if (event.altKey) {
         event.preventDefault();
     }    
+    if (event.shiftKey){
+        event.preventDefault();
+    }
     // console.log(event)
     switch (event.code) {
+        case 'ShiftLeft':
+            speed = 0.2
+            keys.shift = false
+            break;    
         case 'KeyW':
             clearInterval(goForward)
             keys.w = false
@@ -157,9 +176,7 @@ function offKeyboard(event){
         case 'F2':
             onAdvancedInfo()
             break;
-        case 'AltLeft':
-            
-            break;
+
     }
 }
 
@@ -192,7 +209,9 @@ function onMenu(){
         a: false,
         d: false,
         s: false,
+        shift: false
     }
+    speed = 0.2
 }
 
 function onMouseMove(event){
@@ -256,6 +275,3 @@ function getAdvancedData(){
 }
 
 
-var sky = new THREE.Mesh(new THREE.SphereGeometry(500, 0, 0), new THREE.MeshBasicMaterial({ color: 0xb0b0b0 }));
-sky.material.side = THREE.BackSide;
-scene.add(sky);

@@ -10,7 +10,18 @@
 <body>
     <div id="menuBg">
         <div id="menu">
+            <div>
+
+            </div>
             <button id="onPlay" draggable="false">click to play</button>
+            <div id="gameOrDevChooseBlock">
+                <label>noFly</label>
+                <label class="switch">
+                    <input type="checkbox" id="playOrDevChoose">
+                    <span class="slider"></span>
+                  </label>
+                  <label>Fly</label>
+            </div>
             <div id="sensBlock">
                 <label>Sensitivity</label>
                 <input type="number" id="sensInp" value="1">
@@ -19,11 +30,11 @@
         </div>
     </div>
     <div id="advancedInfoBlock">
-        <label>x:</label>
+        <label>x</label>
         <label id="xCords">0</label>
-        <label>y:</label>
+        <label>y</label>
         <label id="yCords">0</label>
-        <label>z:</label>
+        <label>z</label>
         <label id="zCords">5</label>
         <label>povX</label>
         <label id="povX">0</label>
@@ -31,6 +42,8 @@
         <label id="povY">0</label>
         <label>povZ</label>
         <label id="povZ">0</label>
+        <label>axis</label>
+        <label id="axis">x</label>
     </div>
     <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r79/three.min.js"></script> -->
     <script type="module" src="main.js"></script>

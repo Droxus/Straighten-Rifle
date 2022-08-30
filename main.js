@@ -1,9 +1,13 @@
 
 import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r99/three.module.js';
-// import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.121.1/examples/jsm/controls/OrbitControls.js';
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.1, 1000 );
+
+const euler = new THREE.Euler( 0, 0, 0, 'YXZ' );
+const vector = new THREE.Vector3();
+
+let flyMode, speedX = 0, speedZ = 0, speedXmax, speedZmax
 let sensitivity = 1
 
 const renderer = new THREE.WebGLRenderer();
@@ -21,7 +25,6 @@ scene.add(floor)
 cube.position.set(0, 2, 0)
 floor.position.set(0, -0.1, 0)
 
-
 scene.background = new THREE.Color( 0xb0b0b0 )
 
 const hemiLight = new THREE.HemisphereLight( 0xffeeb1, 0x080820, 4 );
@@ -30,9 +33,14 @@ const spotLight = new THREE.SpotLight( 0xffa95c,4 );
 spotLight.castShadow = true;
 spotLight.receiveShadow = true;
 spotLight.shadow.bias = -0.0001;
-spotLight.shadow.mapSize.width = 1024*4
-spotLight.shadow.mapSize.height = 1024*4
+spotLight.shadow.mapSize.width = 1024*16
+spotLight.shadow.mapSize.height = 1024*16
 scene.add( spotLight );
+    spotLight.position.set(
+        0,
+        camera.position.y + 30,
+        0,
+    )
 
 renderer.toneMapping = THREE.ReinhardToneMapping
 renderer.toneMappingExposure = 2.3
@@ -41,8 +49,13 @@ renderer.shadowMap.enabled = true
 cube.castShadow = true;
 floor.receiveShadow = true
 
-camera.position.z = 5;
+camera.position.set(0, 2, 5)
 camera.rotation.order = 'YXZ'
+
+var point = new THREE.Points(new THREE.Geometry(), new THREE.PointsMaterial({color: 0x888888}));
+
+scene.add(point);
+
 animate();
 
 
@@ -52,12 +65,9 @@ function animate() {
     cube.rotation.x += 0.01;
     cube.rotation.y += 0.01;
 
+    gravityUpdate()
+
     renderer.render( scene, camera );
-    spotLight.position.set(
-        camera.position.x + 10,
-        camera.position.y + 10,
-        camera.position.z + 10,
-    )
 };
 
 window.addEventListener('resize', onResize)
@@ -67,6 +77,7 @@ function onResize(){
     console.log()
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
+
     renderer.setSize( window.innerWidth, window.innerHeight );
 }
 
@@ -74,7 +85,7 @@ window.addEventListener('beforeunload', function(e){
         e.stopPropagation();e.preventDefault();return false;
     },true);
 let speed = 0.2
-let goForward, goBack, goLeft, goRight, goSlow
+let goForward, goBack, goLeft, goRight
 let keys = {
     w: false,
     a: false,
@@ -94,13 +105,28 @@ function onKeyboard(event){
     }    
     switch (event.code) {
         case 'ShiftLeft':
+            if (flyMode){
                 speed = 0.05
+            } else {
+                speed = 0.015
+            }
             keys.shift = true
             break;
         case 'KeyW':
             if (!keys.w){
                 goForward = setInterval(() => {
-                    camera.translateZ(speed * -1)
+                    if (keys.a || keys.d){
+                        speedZ = speed / 2
+                    } else {
+                        speedZ = speed
+                    }
+                    if (flyMode) {
+                        camera.translateZ(-speedZ)
+                    } else {
+                        vector.setFromMatrixColumn( camera.matrix, 0 );
+				        vector.crossVectors( camera.up, vector );
+				        camera.position.addScaledVector( vector, speedZ );
+                    }
                     getAdvancedData()
                 }, 5)
                 keys.w = true
@@ -108,8 +134,27 @@ function onKeyboard(event){
             break;
         case 'KeyA':
             if (!keys.a){
+                speedX = 0
                 goLeft = setInterval(() => {
-                    camera.translateX(speed * -1)
+                    // if (keys.d){
+                    //     clearInterval(goLeft)
+                    //     clearInterval(goRight)
+                    //     keys.d = false
+                    //     keys.a = false
+                    // }
+                    if (keys.w || keys.s){
+                        speedXmax = -speed / 2
+                    } else {
+                        speedXmax = -speed
+                    }
+                    speedX === 0 ? speedX -= 0.0051 : speedX *= -1.2
+                    speedX = Math.min(Math.abs(speedX), Math.abs(speedXmax))
+                    if (flyMode) {
+                        camera.translateX(-Math.abs(speedX))
+                    } else {
+                        vector.setFromMatrixColumn( camera.matrix, 0 );
+				        camera.position.addScaledVector( vector, -Math.abs(speedXmax) );
+                    }
                     getAdvancedData()
                 }, 5)
                 keys.a = true
@@ -117,8 +162,27 @@ function onKeyboard(event){
             break;
         case 'KeyD':
             if (!keys.d){
+                speedX = 0
                 goRight = setInterval(() => {
-                    camera.translateX(speed)
+                    // if (keys.a){
+                    //     clearInterval(goLeft)
+                    //     clearInterval(goRight)
+                    //     keys.d = false
+                    //     keys.a = false
+                    // }
+                    if (keys.w || keys.s){
+                        speedXmax = speed / 2
+                    } else {
+                        speedXmax = speed
+                    }
+                    speedX === 0 ? speedX += 0.005 : speedX *= 1.2
+                    speedX = Math.min(speedX, speedXmax)
+                    if (flyMode) {
+                        camera.translateX(Math.abs(speedX))
+                    } else {
+                        vector.setFromMatrixColumn( camera.matrix, 0 );
+				        camera.position.addScaledVector( vector, Math.abs(speedXmax) );
+                    }
                     getAdvancedData()
                 }, 5)
                 keys.d = true
@@ -127,7 +191,18 @@ function onKeyboard(event){
         case 'KeyS':
             if (!keys.s){
                 goBack = setInterval(() => {
-                    camera.translateZ(speed)
+                    if (keys.a || keys.d){
+                        speedZ = speed / 2
+                    } else {
+                        speedZ = speed
+                    }
+                    if (flyMode) {
+                        camera.translateZ(speedZ)
+                    } else {
+                        vector.setFromMatrixColumn( camera.matrix, 0 );
+				        vector.crossVectors( camera.up, vector );
+				        camera.position.addScaledVector( vector, -speedZ );
+                    }
                     getAdvancedData()
                 }, 5)
                 keys.s = true
@@ -151,7 +226,11 @@ function offKeyboard(event){
     // console.log(event)
     switch (event.code) {
         case 'ShiftLeft':
-            speed = 0.2
+            if (flyMode){
+                speed = 0.2
+            } else {
+                speed = 0.05
+            }
             keys.shift = false
             break;    
         case 'KeyW':
@@ -185,6 +264,13 @@ document.getElementById('onPlay').addEventListener('click', onPlay)
 
 function onPlay(){
     document.getElementById('menuBg').style.display = 'none'
+    flyMode = document.getElementById('playOrDevChoose').checked
+    if (flyMode){
+        speed = 0.2
+    } else {
+        speed = 0.05
+    }
+    speedX = 0, speedZ = 0, speedXmax = 0, speedZmax = 0
     document.querySelector('canvas').requestPointerLock = document.querySelector('canvas').requestPointerLock ||
     document.querySelector('canvas').mozRequestPointerLock ||
     document.querySelector('canvas').webkitRequestPointerLock;
@@ -192,6 +278,15 @@ function onPlay(){
     window.addEventListener('mousemove', onMouseMove)
     window.addEventListener('keydown', onKeyboard)
     window.addEventListener('keyup', offKeyboard)
+    if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen();
+    } else if (document.documentElement.msRequestFullscreen) {
+        document.documentElement.msRequestFullscreen();
+    } else if (document.documentElement.mozRequestFullScreen) {
+        document.documentElement.mozRequestFullScreen();
+    } else if (document.documentElement.webkitRequestFullscreen) {
+        document.documentElement.webkitRequestFullscreen();
+    }
 }
 function onMenu(){
     document.getElementById('onPlay').removeEventListener('click', onPlay)
@@ -213,14 +308,19 @@ function onMenu(){
     }
     speed = 0.2
 }
+const points = [];
+points.push( new THREE.Vector3( - 10, 0, 0 ) )
 
-function onMouseMove(event){
-    camera.rotation.x -= event.movementY / (1 / sensitivity * 1000)
-    camera.rotation.y -= event.movementX / (1 / sensitivity * 1000)
+function onMouseMove( event ){
+    const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
+	const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
 
-    document.getElementById('povX').innerText = camera.rotation.x
-    document.getElementById('povY').innerText = camera.rotation.y
-    document.getElementById('povZ').innerText = camera.rotation.z
+    euler.x -= movementY / (1 / sensitivity * 1000)
+    euler.y -= movementX / (1 / sensitivity * 1000)
+
+    euler.x = Math.max(Math.min(Math.PI/1.5, euler.x), -Math.PI/1.5)
+    camera.quaternion.setFromEuler( euler );
+    getAdvancedData()
 }
 
 document.addEventListener('pointerlockerror', lockError, false);
@@ -266,12 +366,32 @@ function onSensInp(){
     sensitivity = document.getElementById('sensInp').value
 }
 function getAdvancedData(){
-    document.getElementById('xCords').innerText = camera.position.x
-    document.getElementById('zCords').innerText = camera.position.z
-    document.getElementById('yCords').innerText = camera.position.y
-    document.getElementById('povX').innerText = camera.rotation.x
-    document.getElementById('povY').innerText = camera.rotation.y
-    document.getElementById('povZ').innerText = camera.rotation.z
+    document.getElementById('xCords').innerText = String(camera.position.x).slice(0, 5)
+    document.getElementById('zCords').innerText = String(camera.position.z).slice(0, 5)
+    document.getElementById('yCords').innerText = String(camera.position.y).slice(0, 5)
+    document.getElementById('povX').innerText = String(camera.rotation.x / (Math.PI * 2) * 100).slice(0, 5)
+    document.getElementById('povY').innerText = String(camera.rotation.y / (Math.PI * 2) * 100).slice(0, 5)
+    document.getElementById('povZ').innerText = String(camera.rotation.z / (Math.PI * 2) * 100).slice(0, 5)
+    let povY = camera.rotation.y / (Math.PI * 2) - Math.floor(camera.rotation.y / (Math.PI * 2))
+    if (povY > 0.875){
+        document.getElementById('axis').innerText = 'x'
+    } else if (povY > 0.625){
+        document.getElementById('axis').innerText = '-z'
+    } else if (povY > 0.375){
+        document.getElementById('axis').innerText = '-x'
+    } else if (povY > 0.125){
+        document.getElementById('axis').innerText = 'z'
+    } else {
+        document.getElementById('axis').innerText = 'x'
+    }
 }
+function gravityUpdate(){
+    if (!flyMode) {
+        if (camera.position.y > 2) {
+            let height = camera.position.y - 2
+            let g = 9.81
+            let time = Math.sqrt(2*height/g)
 
-
+        }
+    }
+}

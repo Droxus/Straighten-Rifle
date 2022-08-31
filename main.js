@@ -1,6 +1,4 @@
 
-import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r99/three.module.js';
-
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.1, 1000 );
 
@@ -9,6 +7,27 @@ const vector = new THREE.Vector3();
 
 let flyMode, speedX = 0, speedZ = 0, speedXmax, speedZmax
 let sensitivity = 1
+
+const loader = new THREE.GLTFLoader();
+
+let model
+
+loader.load('location.glb', (glb) => {
+    if (glb){
+        console.log(glb)
+        model = glb.scene
+        model.scale.set(1, 1, 1)
+        model.position.set(0, 0, 0)
+        model.castShadow = true
+        scene.add(model);
+    }
+}, (xhr) => {
+    console.log(( xhr.loaded / xhr.total * 100 ) + '% loaded');
+}, (error) => {
+    console.log( 'An error happened' );
+})
+
+
 
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize( window.innerWidth, window.innerHeight );
@@ -19,7 +38,7 @@ document.body.appendChild( renderer.domElement );
 const geometry = new THREE.BoxGeometry( 1, 1, 1 );
 const material = new THREE.MeshStandardMaterial( { color: 0xffea2e } );
 const cube = new THREE.Mesh( geometry, material );
-const floor = new THREE.Mesh( new THREE.BoxGeometry( 100, 0.1, 100 ), new THREE.MeshLambertMaterial( { color: 0x4f4f4f } ) );
+const floor = new THREE.Mesh( new THREE.BoxGeometry( 500, 0.1, 500 ), new THREE.MeshLambertMaterial( { color: 0x4f4f4f } ) );
 scene.add( cube );
 scene.add(floor)
 cube.position.set(0, 2, 0)
@@ -42,6 +61,12 @@ scene.add( spotLight );
         0,
     )
 
+    const pointLight = new THREE.PointLight( 'white', 2, 100 );
+    pointLight.position.set( 130, 50, 0 );
+    pointLight.loo
+    scene.add( pointLight )
+
+
 renderer.toneMapping = THREE.ReinhardToneMapping
 renderer.toneMappingExposure = 2.3
 renderer.shadowMap.enabled = true
@@ -52,10 +77,6 @@ floor.receiveShadow = true
 camera.position.set(0, 2, 5)
 camera.rotation.order = 'YXZ'
 
-var point = new THREE.Points(new THREE.Geometry(), new THREE.PointsMaterial({color: 0x888888}));
-
-scene.add(point);
-
 animate();
 
 
@@ -65,11 +86,10 @@ function animate() {
     cube.rotation.x += 0.01;
     cube.rotation.y += 0.01;
 
-    gravityUpdate()
-
+    // gravityUpdate()
+    
     renderer.render( scene, camera );
 };
-
 window.addEventListener('resize', onResize)
 document.oncontextmenu = document.body.oncontextmenu = function() {return false;}
 
@@ -106,9 +126,9 @@ function onKeyboard(event){
     switch (event.code) {
         case 'ShiftLeft':
             if (flyMode){
-                speed = 0.05
+                speed = 0.1
             } else {
-                speed = 0.015
+                speed = 0.025
             }
             keys.shift = true
             break;
@@ -390,7 +410,7 @@ function gravityUpdate(){
         if (camera.position.y > 2) {
             let height = camera.position.y - 2
             let g = 9.81
-            let time = Math.sqrt(2*height/g)
+            let time = Math.sqrt(2*(height/g))
 
         }
     }

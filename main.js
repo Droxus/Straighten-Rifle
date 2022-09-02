@@ -5,8 +5,11 @@ const camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.inner
 const euler = new THREE.Euler( 0, 0, 0, 'YXZ' );
 const vector = new THREE.Vector3();
 
-let flyMode, speedX = 0, speedZ = 0, speedXmax, speedZmax
+let modelHeight = 2
+
+let flyMode, speedX = 0, speedZ = 0, speedXmax, speedZmax, vSpeed = 0
 let sensitivity = 1
+let canJump = true, canDuckMove = true
 
 const loader = new THREE.GLTFLoader();
 
@@ -61,9 +64,8 @@ scene.add( spotLight );
         0,
     )
 
-    const pointLight = new THREE.PointLight( 'white', 2, 100 );
-    pointLight.position.set( 130, 50, 0 );
-    pointLight.loo
+    const pointLight = new THREE.PointLight( 'white', 4, 100 );
+    pointLight.position.set( 118, 50, -2 );
     scene.add( pointLight )
 
 
@@ -74,7 +76,7 @@ renderer.shadowMap.enabled = true
 cube.castShadow = true;
 floor.receiveShadow = true
 
-camera.position.set(0, 2, 5)
+camera.position.set(0, modelHeight, 5)
 camera.rotation.order = 'YXZ'
 
 animate();
@@ -86,15 +88,12 @@ function animate() {
     cube.rotation.x += 0.01;
     cube.rotation.y += 0.01;
 
-    // gravityUpdate()
-    
     renderer.render( scene, camera );
 };
 window.addEventListener('resize', onResize)
 document.oncontextmenu = document.body.oncontextmenu = function() {return false;}
 
 function onResize(){
-    console.log()
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
 
@@ -114,6 +113,7 @@ let keys = {
     shift: false,
 }
 function onKeyboard(event){
+    // console.log(event)
     if (event.ctrlKey) {
         event.preventDefault();
     }  
@@ -229,7 +229,33 @@ function onKeyboard(event){
             }
             break;
         case 'Space':
-
+            event.preventDefault();
+            console.log('bbbbbbb')
+            if (!flyMode && canJump) {
+                    canJump = false
+                    let G = 9.81
+                    let time = 0.32185
+                    let goJump = setInterval(() => {
+                        time -= 0.005
+                        if (Math.floor(camera.position.y * 100) < modelHeight * 100 + 200){
+                            vSpeed = G * (time/50)
+                            camera.position.y += vSpeed
+                        } else {
+                            clearInterval(goJump)
+                            canJump = true
+                            gravityUpdate()
+                        }
+                        getAdvancedData()
+                    }, 5)
+            }
+            break;
+        case 'ControlLeft':
+            if (!flyMode && canDuckMove ){
+                camera.position.y -= modelHeight / 2
+                modelHeight /= 2
+                canDuckMove = false
+                getAdvancedData()
+            }
             break;
     }
 }
@@ -269,8 +295,13 @@ function offKeyboard(event){
             clearInterval(goBack)
             keys.s = false
             break;
-        case 'Space':
-
+        case 'ControlLeft':
+            if (!flyMode && !canDuckMove){
+                camera.position.y += modelHeight
+                modelHeight *= 2
+                canDuckMove = true
+                getAdvancedData()
+            }
             break;
         case 'F2':
             onAdvancedInfo()
@@ -307,6 +338,7 @@ function onPlay(){
     } else if (document.documentElement.webkitRequestFullscreen) {
         document.documentElement.webkitRequestFullscreen();
     }
+    gravityUpdate()
 }
 function onMenu(){
     document.getElementById('onPlay').removeEventListener('click', onPlay)
@@ -328,8 +360,6 @@ function onMenu(){
     }
     speed = 0.2
 }
-const points = [];
-points.push( new THREE.Vector3( - 10, 0, 0 ) )
 
 function onMouseMove( event ){
     const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
@@ -375,8 +405,10 @@ if ("onpointerlockchange" in document) {
         document.getElementById('advancedInfoBlock').style.display = 'grid'
     }
   }
+
 document.getElementById('sensSilder').addEventListener('input', onSensSilder)
 document.getElementById('sensInp').addEventListener('input', onSensInp)
+
 function onSensSilder(){
     document.getElementById('sensInp').value = document.getElementById('sensSilder').value / 10
     sensitivity = document.getElementById('sensInp').value
@@ -406,12 +438,25 @@ function getAdvancedData(){
     }
 }
 function gravityUpdate(){
-    if (!flyMode) {
-        if (camera.position.y > 2) {
-            let height = camera.position.y - 2
-            let g = 9.81
-            let time = Math.sqrt(2*(height/g))
-
+    console.log('aaaaaa')
+    if (!flyMode && canJump) {
+        if (Math.floor(camera.position.y * 100) > modelHeight * 100) {
+            console.log(modelHeight)
+            canJump = false
+            let G = -9.81
+            let time = 0
+            let goDown = setInterval(() => {
+                time += 0.005
+                if (Math.floor(camera.position.y * 100) > modelHeight * 100){
+                    vSpeed = G * (time/75)
+                    camera.position.y += vSpeed
+                } else {
+                    clearInterval(goDown)
+                    canJump = true
+                    camera.position.y = modelHeight
+                }
+                getAdvancedData()
+            }, 5)
         }
     }
 }

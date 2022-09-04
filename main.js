@@ -10,7 +10,7 @@ let modelHeight = 2
 let flyMode, speedX = 0, speedZ = 0, speedXmax, speedZmax, vSpeed = 0
 let sensitivity = 1
 let canJump = true, canDuckMove = true
-
+let goDuckTimer, goDuck
 const loader = new THREE.GLTFLoader();
 
 let model
@@ -20,7 +20,7 @@ loader.load('location.glb', (glb) => {
         console.log(glb)
         model = glb.scene
         model.scale.set(1, 1, 1)
-        model.position.set(0, 0, 0)
+        model.position.set(0, -0.045, 0)
         model.castShadow = true
         scene.add(model);
     }
@@ -128,7 +128,7 @@ function onKeyboard(event){
             if (flyMode){
                 speed = 0.1
             } else {
-                speed = 0.025
+                speed = 0.03
             }
             keys.shift = true
             break;
@@ -147,6 +147,7 @@ function onKeyboard(event){
 				        vector.crossVectors( camera.up, vector );
 				        camera.position.addScaledVector( vector, speedZ );
                     }
+                    checkCollisions()
                     getAdvancedData()
                 }, 5)
                 keys.w = true
@@ -230,7 +231,6 @@ function onKeyboard(event){
             break;
         case 'Space':
             event.preventDefault();
-            console.log('bbbbbbb')
             if (!flyMode && canJump) {
                     canJump = false
                     let G = 9.81
@@ -251,10 +251,17 @@ function onKeyboard(event){
             break;
         case 'ControlLeft':
             if (!flyMode && canDuckMove ){
-                camera.position.y -= modelHeight / 2
-                modelHeight /= 2
+                let prevModelHeight = modelHeight 
+                goDuck = setInterval(() => {
+                    modelHeight -= (prevModelHeight / 2) / 25
+                    camera.position.y -= (prevModelHeight / 2) / 25
+                    getAdvancedData()
+                }, 5)
+                goDuckTimer = setTimeout(() => {
+                    speed = 0.025
+                    clearInterval(goDuck)
+                }, 125)
                 canDuckMove = false
-                getAdvancedData()
             }
             break;
     }
@@ -297,16 +304,25 @@ function offKeyboard(event){
             break;
         case 'ControlLeft':
             if (!flyMode && !canDuckMove){
-                camera.position.y += modelHeight
-                modelHeight *= 2
-                canDuckMove = true
-                getAdvancedData()
+                clearInterval(goDuck)
+                clearTimeout(goDuckTimer)
+                let prevmodelHeight = 1
+                goDuck = setInterval(() => {
+                    if (modelHeight < 2){
+                        camera.position.y += prevmodelHeight / 25
+                        modelHeight += prevmodelHeight / 25
+                    } else {
+                        canDuckMove = true
+                        speed = 0.05
+                        clearInterval(goDuck)
+                    }
+                    getAdvancedData()
+                }, 5)
             }
             break;
         case 'F2':
             onAdvancedInfo()
             break;
-
     }
 }
 
@@ -438,10 +454,8 @@ function getAdvancedData(){
     }
 }
 function gravityUpdate(){
-    console.log('aaaaaa')
     if (!flyMode && canJump) {
         if (Math.floor(camera.position.y * 100) > modelHeight * 100) {
-            console.log(modelHeight)
             canJump = false
             let G = -9.81
             let time = 0
@@ -459,4 +473,27 @@ function gravityUpdate(){
             }, 5)
         }
     }
+}
+function checkCollisions(){
+    // console.log(model.children)
+    // for (let i = 0; i < model.children.length; i++){
+        // let i = 2
+        // console.log(model.children[i].position.x + (model.children[i].scale.y/2))
+        // console.log(camera.position.x < (model.children[i].position.x + (model.children[i].scale.y/2)))
+        // console.log(model.children[i].position.x + (model.children[i].scale.y/2))
+        // console.log(camera.position.x > (model.children[i].position.x - (model.children[i].scale.y/2)))
+
+        // if ((camera.position.x < (model.children[i].position.x + (model.children[i].scale.y/2)) && camera.position.x > (model.children[i].position.x - (model.children[i].scale.y/2))) &&
+        // (camera.position.z < (model.children[i].position.z + (model.children[i].scale.x)) && camera.position.z > (model.children[i].position.z - (model.children[i].scale.x)))){
+        //     console.log('adadada')
+        // }
+        // console.log(camera.position.z < (model.children[i].position.z + (model.children[i].scale.x)))
+        // console.log(camera.position.z > (model.children[i].position.z - (model.children[i].scale.x)))
+        // if ((camera.position.x < (model.children[i].position.x + (model.children[i].geometry.boundingBox.max.y)) && camera.position.x > (model.children[i].position.x + (model.children[i].geometry.boundingBox.min.y))) &&
+        // (camera.position.z < (model.children[i].position.z + (model.children[i].scale.x)) && camera.position.z > (model.children[i].position.z - (model.children[i].scale.x)))){
+        //     console.log('adadada')
+        // }
+
+        // camera.position.y = model.children[i].position.y + modelHeight
+    // }
 }

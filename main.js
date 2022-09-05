@@ -11,6 +11,7 @@ let flyMode, speedX = 0, speedZ = 0, speedXmax, speedZmax, vSpeed = 0
 let sensitivity = 1
 let canJump = true, canDuckMove = true
 let goDuckTimer, goDuck
+let boxes = []
 const loader = new THREE.GLTFLoader();
 
 let model
@@ -20,9 +21,21 @@ loader.load('location.glb', (glb) => {
         console.log(glb)
         model = glb.scene
         model.scale.set(1, 1, 1)
-        model.position.set(0, -0.045, 0)
+        model.position.set(0, -0.04, 0)
         model.castShadow = true
         scene.add(model);
+        Array.from(model.children).forEach(element => {
+            let box = new THREE.Box3().setFromObject( element )
+            boxes.push({
+                size: box.getSize( new THREE.Vector3() ), 
+                position: {
+                    x: element.position.x, 
+                    y: element.position.y, 
+                    z: element.position.z
+                }
+            })
+        })
+        console.log(boxes)
     }
 }, (xhr) => {
     console.log(( xhr.loaded / xhr.total * 100 ) + '% loaded');
@@ -146,8 +159,14 @@ function onKeyboard(event){
                         vector.setFromMatrixColumn( camera.matrix, 0 );
 				        vector.crossVectors( camera.up, vector );
 				        camera.position.addScaledVector( vector, speedZ );
+                        if (checkCollisions()){
+                            camera.position.addScaledVector( vector, -speedZ );
+                            // vector.crossVectors( camera.up, vector );
+                            // vector.setFromMatrixColumn( camera.matrix, 0 );
+                            // camera.position.addScaledVector( vector, speedZ );
+                            // vector.setComponent(0, speedZ/2)
+                        }
                     }
-                    checkCollisions()
                     getAdvancedData()
                 }, 5)
                 keys.w = true
@@ -175,6 +194,9 @@ function onKeyboard(event){
                     } else {
                         vector.setFromMatrixColumn( camera.matrix, 0 );
 				        camera.position.addScaledVector( vector, -Math.abs(speedXmax) );
+                        if (checkCollisions()){
+                            camera.position.addScaledVector( vector, Math.abs(speedXmax) );
+                        }
                     }
                     getAdvancedData()
                 }, 5)
@@ -203,6 +225,9 @@ function onKeyboard(event){
                     } else {
                         vector.setFromMatrixColumn( camera.matrix, 0 );
 				        camera.position.addScaledVector( vector, Math.abs(speedXmax) );
+                        if (checkCollisions()){
+                            camera.position.addScaledVector( vector, -Math.abs(speedXmax) );
+                        }
                     }
                     getAdvancedData()
                 }, 5)
@@ -223,6 +248,9 @@ function onKeyboard(event){
                         vector.setFromMatrixColumn( camera.matrix, 0 );
 				        vector.crossVectors( camera.up, vector );
 				        camera.position.addScaledVector( vector, -speedZ );
+                        if (checkCollisions()){
+                            camera.position.addScaledVector( vector, speedZ );
+                        }
                     }
                     getAdvancedData()
                 }, 5)
@@ -235,11 +263,12 @@ function onKeyboard(event){
                     canJump = false
                     let G = 9.81
                     let time = 0.32185
+                    let modelRealHeight = camera.position.y
                     let goJump = setInterval(() => {
                         time -= 0.005
-                        if (Math.floor(camera.position.y * 100) < modelHeight * 100 + 200){
+                        if (Math.floor(camera.position.y * 100) < modelRealHeight * 100 + 200){
                             vSpeed = G * (time/50)
-                            camera.position.y += vSpeed
+                            camera.position.y += Math.abs(vSpeed)
                         } else {
                             clearInterval(goJump)
                             canJump = true
@@ -456,18 +485,35 @@ function getAdvancedData(){
 function gravityUpdate(){
     if (!flyMode && canJump) {
         if (Math.floor(camera.position.y * 100) > modelHeight * 100) {
+            console.log('what')
             canJump = false
             let G = -9.81
             let time = 0
             let goDown = setInterval(() => {
                 time += 0.005
-                if (Math.floor(camera.position.y * 100) > modelHeight * 100){
+                let modelRealHeight
+                let possibleJumpTargets = []
+                for (let i = 0; i < boxes.length; i++){
+            
+                    if ((camera.position.x < (boxes[i].position.x + (boxes[i].size.x/2) + (5*speed)) && camera.position.x > (boxes[i].position.x - (boxes[i].size.x/2) - (5*speed))) &&
+                    (camera.position.z < (boxes[i].position.z + (boxes[i].size.z/2) + (5*speed)) && camera.position.z > (boxes[i].position.z - (boxes[i].size.z/2) - (5*speed)))){
+                        if ((camera.position.y-0.9) > (boxes[i].position.y + (boxes[i].size.y/2))){
+                            possibleJumpTargets.push(boxes[i].position.y + (boxes[i].size.y/2) + modelHeight)
+                        }
+                    }
+                }
+                if (possibleJumpTargets.length > 0){
+                    modelRealHeight = Math.max.apply(2, possibleJumpTargets);
+                } else {
+                    modelRealHeight = 2 
+                }
+                if (Math.floor(camera.position.y * 100) > modelRealHeight * 100){
                     vSpeed = G * (time/75)
                     camera.position.y += vSpeed
                 } else {
                     clearInterval(goDown)
                     canJump = true
-                    camera.position.y = modelHeight
+                    camera.position.y = modelRealHeight
                 }
                 getAdvancedData()
             }, 5)
@@ -476,24 +522,25 @@ function gravityUpdate(){
 }
 function checkCollisions(){
     // console.log(model.children)
-    // for (let i = 0; i < model.children.length; i++){
-        // let i = 2
-        // console.log(model.children[i].position.x + (model.children[i].scale.y/2))
-        // console.log(camera.position.x < (model.children[i].position.x + (model.children[i].scale.y/2)))
-        // console.log(model.children[i].position.x + (model.children[i].scale.y/2))
-        // console.log(camera.position.x > (model.children[i].position.x - (model.children[i].scale.y/2)))
-
-        // if ((camera.position.x < (model.children[i].position.x + (model.children[i].scale.y/2)) && camera.position.x > (model.children[i].position.x - (model.children[i].scale.y/2))) &&
-        // (camera.position.z < (model.children[i].position.z + (model.children[i].scale.x)) && camera.position.z > (model.children[i].position.z - (model.children[i].scale.x)))){
-        //     console.log('adadada')
-        // }
-        // console.log(camera.position.z < (model.children[i].position.z + (model.children[i].scale.x)))
-        // console.log(camera.position.z > (model.children[i].position.z - (model.children[i].scale.x)))
-        // if ((camera.position.x < (model.children[i].position.x + (model.children[i].geometry.boundingBox.max.y)) && camera.position.x > (model.children[i].position.x + (model.children[i].geometry.boundingBox.min.y))) &&
-        // (camera.position.z < (model.children[i].position.z + (model.children[i].scale.x)) && camera.position.z > (model.children[i].position.z - (model.children[i].scale.x)))){
-        //     console.log('adadada')
-        // }
-
-        // camera.position.y = model.children[i].position.y + modelHeight
-    // }
+    let haveCollision = false
+    let possibleJumpTargets = []
+    for (let i = 0; i < boxes.length; i++){
+        if ((camera.position.x < (boxes[i].position.x + (boxes[i].size.x/2) + (5*speed)) && camera.position.x > (boxes[i].position.x - (boxes[i].size.x/2) - (5*speed))) &&
+        (camera.position.z < (boxes[i].position.z + (boxes[i].size.z/2) + (5*speed)) && camera.position.z > (boxes[i].position.z - (boxes[i].size.z/2) - (5*speed)))){
+            if ((camera.position.y-0.9) > (boxes[i].position.y + (boxes[i].size.y/2))){
+                possibleJumpTargets.push(boxes[i].position.y + (boxes[i].size.y/2) + modelHeight)
+                console.log('up')
+            } else {
+                haveCollision = true
+                console.log('down')
+            }
+        }
+    }
+    if (canJump && possibleJumpTargets.length > 0){
+        camera.position.y = Math.max.apply(2, possibleJumpTargets);
+    }
+    if (canJump && haveCollision){
+        camera.position.y = 2
+    }
+    return haveCollision
 }

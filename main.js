@@ -11,7 +11,7 @@ let flyMode, speedX = 0, speedZ = 0, speedXmax, speedZmax, vSpeed = 0
 let sensitivity = 1
 let canJump = true, canDuckMove = true
 let goDuckTimer, goDuck
-let boxes = []
+let boxes = [], helpers = []
 const loader = new THREE.GLTFLoader();
 
 let model
@@ -26,13 +26,12 @@ loader.load('location.glb', (glb) => {
         scene.add(model);
         Array.from(model.children).forEach(element => {
             let box = new THREE.Box3().setFromObject( element )
+            let helper = new THREE.Box3Helper( box, 'white' );
+            helpers.push( helper )
+            scene.add( helper )
             boxes.push({
                 size: box.getSize( new THREE.Vector3() ), 
-                position: {
-                    x: element.position.x, 
-                    y: element.position.y, 
-                    z: element.position.z
-                }
+                position: box.getCenter( new THREE.Vector3() ), 
             })
         })
         console.log(boxes)
@@ -51,10 +50,11 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild( renderer.domElement );
 
-const geometry = new THREE.BoxGeometry( 1, 1, 1 );
-const material = new THREE.MeshStandardMaterial( { color: 0xffea2e } );
-const cube = new THREE.Mesh( geometry, material );
+const cube = new THREE.Mesh( new THREE.BoxGeometry( 1, 1, 1 ), new THREE.MeshStandardMaterial( { color: 0xffea2e } ) );
+cube.position.set(0, 2, 0)
 const floor = new THREE.Mesh( new THREE.BoxGeometry( 500, 0.1, 500 ), new THREE.MeshLambertMaterial( { color: 0x4f4f4f } ) );
+const box = new THREE.BoxHelper( cube, 'white' );
+scene.add( box );
 scene.add( cube );
 scene.add(floor)
 cube.position.set(0, 2, 0)
@@ -159,9 +159,22 @@ function onKeyboard(event){
                         vector.setFromMatrixColumn( camera.matrix, 0 );
 				        vector.crossVectors( camera.up, vector );
 				        camera.position.addScaledVector( vector, speedZ );
-                        if (checkCollisions()){
+                        let collision = checkCollisions()
+                        if (collision){
                             camera.position.addScaledVector( vector, -speedZ );
+                            vector.setFromMatrixColumn( camera.matrix, 0 );
+                            // console.log(camera.rotation.y / (Math.PI * 2) * 100)
+                            console.log(collision)
+                            // if (document.getElementById('axis').innerText == 'z'){
+                            //     camera.position.addScaledVector( vector, -Math.abs(speedXmax) );
+                            // } else if (document.getElementById('axis').innerText == '-z') {
+                            //     camera.position.addScaledVector( vector, Math.abs(speedXmax) );
+                            // }
+                            // vector.setFromMatrixColumn( camera.matrix, 0 );
+				            // camera.position.addScaledVector( vector, -Math.abs(speedXmax) );
                             // vector.crossVectors( camera.up, vector );
+                            // camera.position.addScaledVector( vector, speedZ );
+                            // String(camera.rotation.y / (Math.PI * 2) * 100).slice(0, 5)
                             // vector.setFromMatrixColumn( camera.matrix, 0 );
                             // camera.position.addScaledVector( vector, speedZ );
                             // vector.setComponent(0, speedZ/2)
@@ -351,6 +364,12 @@ function offKeyboard(event){
             break;
         case 'F2':
             onAdvancedInfo()
+            if (helpers[0].visible){
+                helpers.forEach(element => element.visible = false)
+            } else {
+                helpers.forEach(element => element.visible = true)
+            }
+            
             break;
     }
 }
@@ -531,7 +550,7 @@ function checkCollisions(){
                 possibleJumpTargets.push(boxes[i].position.y + (boxes[i].size.y/2) + modelHeight)
                 console.log('up')
             } else {
-                haveCollision = true
+                haveCollision = boxes[i]
                 console.log('down')
             }
         }

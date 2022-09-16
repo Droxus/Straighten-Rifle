@@ -19,7 +19,7 @@ let model
 
 loader.load('location.glb', (glb) => {
     if (glb){
-        console.log(glb)
+        // console.log(glb)
         model = glb.scene
         model.scale.set(1, 1, 1)
         model.position.set(0, -0.04, 0)
@@ -35,12 +35,12 @@ loader.load('location.glb', (glb) => {
                 position: box.getCenter( new THREE.Vector3() ), 
             })
         })
-        console.log(boxes)
+        // console.log(boxes)
     }
 }, (xhr) => {
-    console.log(( xhr.loaded / xhr.total * 100 ) + '% loaded');
+    // console.log(( xhr.loaded / xhr.total * 100 ) + '% loaded');
 }, (error) => {
-    console.log( 'An error happened' );
+    // console.log( 'An error happened' );
 })
 
 
@@ -55,13 +55,17 @@ const cube = new THREE.Mesh( new THREE.BoxGeometry( 1, 1, 1 ), new THREE.MeshSta
 cube.position.set(0, 2, 0)
 const floor = new THREE.Mesh( new THREE.BoxGeometry( 500, 0.1, 500 ), new THREE.MeshLambertMaterial( { color: 0x4f4f4f } ) );
 const box = new THREE.BoxHelper( cube, 'white' );
+const playerModel = new THREE.Mesh( new THREE.BoxGeometry( 1, 2, 1 ), new THREE.MeshStandardMaterial( { color: 'green' } ) );
 scene.add( box );
 scene.add( cube );
-scene.add(floor)
+scene.add( floor )
+scene.add( playerModel )
 cube.position.set(0, 2, 0)
 floor.position.set(0, -0.1, 0)
+playerModel.position.set(0, 1, 5)
+playerModel.visible = false
 
-scene.background = new THREE.Color( 0xb0b0b0 )
+scene.background = new THREE.Color( 'skyblue' )
 
 const hemiLight = new THREE.HemisphereLight( 0xffeeb1, 0x080820, 4 );
 scene.add( hemiLight );
@@ -508,7 +512,7 @@ function getAdvancedData(){
 function gravityUpdate(){
     if (!flyMode && canJump) {
         if (Math.floor(camera.position.y * 100) > modelHeight * 100) {
-            console.log('what')
+            // console.log('what')
             canJump = false
             let G = -9.81
             let time = 0
@@ -545,43 +549,62 @@ function gravityUpdate(){
 }
 function checkCollisions(){
     // console.log(model.children)
-    let haveCollision = false
+    playerModel.position.set(camera.position.x, camera.position.y, camera.position.z)
+    playerModel.geometry.computeBoundingBox()
+    let playerHitBox = {
+        size: playerModel.geometry.boundingBox.getSize( new THREE.Vector3() ),
+        position: playerModel.position, 
+    }
+    // console.log(playerHitBox)
+    let haveCollision = []
     let possibleJumpTargets = []
     for (let i = 0; i < boxes.length; i++){
-        if ((camera.position.x < (boxes[i].position.x + (boxes[i].size.x/2) + (5*speed)) && camera.position.x > (boxes[i].position.x - (boxes[i].size.x/2) - (5*speed))) &&
-        (camera.position.z < (boxes[i].position.z + (boxes[i].size.z/2) + (5*speed)) && camera.position.z > (boxes[i].position.z - (boxes[i].size.z/2) - (5*speed)))){
+        if ((camera.position.x + (playerHitBox.size.x/2) < (boxes[i].position.x + (boxes[i].size.x/2) + playerHitBox.size.x) && camera.position.x - (playerHitBox.size.x/2) > (boxes[i].position.x - (boxes[i].size.x/2) - playerHitBox.size.x)) &&
+        (camera.position.z + (playerHitBox.size.z/2) < (boxes[i].position.z + (boxes[i].size.z/2) + playerHitBox.size.z) && camera.position.z - (playerHitBox.size.z/2) > (boxes[i].position.z - (boxes[i].size.z/2) - playerHitBox.size.z))){
             if ((camera.position.y-0.9) > (boxes[i].position.y + (boxes[i].size.y/2))){
                 possibleJumpTargets.push(boxes[i].position.y + (boxes[i].size.y/2) + modelHeight)
-                console.log('up')
+                // console.log('up')
             } else {
-                haveCollision = boxes[i]
-                console.log('down')
+                haveCollision.push(boxes[i])
+                // console.log('down')
             }
         }
     }
     if (canJump && possibleJumpTargets.length > 0){
         camera.position.y = Math.max.apply(2, possibleJumpTargets);
     }
-    if (canJump && haveCollision){
+    if (canJump && possibleJumpTargets.length < 1){
         camera.position.y = 2
     }
     return haveCollision
 }
-function onCollision(collision){
-    if (collision){
-        if ((camera.position.x < (collision.position.x + (collision.size.x/2) + (5*speed)) && camera.position.x > (collision.position.x - (collision.size.x/2) - (5*speed))) &&
-        (camera.position.z < (collision.position.z + (collision.size.z/2) + (5*speed)) && camera.position.z > (collision.position.z - (collision.size.z/2) - (5*speed)))){
-            if ((camera.position.y-0.9) > (collision.position.y + (collision.size.y/2))){
-                possibleJumpTargets.push(collision.position.y + (collision.size.y/2) + modelHeight)
-                console.log('up')
-            } else {
-                if (prevPosition.x < (collision.position.x + (collision.size.x/2) + (5*speed)) && prevPosition.x > (collision.position.x - (collision.size.x/2) - (5*speed))){
-                    camera.position.z = prevPosition.z
-                } else if (prevPosition.z < (collision.position.z + (collision.size.z/2) + (5*speed)) && prevPosition.z > (collision.position.z - (collision.size.z/2) - (5*speed))){
-                    camera.position.x = prevPosition.x
+function onCollision(collisions){
+    playerModel.position.set(camera.position.x, camera.position.y, camera.position.z)
+    playerModel.geometry.computeBoundingBox()
+    let playerHitBox = {
+        size: playerModel.geometry.boundingBox.getSize( new THREE.Vector3() ),
+        position: playerModel.position, 
+    }
+    for (let collision of collisions){
+        if (collision){
+            if ((camera.position.x + (playerHitBox.size.x/2) < (collision.position.x + (collision.size.x/2) + playerHitBox.size.x) && camera.position.x - (playerHitBox.size.x/2) > (collision.position.x - (collision.size.x/2) - playerHitBox.size.x)) &&
+            (camera.position.z + (playerHitBox.size.z/2) < (collision.position.z + (collision.size.z/2) + playerHitBox.size.z) && camera.position.z - (playerHitBox.size.x/2) > (collision.position.z - (collision.size.z/2) - playerHitBox.size.z))){
+                if ((camera.position.y-0.9) > (collision.position.y + (collision.size.y/2))){
+                    possibleJumpTargets.push(collision.position.y + (collision.size.y/2) + modelHeight)
+                    // console.log('up')
+                } else {
+                    if (prevPosition.x < (collision.position.x + (collision.size.x/2) + (5*speed)) && prevPosition.x > (collision.position.x - (collision.size.x/2) - (5*speed))){
+                        camera.position.z = prevPosition.z
+                    } else if (prevPosition.z < (collision.position.z + (collision.size.z/2) + (5*speed)) && prevPosition.z > (collision.position.z - (collision.size.z/2) - (5*speed))){
+                        camera.position.x = prevPosition.x
+                    } 
+                    // else {
+                    //     camera.position.x = prevPosition.x
+                    //     camera.position.z = prevPosition.z
+                    // }
+                    // console.log('down')
                 }
-                console.log('down')
             }
-        }
-}
+    }
+    }
 }

@@ -94,7 +94,7 @@ renderer.shadowMap.enabled = true
 cube.castShadow = true;
 floor.receiveShadow = true
 
-camera.position.set(0, modelHeight, 5)
+camera.position.set(118, modelHeight, -25)
 camera.rotation.order = 'YXZ'
 
 animate();
@@ -559,8 +559,8 @@ function checkCollisions(){
     let haveCollision = []
     let possibleJumpTargets = []
     for (let i = 0; i < boxes.length; i++){
-        if ((camera.position.x + (playerHitBox.size.x/2) < (boxes[i].position.x + (boxes[i].size.x/2) + playerHitBox.size.x) && camera.position.x - (playerHitBox.size.x/2) > (boxes[i].position.x - (boxes[i].size.x/2) - playerHitBox.size.x)) &&
-        (camera.position.z + (playerHitBox.size.z/2) < (boxes[i].position.z + (boxes[i].size.z/2) + playerHitBox.size.z) && camera.position.z - (playerHitBox.size.z/2) > (boxes[i].position.z - (boxes[i].size.z/2) - playerHitBox.size.z))){
+        if ((camera.position.x - (playerHitBox.size.x/2) < (boxes[i].position.x + (boxes[i].size.x/2)) && camera.position.x + (playerHitBox.size.x/2) > (boxes[i].position.x - (boxes[i].size.x/2))) &&
+        (camera.position.z - (playerHitBox.size.z/2) < (boxes[i].position.z + (boxes[i].size.z/2)) && camera.position.z + (playerHitBox.size.z/2) > (boxes[i].position.z - (boxes[i].size.z/2)))){
             if ((camera.position.y-0.9) > (boxes[i].position.y + (boxes[i].size.y/2))){
                 possibleJumpTargets.push(boxes[i].position.y + (boxes[i].size.y/2) + modelHeight)
                 // console.log('up')
@@ -587,22 +587,35 @@ function onCollision(collisions){
     }
     for (let collision of collisions){
         if (collision){
-            if ((camera.position.x + (playerHitBox.size.x/2) < (collision.position.x + (collision.size.x/2) + playerHitBox.size.x) && camera.position.x - (playerHitBox.size.x/2) > (collision.position.x - (collision.size.x/2) - playerHitBox.size.x)) &&
-            (camera.position.z + (playerHitBox.size.z/2) < (collision.position.z + (collision.size.z/2) + playerHitBox.size.z) && camera.position.z - (playerHitBox.size.x/2) > (collision.position.z - (collision.size.z/2) - playerHitBox.size.z))){
-                if ((camera.position.y-0.9) > (collision.position.y + (collision.size.y/2))){
+            if ((camera.position.x - (playerHitBox.size.x/2) <= (collision.position.x + (collision.size.x/2)) && camera.position.x + (playerHitBox.size.x/2) >= (collision.position.x - (collision.size.x/2))) &&
+            (camera.position.z - (playerHitBox.size.z/2) <= (collision.position.z + (collision.size.z/2) + (playerHitBox.size.z/2)) && camera.position.z + (playerHitBox.size.z/2) >= (collision.position.z - (collision.size.z/2)))){
+                if ((camera.position.y-0.9) >= (collision.position.y + (collision.size.y/2))){
                     possibleJumpTargets.push(collision.position.y + (collision.size.y/2) + modelHeight)
                     // console.log('up')
                 } else {
-                    if (prevPosition.x < (collision.position.x + (collision.size.x/2) + (5*speed)) && prevPosition.x > (collision.position.x - (collision.size.x/2) - (5*speed))){
+                    if (prevPosition.x <= (collision.position.x + (collision.size.x/2)) && prevPosition.x >= (collision.position.x - (collision.size.x/2)) && 
+                    prevPosition.z <= (collision.position.z + (collision.size.z/2)) && prevPosition.z >= (collision.position.z - (collision.size.z/2))){
                         camera.position.z = prevPosition.z
-                    } else if (prevPosition.z < (collision.position.z + (collision.size.z/2) + (5*speed)) && prevPosition.z > (collision.position.z - (collision.size.z/2) - (5*speed))){
+                        camera.position.x = prevPosition.x
+                    } else
+                    if (prevPosition.x <= (collision.position.x + (collision.size.x/2)) && prevPosition.x >= (collision.position.x - (collision.size.x/2))){
+                        camera.position.z = prevPosition.z
+                    } else if (prevPosition.z <= (collision.position.z + (collision.size.z/2)) && prevPosition.z >= (collision.position.z - (collision.size.z/2))){
                         camera.position.x = prevPosition.x
                     } 
-                    // else {
-                    //     camera.position.x = prevPosition.x
-                    //     camera.position.z = prevPosition.z
-                    // }
-                    // console.log('down')
+                    else {
+                        if (Math.abs(camera.position.z - prevPosition.z) > Math.abs(camera.position.x - prevPosition.x)){
+                            camera.position.x = prevPosition.x
+                            console.log('aaa')
+                        } else if (Math.abs(camera.position.z - prevPosition.z) < Math.abs(camera.position.x - prevPosition.x)){
+                            camera.position.z = prevPosition.z
+                            console.log('bbb')
+                        } else {
+                            camera.position.x = prevPosition.x
+                            camera.position.z = prevPosition.z
+                            console.log('ccc')
+                        }
+                    }
                 }
             }
     }

@@ -602,9 +602,6 @@ function onCollision(collisions){
                         camera.position.z = prevPosition.z
                     } else if (prevPosition.z - (playerHitBox.size.x/2) <= (collision.position.z + (collision.size.z/2)) && prevPosition.z + (playerHitBox.size.x/2) >= (collision.position.z - (collision.size.z/2))){
                         camera.position.x = prevPosition.x
-                    } else {
-                        camera.position.x = prevPosition.x
-                        camera.position.z = prevPosition.z
                     }
                 }
             }

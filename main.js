@@ -16,13 +16,14 @@ let prevPosition = {}
 const loader = new THREE.GLTFLoader();
 
 let model
+let modelRealHeight
 
 loader.load('location.glb', (glb) => {
     if (glb){
         // console.log(glb)
         model = glb.scene
         model.scale.set(1, 1, 1)
-        model.position.set(0, -0.04, 0)
+        model.position.set(0, 0, 0)
         model.castShadow = true
         scene.add(model);
         Array.from(model.children).forEach(element => {
@@ -57,10 +58,44 @@ const floor = new THREE.Mesh( new THREE.BoxGeometry( 500, 0.1, 500 ), new THREE.
 const box = new THREE.BoxHelper( cube, 'white' );
 // const playerModel = new THREE.Mesh( new THREE.BoxGeometry( 1, 2, 1 ), new THREE.MeshStandardMaterial( { color: 'green' } ) );
 const playerModel = new THREE.Mesh( new THREE.CylinderGeometry( 1, 1, 3, 32 ), new THREE.MeshBasicMaterial( {color: 'green' } ) );
+const stairs = new THREE.Mesh( new THREE.BoxGeometry( 5, 15, 0.1 ), new THREE.MeshBasicMaterial( {color: 'white', side: THREE.DoubleSide} ) );
+stairs.geometry.computeBoundingBox()
+stairs.quaternion.setFromEuler( new THREE.Euler( Math.PI/4, Math.PI/2, 0, 'YXZ' ) );
+stairs.position.set(135, stairs.geometry.boundingBox.max.y/Math.sqrt(2), -30)
+stairs.updateMatrix()
+let stairsHitBox = new THREE.Box3().setFromObject( stairs )
+boxes.push({
+    size:  stairsHitBox.getSize( new THREE.Vector3() ),
+    position:  stairsHitBox.getCenter( new THREE.Vector3() ),
+    rotation: stairs.rotation,
+    type: 'stairs',
+})
+// let prevSize = boxes[boxes.length-1].size.x
+// boxes[boxes.length-1].size.x /= Math.sqrt(2)  
+// boxes[boxes.length-1].position.x -= (boxes[boxes.length-1].size.x - prevSize) / 2
+let stairsHelperHitBox = new THREE.Box3Helper( stairsHitBox, 'white' );
+scene.add( stairsHelperHitBox )
+// if (Math.cos(euler2.y).toFixed(10) > 0){
+//     boxes[boxes.length-1].size = {
+//         x: stairs.geometry.parameters.width,
+//         y: stairs.geometry.parameters.height,
+//         z: 0
+//     }
+// } else {
+//     boxes[boxes.length-1].size = {
+//         x: stairs.geometry.parameters.height,
+//         y: stairs.geometry.parameters.width,
+//         z: 0
+//     }
+// }
+console.log(stairs)
+console.log(boxes[boxes.length-1])
 scene.add( box );
 scene.add( cube );
 scene.add( floor )
 scene.add( playerModel )
+scene.add( stairs );
+
 cube.position.set(0, 2, 0)
 floor.position.set(0, -0.1, 0)
 playerModel.position.set(118, modelHeight, -25)
@@ -513,20 +548,32 @@ function getAdvancedData(){
 function gravityUpdate(){
     if (!flyMode && canJump) {
         if (Math.floor(camera.position.y * 100) > modelHeight * 100) {
-            // console.log('what')
+            console.log('what')
+            let playerHitBox = {
+                size: playerModel.geometry.boundingBox.getSize( new THREE.Vector3() ),
+                position: playerModel.position, 
+            }
             canJump = false
             let G = -9.81
             let time = 0
             let goDown = setInterval(() => {
                 time += 0.005
-                let modelRealHeight
                 let possibleJumpTargets = []
                 for (let i = 0; i < boxes.length; i++){
-            
-                    if ((camera.position.x < (boxes[i].position.x + (boxes[i].size.x/2) + (5*speed)) && camera.position.x > (boxes[i].position.x - (boxes[i].size.x/2) - (5*speed))) &&
-                    (camera.position.z < (boxes[i].position.z + (boxes[i].size.z/2) + (5*speed)) && camera.position.z > (boxes[i].position.z - (boxes[i].size.z/2) - (5*speed)))){
-                        if ((camera.position.y-0.9) > (boxes[i].position.y + (boxes[i].size.y/2))){
-                            possibleJumpTargets.push(boxes[i].position.y + (boxes[i].size.y/2) + modelHeight)
+                    if ((camera.position.x - (playerHitBox.size.x/2) <= (boxes[i].position.x + (boxes[i].size.x/2)) && camera.position.x + (playerHitBox.size.x/2) >= (boxes[i].position.x - (boxes[i].size.x/2))) &&
+                    (camera.position.z - (playerHitBox.size.z/2) <= (boxes[i].position.z + (boxes[i].size.z/2)) && camera.position.z + (playerHitBox.size.z/2) >= (boxes[i].position.z - (boxes[i].size.z/2)))){
+                        let isStairs
+                        if (boxes[i].type === 'stairs'){
+                            if (boxes[i].rotation.y <= Math.PI/4){
+                                let needbleHeight = ((camera.position.x + (playerHitBox.size.x/2)) - (boxes[i].position.x - (boxes[i].size.x/2))) / Math.tan(boxes[i].rotation.y)
+                                possibleJumpTargets.push(needbleHeight + modelHeight)
+                                isStairs = true
+                                // if (needbleHeight < (camera.position.y - 1)){
+                                // }
+                            }
+                        } 
+                        if (!isStairs && (camera.position.y-0.9) > (boxes[i].position.y + (boxes[i].size.y/2))){
+                                possibleJumpTargets.push(boxes[i].position.y + (boxes[i].size.y/2) + modelHeight)
                         }
                     }
                 }
@@ -535,6 +582,7 @@ function gravityUpdate(){
                 } else {
                     modelRealHeight = 2 
                 }
+                // console.log(modelRealHeight)
                 if (Math.floor(camera.position.y * 100) > modelRealHeight * 100){
                     vSpeed = G * (time/75)
                     camera.position.y += vSpeed
@@ -559,23 +607,56 @@ function checkCollisions(){
     // console.log(playerHitBox)
     let haveCollision = []
     let possibleJumpTargets = []
+    let isStairs
     for (let i = 0; i < boxes.length; i++){
         if ((camera.position.x - (playerHitBox.size.x/2) <= (boxes[i].position.x + (boxes[i].size.x/2)) && camera.position.x + (playerHitBox.size.x/2) >= (boxes[i].position.x - (boxes[i].size.x/2))) &&
         (camera.position.z - (playerHitBox.size.z/2) <= (boxes[i].position.z + (boxes[i].size.z/2)) && camera.position.z + (playerHitBox.size.z/2) >= (boxes[i].position.z - (boxes[i].size.z/2)))){
             if ((camera.position.y-0.9) > (boxes[i].position.y + (boxes[i].size.y/2))){
-                possibleJumpTargets.push(boxes[i].position.y + (boxes[i].size.y/2) + modelHeight)
+                if (boxes[i].type === 'stairs' && canJump){
+                    if (boxes[i].rotation.y <= Math.PI/4){
+                        let needbleHeight = ((camera.position.x + (playerHitBox.size.x/2)) - (boxes[i].position.x - (boxes[i].size.x/2))) / Math.tan(boxes[i].rotation.y)
+                        if (needbleHeight < (camera.position.y - 1)){
+                            possibleJumpTargets.push(needbleHeight + modelHeight)
+                            isStairs = true
+                        }
+                    }
+                } 
+                 if (!isStairs) {
+                    possibleJumpTargets.push(boxes[i].position.y + (boxes[i].size.y/2) + modelHeight)
+                }
                 // console.log('up')
             } else {
                 haveCollision.push(boxes[i])
                 // console.log('down')
+                if (boxes[i].rotation !== undefined){
+                    if (boxes[i].rotation.y <= Math.PI/4){
+                        let needbleHeight = ((camera.position.x + (playerHitBox.size.x/2)) - (boxes[i].position.x - (boxes[i].size.x/2))) / Math.tan(boxes[i].rotation.y)
+                        if (boxes[i].type === 'stairs'){
+                            if (canJump){
+                                if (needbleHeight < (camera.position.y - 1)){
+                                    possibleJumpTargets.push(needbleHeight + modelHeight)
+                                }
+                            } else {
+                                possibleJumpTargets.push(modelRealHeight + modelHeight)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
     if (canJump && possibleJumpTargets.length > 0){
-        camera.position.y = Math.max.apply(2, possibleJumpTargets);
+        
+        let possibleHeight = Math.max.apply(2, possibleJumpTargets)
+        if (possibleHeight + modelHeight/10 < camera.position.y){
+            gravityUpdate()
+        } else {
+            camera.position.y = possibleHeight;
+        }
     }
     if (canJump && possibleJumpTargets.length < 1){
-        camera.position.y = 2
+        
+            camera.position.y = 2
     }
     return haveCollision
 }
@@ -591,20 +672,32 @@ function onCollision(collisions){
             if ((camera.position.x - (playerHitBox.size.x/2) <= (collision.position.x + (collision.size.x/2)) && camera.position.x + (playerHitBox.size.x/2) >= (collision.position.x - (collision.size.x/2))) &&
             (camera.position.z - (playerHitBox.size.z/2) <= (collision.position.z + (collision.size.z/2) + (playerHitBox.size.z/2)) && camera.position.z + (playerHitBox.size.z/2) >= (collision.position.z - (collision.size.z/2)))){
                 if ((camera.position.y-0.9) >= (collision.position.y + (collision.size.y/2))){
-                    possibleJumpTargets.push(collision.position.y + (collision.size.y/2) + modelHeight)
-                    // console.log('up')
                 } else {
-                    if (prevPosition.x + (playerHitBox.size.x/2)  <= (collision.position.x + (collision.size.x/2)) && prevPosition.x - (playerHitBox.size.x/2) >= (collision.position.x - (collision.size.x/2)) && 
-                    prevPosition.z + (playerHitBox.size.z/2) <= (collision.position.z + (collision.size.z/2)) && prevPosition.z - (playerHitBox.size.z/2) >= (collision.position.z - (collision.size.z/2))){
-                        camera.position.z = prevPosition.z
-                        camera.position.x = prevPosition.x
-                    } else if (prevPosition.x - (playerHitBox.size.x/2) <= (collision.position.x + (collision.size.x/2)) && prevPosition.x + (playerHitBox.size.x/2) >= (collision.position.x - (collision.size.x/2))){
-                        camera.position.z = prevPosition.z
-                    } else if (prevPosition.z - (playerHitBox.size.x/2) <= (collision.position.z + (collision.size.z/2)) && prevPosition.z + (playerHitBox.size.x/2) >= (collision.position.z - (collision.size.z/2))){
-                        camera.position.x = prevPosition.x
+                    let isStairs, needbleHeight
+                    if (collision.type === 'stairs'){
+                        if (collision.rotation.y <= Math.PI/4){
+                            needbleHeight = ((camera.position.x + (playerHitBox.size.x/2)) - (collision.position.x - (collision.size.x/2))) / Math.tan(collision.rotation.y)
+                            isStairs = true
+                            // if (needbleHeight < (camera.position.y - 1)){
+                            //     // console.log(needbleHeight)
+                            // }
+                        }
+                    } 
+                    if (!isStairs){
+                        console.log('aaa')
+                        if (prevPosition.x + (playerHitBox.size.x/2)  <= (collision.position.x + (collision.size.x/2)) && prevPosition.x - (playerHitBox.size.x/2) >= (collision.position.x - (collision.size.x/2)) && 
+                        prevPosition.z + (playerHitBox.size.z/2) <= (collision.position.z + (collision.size.z/2)) && prevPosition.z - (playerHitBox.size.z/2) >= (collision.position.z - (collision.size.z/2))){
+                            camera.position.z = prevPosition.z
+                            camera.position.x = prevPosition.x
+                        } else 
+                        if (prevPosition.x - (playerHitBox.size.x/2) <= (collision.position.x + (collision.size.x/2)) && prevPosition.x + (playerHitBox.size.x/2) >= (collision.position.x - (collision.size.x/2))){
+                            camera.position.z = prevPosition.z
+                        } else if (prevPosition.z - (playerHitBox.size.x/2) <= (collision.position.z + (collision.size.z/2)) && prevPosition.z + (playerHitBox.size.x/2) >= (collision.position.z - (collision.size.z/2))){
+                            camera.position.x = prevPosition.x
+                        }
                     }
                 }
             }
-    }
+        }
     }
 }

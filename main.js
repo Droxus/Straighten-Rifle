@@ -7,7 +7,7 @@ const vector = new THREE.Vector3();
 
 let modelHeight = 2
 
-let flyMode, speedX = 0, speedZ = 0, speedXmax, speedZmax, vSpeed = 0
+let flyMode, speedSide = 0, speedForward = 0, speedForwardmax, vSpeed = 0
 let sensitivity = 1
 let canJump = true, canDuckMove = true
 let goDuckTimer, goDuck
@@ -158,6 +158,7 @@ window.addEventListener('beforeunload', function(e){
         e.stopPropagation();e.preventDefault();return false;
     },true);
 let speed = 0.2
+let speedW = 0, speedS = 0, speedA = 0, speedD = 0
 let goForward, goBack, goLeft, goRight
 let keys = {
     w: false,
@@ -188,6 +189,7 @@ function onKeyboard(event){
             break;
         case 'KeyW':
             if (!keys.w){
+                clearInterval(offKeyW)
                 goForward = setInterval(() => {
                     prevPosition = {
                         x: camera.position.x,
@@ -195,16 +197,21 @@ function onKeyboard(event){
                         z: camera.position.z,
                     }
                     if (keys.a || keys.d){
-                        speedZ = speed / 2
+                        speedForward = speed / 2
                     } else {
-                        speedZ = speed
+                        speedForward = speed
                     }
                     if (flyMode) {
-                        camera.translateZ(-speedZ)
+                        camera.translateZ(-speedForward)
                     } else {
                         vector.setFromMatrixColumn( camera.matrix, 0 );
 				        vector.crossVectors( camera.up, vector );
-				        camera.position.addScaledVector( vector, speedZ );
+
+                        if (speedW < speedForward){
+                            speedW += speedForward / 100
+                        }
+
+				        camera.position.addScaledVector( vector, speedW );
                         let collision = checkCollisions()
                         onCollision(collision)
                     }
@@ -215,36 +222,28 @@ function onKeyboard(event){
             break;
         case 'KeyA':
             if (!keys.a){
-                speedX = 0
+                clearInterval(offKeyA)
                 goLeft = setInterval(() => {
                     prevPosition = {
                         x: camera.position.x,
                         y: camera.position.y,
                         z: camera.position.z,
                     }
-                    // if (keys.d){
-                    //     clearInterval(goLeft)
-                    //     clearInterval(goRight)
-                    //     keys.d = false
-                    //     keys.a = false
-                    // }
                     if (keys.w || keys.s){
-                        speedXmax = -speed / 2
+                        speedSide = speed / 2
                     } else {
-                        speedXmax = -speed
+                        speedSide = speed
                     }
-                    speedX === 0 ? speedX -= 0.0051 : speedX *= -1.2
-                    speedX = Math.min(Math.abs(speedX), Math.abs(speedXmax))
                     if (flyMode) {
-                        camera.translateX(-Math.abs(speedX))
+                        camera.translateX(-speedSide)
                     } else {
                         vector.setFromMatrixColumn( camera.matrix, 0 );
-				        camera.position.addScaledVector( vector, -Math.abs(speedXmax) );
+                        if (speedA < speedSide){
+                            speedA += speedSide / 100
+                        }
+				        camera.position.addScaledVector( vector, -speedA );
                         let collision = checkCollisions()
                         onCollision(collision)
-                        // if (checkCollisions()){
-                        //     camera.position.addScaledVector( vector, Math.abs(speedXmax) );
-                        // }
                     }
                     getAdvancedData()
                 }, 5)
@@ -253,31 +252,26 @@ function onKeyboard(event){
             break;
         case 'KeyD':
             if (!keys.d){
-                speedX = 0
+                clearInterval(offKeyD)
                 goRight = setInterval(() => {
                     prevPosition = {
                         x: camera.position.x,
                         y: camera.position.y,
                         z: camera.position.z,
                     }
-                    // if (keys.a){
-                    //     clearInterval(goLeft)
-                    //     clearInterval(goRight)
-                    //     keys.d = false
-                    //     keys.a = false
-                    // }
                     if (keys.w || keys.s){
-                        speedXmax = speed / 2
+                        speedSide = speed / 2
                     } else {
-                        speedXmax = speed
+                        speedSide = speed
                     }
-                    speedX === 0 ? speedX += 0.005 : speedX *= 1.2
-                    speedX = Math.min(speedX, speedXmax)
                     if (flyMode) {
-                        camera.translateX(Math.abs(speedX))
+                        camera.translateX(speedSide)
                     } else {
                         vector.setFromMatrixColumn( camera.matrix, 0 );
-				        camera.position.addScaledVector( vector, Math.abs(speedXmax) );
+                        if (speedD < speedSide){
+                            speedD += speedSide / 100
+                        }
+				        camera.position.addScaledVector( vector, speedD );
                         let collision = checkCollisions()
                         onCollision(collision)
                     }
@@ -288,6 +282,7 @@ function onKeyboard(event){
             break;
         case 'KeyS':
             if (!keys.s){
+                clearInterval(offKeyS)
                 goBack = setInterval(() => {
                     prevPosition = {
                         x: camera.position.x,
@@ -295,18 +290,22 @@ function onKeyboard(event){
                         z: camera.position.z,
                     }
                     if (keys.a || keys.d){
-                        speedZ = speed / 2
+                        speedForward = speed / 2
                     } else {
-                        speedZ = speed
+                        speedForward = speed
                     }
                     if (flyMode) {
-                        camera.translateZ(speedZ)
+                        camera.translateZ(speedForward)
                     } else {
                         vector.setFromMatrixColumn( camera.matrix, 0 );
 				        vector.crossVectors( camera.up, vector );
-				        camera.position.addScaledVector( vector, -speedZ );
+
+                        if (speedS < speedForward){
+                            speedS += speedForward / 100
+                        }
+
+				        camera.position.addScaledVector( vector, -speedS );
                         let collision = checkCollisions()
-                        // camera.position.addScaledVector( vector, speedZ );
                         onCollision(collision)
                     }
                     getAdvancedData()
@@ -352,6 +351,7 @@ function onKeyboard(event){
             break;
     }
 }
+let offKeyW, offKeyS, offKeyA, offKeyD
 function offKeyboard(event){
     if (event.ctrlKey) {
         event.preventDefault();
@@ -375,18 +375,125 @@ function offKeyboard(event){
         case 'KeyW':
             clearInterval(goForward)
             keys.w = false
+            offKeyW = setInterval(() => {
+                prevPosition = {
+                    x: camera.position.x,
+                    y: camera.position.y,
+                    z: camera.position.z,
+                }
+                if (keys.a || keys.d){
+                    speedForward = speed / 2
+                } else {
+                    speedForward = speed
+                }
+                if (flyMode) {
+                    camera.translateZ(-speedForward)
+                } else {
+                    vector.setFromMatrixColumn( camera.matrix, 0 );
+                    vector.crossVectors( camera.up, vector );
+                    speedW -= speedForward / 50
+                    camera.position.addScaledVector( vector, speedW );
+                    let collision = checkCollisions()
+                    onCollision(collision)
+                }
+                getAdvancedData()
+                if (speedW <= 0){
+                  clearInterval(offKeyW)  
+                }
+            }, 5)
+
             break;
         case 'KeyA':
             clearInterval(goLeft)
             keys.a = false
+            offKeyA = setInterval(() => {
+                prevPosition = {
+                    x: camera.position.x,
+                    y: camera.position.y,
+                    z: camera.position.z,
+                }
+                if (keys.w || keys.s){
+                    speedSide = speed / 2
+                } else {
+                    speedSide = speed
+                }
+                if (flyMode) {
+                    camera.translateX(-speedSide)
+                } else {
+                    vector.setFromMatrixColumn( camera.matrix, 0 );
+                    speedA -= speedSide / 50
+                    camera.position.addScaledVector( vector, -speedA );
+                    let collision = checkCollisions()
+                    onCollision(collision)
+                }
+                getAdvancedData()
+                if (speedA <= 0){
+                    clearInterval(offKeyA)  
+                }
+            }, 5)
             break;
         case 'KeyD':
             clearInterval(goRight)
             keys.d = false
+            offKeyD = setInterval(() => {
+                prevPosition = {
+                    x: camera.position.x,
+                    y: camera.position.y,
+                    z: camera.position.z,
+                }
+                if (keys.w || keys.s){
+                    speedSide = speed / 2
+                } else {
+                    speedSide = speed
+                }
+                if (flyMode) {
+                    camera.translateX(-speedSide)
+                } else {
+                    vector.setFromMatrixColumn( camera.matrix, 0 );
+                    speedD -= speedSide / 50
+                    camera.position.addScaledVector( vector, speedD );
+                    let collision = checkCollisions()
+                    onCollision(collision)
+                }
+                getAdvancedData()
+                if (speedD <= 0){
+                    clearInterval(offKeyD)  
+                }
+            }, 5)
             break;
         case 'KeyS':
             clearInterval(goBack)
             keys.s = false
+
+            offKeyS = setInterval(() => {
+                prevPosition = {
+                    x: camera.position.x,
+                    y: camera.position.y,
+                    z: camera.position.z,
+                }
+                if (keys.a || keys.d){
+                    speedForward = speed / 2
+                } else {
+                    speedForward = speed
+                }
+                if (flyMode) {
+                    camera.translateZ(speedForward)
+                } else {
+                    vector.setFromMatrixColumn( camera.matrix, 0 );
+                    vector.crossVectors( camera.up, vector );
+
+                    speedS -= speedForward / 50
+
+                    camera.position.addScaledVector( vector, -speedS );
+                    let collision = checkCollisions()
+                    onCollision(collision)
+                }
+
+                getAdvancedData()
+                if (speedS <= 0){
+                    clearInterval(offKeyS)  
+                  }
+            }, 5)
             break;
         case 'ControlLeft':
             if (!flyMode && !canDuckMove){
@@ -418,7 +525,6 @@ function offKeyboard(event){
     }
 }
 
-
 document.getElementById('onPlay').addEventListener('click', onPlay)
 
 function onPlay(){
@@ -429,7 +535,7 @@ function onPlay(){
     } else {
         speed = 0.05
     }
-    speedX = 0, speedZ = 0, speedXmax = 0, speedZmax = 0
+    speedSide = 0, speedForward = 0, speedSide = 0, speedForwardmax = 0
     document.querySelector('canvas').requestPointerLock = document.querySelector('canvas').requestPointerLock ||
     document.querySelector('canvas').mozRequestPointerLock ||
     document.querySelector('canvas').webkitRequestPointerLock;

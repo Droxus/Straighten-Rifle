@@ -321,6 +321,35 @@ function onKeyboard(event){
                     let time = 0.32185
                     let modelRealHeight = camera.position.y
                     let goJump = setInterval(() => {
+                        clearInterval(offKeyS)
+                        clearInterval(offKeyW)
+                        clearInterval(offKeyA)
+                        clearInterval(offKeyD)
+                        prevPosition = {
+                            x: camera.position.x,
+                            y: camera.position.y,
+                            z: camera.position.z,
+                        }
+                        if (speedS > 0 && !keys.s){
+                            vector.setFromMatrixColumn( camera.matrix, 0 );
+                            vector.crossVectors( camera.up, vector );
+                            camera.position.addScaledVector( vector, -speedS );
+                        }
+                        if (speedW > 0 && !keys.w){
+                            vector.setFromMatrixColumn( camera.matrix, 0 );
+                            vector.crossVectors( camera.up, vector );
+                            camera.position.addScaledVector( vector, speedW );
+                        }
+                        if (speedA > 0 && !keys.a){
+                            vector.setFromMatrixColumn( camera.matrix, 0 );
+                            camera.position.addScaledVector( vector, -speedA );
+                        }
+                        if (speedD > 0 && !keys.d){
+                            vector.setFromMatrixColumn( camera.matrix, 0 );
+                            camera.position.addScaledVector( vector, speedD );
+                        }
+                                let collision = checkCollisions()
+                                onCollision(collision)
                         time -= 0.005
                         if (Math.floor(camera.position.y * 100) < modelRealHeight * 100 + 200){
                             vSpeed = G * (time/50)
@@ -375,125 +404,24 @@ function offKeyboard(event){
         case 'KeyW':
             clearInterval(goForward)
             keys.w = false
-            offKeyW = setInterval(() => {
-                prevPosition = {
-                    x: camera.position.x,
-                    y: camera.position.y,
-                    z: camera.position.z,
-                }
-                if (keys.a || keys.d){
-                    speedForward = speed / 2
-                } else {
-                    speedForward = speed
-                }
-                if (flyMode) {
-                    camera.translateZ(-speedForward)
-                } else {
-                    vector.setFromMatrixColumn( camera.matrix, 0 );
-                    vector.crossVectors( camera.up, vector );
-                    speedW -= speedForward / 50
-                    camera.position.addScaledVector( vector, speedW );
-                    let collision = checkCollisions()
-                    onCollision(collision)
-                }
-                getAdvancedData()
-                if (speedW <= 0){
-                  clearInterval(offKeyW)  
-                }
-            }, 5)
+            offKeyW = setInterval(keyWInertia, 5)
 
             break;
         case 'KeyA':
             clearInterval(goLeft)
             keys.a = false
-            offKeyA = setInterval(() => {
-                prevPosition = {
-                    x: camera.position.x,
-                    y: camera.position.y,
-                    z: camera.position.z,
-                }
-                if (keys.w || keys.s){
-                    speedSide = speed / 2
-                } else {
-                    speedSide = speed
-                }
-                if (flyMode) {
-                    camera.translateX(-speedSide)
-                } else {
-                    vector.setFromMatrixColumn( camera.matrix, 0 );
-                    speedA -= speedSide / 50
-                    camera.position.addScaledVector( vector, -speedA );
-                    let collision = checkCollisions()
-                    onCollision(collision)
-                }
-                getAdvancedData()
-                if (speedA <= 0){
-                    clearInterval(offKeyA)  
-                }
-            }, 5)
+            offKeyA = setInterval(keyAInertia, 5)
             break;
         case 'KeyD':
             clearInterval(goRight)
             keys.d = false
-            offKeyD = setInterval(() => {
-                prevPosition = {
-                    x: camera.position.x,
-                    y: camera.position.y,
-                    z: camera.position.z,
-                }
-                if (keys.w || keys.s){
-                    speedSide = speed / 2
-                } else {
-                    speedSide = speed
-                }
-                if (flyMode) {
-                    camera.translateX(-speedSide)
-                } else {
-                    vector.setFromMatrixColumn( camera.matrix, 0 );
-                    speedD -= speedSide / 50
-                    camera.position.addScaledVector( vector, speedD );
-                    let collision = checkCollisions()
-                    onCollision(collision)
-                }
-                getAdvancedData()
-                if (speedD <= 0){
-                    clearInterval(offKeyD)  
-                }
-            }, 5)
+            offKeyD = setInterval(keyDInertia, 5)
             break;
         case 'KeyS':
             clearInterval(goBack)
             keys.s = false
 
-            offKeyS = setInterval(() => {
-                prevPosition = {
-                    x: camera.position.x,
-                    y: camera.position.y,
-                    z: camera.position.z,
-                }
-                if (keys.a || keys.d){
-                    speedForward = speed / 2
-                } else {
-                    speedForward = speed
-                }
-                if (flyMode) {
-                    camera.translateZ(speedForward)
-                } else {
-                    vector.setFromMatrixColumn( camera.matrix, 0 );
-                    vector.crossVectors( camera.up, vector );
-
-                    speedS -= speedForward / 50
-
-                    camera.position.addScaledVector( vector, -speedS );
-                    let collision = checkCollisions()
-                    onCollision(collision)
-                }
-
-                getAdvancedData()
-                if (speedS <= 0){
-                    clearInterval(offKeyS)  
-                  }
-            }, 5)
+            offKeyS = setInterval(keySInertia, 5)
             break;
         case 'ControlLeft':
             if (!flyMode && !canDuckMove){
@@ -524,7 +452,115 @@ function offKeyboard(event){
             break;
     }
 }
+function keyWInertia(){
+    prevPosition = {
+        x: camera.position.x,
+        y: camera.position.y,
+        z: camera.position.z,
+    }
+    if (keys.a || keys.d){
+        speedForward = speed / 2
+    } else {
+        speedForward = speed
+    }
+    if (flyMode) {
+        camera.translateZ(-speedForward)
+    } else {
+        vector.setFromMatrixColumn( camera.matrix, 0 );
+        vector.crossVectors( camera.up, vector );
+        speedW -= speedForward / 50
+        camera.position.addScaledVector( vector, speedW );
+        let collision = checkCollisions()
+        onCollision(collision)
+    }
+    getAdvancedData()
+    if (speedW <= 0){
+        speedW = 0
+      clearInterval(offKeyW)  
+    }
+}
+function keySInertia(){
+        prevPosition = {
+            x: camera.position.x,
+            y: camera.position.y,
+            z: camera.position.z,
+        }
+        if (keys.a || keys.d){
+            speedForward = speed / 2
+        } else {
+            speedForward = speed
+        }
+        if (flyMode) {
+            camera.translateZ(speedForward)
+        } else {
+            vector.setFromMatrixColumn( camera.matrix, 0 );
+            vector.crossVectors( camera.up, vector );
 
+            speedS -= speedForward / 50
+
+            camera.position.addScaledVector( vector, -speedS );
+            let collision = checkCollisions()
+            onCollision(collision)
+        }
+
+        getAdvancedData()
+        if (speedS <= 0){
+            speedS = 0
+            clearInterval(offKeyS)  
+          }
+}
+function keyAInertia(){
+        prevPosition = {
+            x: camera.position.x,
+            y: camera.position.y,
+            z: camera.position.z,
+        }
+        if (keys.w || keys.s){
+            speedSide = speed / 2
+        } else {
+            speedSide = speed
+        }
+        if (flyMode) {
+            camera.translateX(-speedSide)
+        } else {
+            vector.setFromMatrixColumn( camera.matrix, 0 );
+            speedA -= speedSide / 50
+            camera.position.addScaledVector( vector, -speedA );
+            let collision = checkCollisions()
+            onCollision(collision)
+        }
+        getAdvancedData()
+        if (speedA <= 0){
+            speedA = 0
+            clearInterval(offKeyA)  
+        }
+}
+function keyDInertia(){
+        prevPosition = {
+            x: camera.position.x,
+            y: camera.position.y,
+            z: camera.position.z,
+        }
+        if (keys.w || keys.s){
+            speedSide = speed / 2
+        } else {
+            speedSide = speed
+        }
+        if (flyMode) {
+            camera.translateX(-speedSide)
+        } else {
+            vector.setFromMatrixColumn( camera.matrix, 0 );
+            speedD -= speedSide / 50
+            camera.position.addScaledVector( vector, speedD );
+            let collision = checkCollisions()
+            onCollision(collision)
+        }
+        getAdvancedData()
+        if (speedD <= 0){
+            speedD = 0
+            clearInterval(offKeyD)  
+        }
+}
 document.getElementById('onPlay').addEventListener('click', onPlay)
 
 function onPlay(){
@@ -663,6 +699,30 @@ function gravityUpdate(){
             let G = -9.81
             let time = 0
             let goDown = setInterval(() => {
+                clearInterval(offKeyS)
+                        clearInterval(offKeyW)
+                        clearInterval(offKeyA)
+                        clearInterval(offKeyD)
+                if (speedS > 0 && !keys.s){
+                    vector.setFromMatrixColumn( camera.matrix, 0 );
+                    vector.crossVectors( camera.up, vector );
+                    camera.position.addScaledVector( vector, -speedS );
+                }
+                if (speedW > 0 && !keys.w){
+                    vector.setFromMatrixColumn( camera.matrix, 0 );
+                    vector.crossVectors( camera.up, vector );
+                    camera.position.addScaledVector( vector, speedW );
+                }
+                if (speedA > 0 && !keys.a){
+                    vector.setFromMatrixColumn( camera.matrix, 0 );
+                    camera.position.addScaledVector( vector, -speedA );
+                }
+                if (speedD > 0 && !keys.d){
+                    vector.setFromMatrixColumn( camera.matrix, 0 );
+                    camera.position.addScaledVector( vector, speedD );
+                }
+                let collision = checkCollisions()
+                onCollision(collision)
                 time += 0.005
                 let possibleJumpTargets = []
                 for (let i = 0; i < boxes.length; i++){
@@ -693,9 +753,21 @@ function gravityUpdate(){
                     vSpeed = G * (time/75)
                     camera.position.y += vSpeed
                 } else {
-                    clearInterval(goDown)
                     canJump = true
                     camera.position.y = modelRealHeight
+                    if (!keys.a && speedA > 0){
+                        offKeyA = setInterval(keyAInertia, 5)
+                    }
+                    if (!keys.s && speedS > 0){
+                        offKeyS = setInterval(keySInertia, 5)
+                    }
+                    if (!keys.w && speedW > 0){
+                        offKeyW = setInterval(keyWInertia, 5)
+                    }
+                    if (!keys.d && speedD > 0){
+                        offKeyD = setInterval(keyDInertia, 5)
+                    }
+                    clearInterval(goDown)
                 }
                 getAdvancedData()
             }, 5)
@@ -798,8 +870,32 @@ function onCollision(collisions){
                         } else 
                         if (prevPosition.x - (playerHitBox.size.x/2) <= (collision.position.x + (collision.size.x/2)) && prevPosition.x + (playerHitBox.size.x/2) >= (collision.position.x - (collision.size.x/2))){
                             camera.position.z = prevPosition.z
+                            if (!keys.a && !canJump){
+                                speedA = 0
+                            }
+                            if (!keys.s && !canJump){
+                                speedS = 0
+                            }
+                            if (!keys.w && !canJump){
+                                speedW = 0
+                            }
+                            if (!keys.d && !canJump){
+                                speedD = 0
+                            }
                         } else if (prevPosition.z - (playerHitBox.size.x/2) <= (collision.position.z + (collision.size.z/2)) && prevPosition.z + (playerHitBox.size.x/2) >= (collision.position.z - (collision.size.z/2))){
                             camera.position.x = prevPosition.x
+                            if (!keys.a && !canJump){
+                                speedA = 0
+                            }
+                            if (!keys.s && !canJump){
+                                speedS = 0
+                            }
+                            if (!keys.w && !canJump){
+                                speedW = 0
+                            }
+                            if (!keys.d && !canJump){
+                                speedD = 0
+                            }
                         }
                     }
                 }

@@ -159,12 +159,14 @@ window.addEventListener('beforeunload', function(e){
     },true);
 let speed = 0.2
 let speedW = 0, speedS = 0, speedA = 0, speedD = 0
-let goForward, goBack, goLeft, goRight
+let goForward, goBack, goLeft, goRight, rotateRight, rotateLeft
 let keys = {
     w: false,
     a: false,
     d: false,
     s: false,
+    q: false,
+    e: false,
     shift: false,
 }
 function onKeyboard(event){
@@ -206,7 +208,7 @@ function onKeyboard(event){
                     } else {
                         vector.setFromMatrixColumn( camera.matrix, 0 );
 				        vector.crossVectors( camera.up, vector );
-
+                        
                         if (speedW < speedForward){
                             speedW += speedForward / 100
                         }
@@ -378,9 +380,49 @@ function onKeyboard(event){
                 canDuckMove = false
             }
             break;
+        case 'KeyQ':
+            if (!keys.q){
+                keys.q = true
+            clearInterval(offKeyQ)
+            clearInterval(rotateRight)
+            rotateLeft = setInterval(() => {
+                if (camera.rotation.z < 0.5){
+                    camera.rotation.z += 0.01
+                    euler.z = camera.rotation.z
+                } 
+                else if (camera.rotation.z > 0.5){
+                    camera.rotation.z += -0.01
+                    euler.z = camera.rotation.z
+                } 
+                else {
+                    clearInterval(rotateLeft)
+                }
+            }, 5)
+        }
+            break;
+        case 'KeyE':
+            if (!keys.e){
+                keys.e = true
+            clearInterval(offKeyE)
+            clearInterval(rotateLeft)
+            rotateRight = setInterval(() => {
+                if (camera.rotation.z > -0.5){
+                    camera.rotation.z += -0.01
+                    euler.z = camera.rotation.z
+                } 
+                else if (camera.rotation.z < 0.5){
+                    camera.rotation.z += 0.01
+                    euler.z = camera.rotation.z
+                }
+                else {
+                    clearInterval(rotateRight)
+                }
+            }, 5)
+        }
+            break;
     }
 }
-let offKeyW, offKeyS, offKeyA, offKeyD
+let offKeyW, offKeyS, offKeyA, offKeyD, offKeyQ, offKeyE
 function offKeyboard(event){
     if (event.ctrlKey) {
         event.preventDefault();
@@ -449,6 +491,30 @@ function offKeyboard(event){
                 helpers.forEach(element => element.visible = true)
             }
             
+            break;
+        case 'KeyQ':
+                clearInterval(rotateLeft)
+                keys.q = false
+                offKeyQ = setInterval(() => {
+                    if (camera.rotation.z > 0){
+                        camera.rotation.z += -0.01
+                        euler.z = camera.rotation.z
+                    } else {
+                        clearInterval(offKeyQ)
+                    }
+                }, 5)
+            break;
+        case 'KeyE':
+                clearInterval(rotateRight)
+                keys.e = false
+                offKeyE = setInterval(() => {
+                    if (camera.rotation.z < 0){
+                        camera.rotation.z += 0.01
+                        euler.z = camera.rotation.z
+                    } else {
+                        clearInterval(offKeyE)
+                    }
+                }, 5)
             break;
     }
 }

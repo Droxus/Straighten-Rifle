@@ -17,10 +17,10 @@ const loader = new THREE.GLTFLoader();
 
 let model
 let modelRealHeight
-
+const boxesGroup = new THREE.Group();  
 loader.load('location.glb', (glb) => {
     if (glb){
-        // console.log(glb)
+        console.log(glb.scene)
         model = glb.scene
         model.scale.set(1, 1, 1)
         model.position.set(0, 0, 0)
@@ -30,12 +30,14 @@ loader.load('location.glb', (glb) => {
             let box = new THREE.Box3().setFromObject( element )
             let helper = new THREE.Box3Helper( box, 'white' );
             helpers.push( helper )
-            scene.add( helper )
+            boxesGroup.add( helper )
             boxes.push({
                 size: box.getSize( new THREE.Vector3() ), 
                 position: box.getCenter( new THREE.Vector3() ), 
             })
         })
+        console.log(boxesGroup)
+        scene.add( boxesGroup )
         // console.log(boxes)
     }
 }, (xhr) => {
@@ -58,6 +60,29 @@ const floor = new THREE.Mesh( new THREE.BoxGeometry( 500, 0.1, 500 ), new THREE.
 const box = new THREE.BoxHelper( cube, 'white' );
 // const playerModel = new THREE.Mesh( new THREE.BoxGeometry( 1, 2, 1 ), new THREE.MeshStandardMaterial( { color: 'green' } ) );
 const playerModel = new THREE.Mesh( new THREE.CylinderGeometry( 1, 1, 3, 32 ), new THREE.MeshBasicMaterial( {color: 'green' } ) );
+const boxdiag = new THREE.Mesh( new THREE.BoxGeometry( 0.1, 5, 10 ), new THREE.MeshBasicMaterial( {color: 'white', side: THREE.DoubleSide} ) );
+boxdiag.position.set(120, 2.5, -30)
+boxdiag.rotation.set(0, 1, 0)
+let boxdiag2 = new THREE.Box3().setFromObject( boxdiag )
+// let boxdiagHelper = new THREE.Mesh( boxdiag, new THREE.MeshBasicMaterial( { color: 0x000000, wireframe: true } ) );
+let hitbox = new THREE.Mesh( new THREE.BoxGeometry( boxdiag.geometry.boundingBox.getSize( new THREE.Vector3()).x, boxdiag.geometry.boundingBox.getSize( new THREE.Vector3()).y, boxdiag.geometry.boundingBox.getSize( new THREE.Vector3()).z), 
+new THREE.MeshBasicMaterial( { color: 0x000000, wireframe: true } ) );
+hitbox.position.set(boxdiag.position.x, boxdiag.position.y, boxdiag.position.z)
+hitbox.rotation.set(boxdiag.rotation.x, boxdiag.rotation.y, boxdiag.rotation.z)
+            helpers.push( hitbox )
+            boxesGroup.add( hitbox )
+            boxdiag.geometry.computeBoundingBox()
+            console.log(boxdiag)
+            boxes.push({
+                size: boxdiag.geometry.boundingBox.getSize( new THREE.Vector3()), 
+                position: boxdiag.position, 
+            })
+            console.log({
+                size: boxdiag.geometry.boundingBox.getSize( new THREE.Vector3()), 
+                position: boxdiag.position, 
+            })
+
+scene.add( boxdiag, hitbox )
 const stairs = new THREE.Mesh( new THREE.BoxGeometry( 5, 15, 0.1 ), new THREE.MeshBasicMaterial( {color: 'white', side: THREE.DoubleSide} ) );
 stairs.geometry.computeBoundingBox()
 stairs.quaternion.setFromEuler( new THREE.Euler( Math.PI/4, Math.PI/2, 0, 'YXZ' ) );
@@ -88,8 +113,8 @@ scene.add( stairsHelperHitBox )
 //         z: 0
 //     }
 // }
-console.log(stairs)
-console.log(boxes[boxes.length-1])
+// console.log(stairs)
+// console.log(boxes[boxes.length-1])
 scene.add( box );
 scene.add( cube );
 scene.add( floor )

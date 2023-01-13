@@ -29,42 +29,35 @@ let player = {
     isFlying: false,
     flyMode: false
 }
-
 let modelHeight = 3
-
 let flyMode, speedSide = 0, speedForward = 0, speedForwardmax, vSpeed = 0
 let sensitivity = 1
 let boxes = [], helpers = [], modelBodies = []
 let prevPosition = {}
 const loader = new THREE.GLTFLoader();
 let model
-//    loader.load('panelHouse .glb', (glb) =>  {
-//         if (glb){
-//             console.log(glb.scene)
-//             model = glb.scene
-//             model.scale.set(0.1, 0.1, 0.1)
-//             model.position.set(20, 0, -10)
-//             model.rotation.set(0, Math.PI/2, 0)
-//             model.castShadow = true
-//             scene.add(model);
-//             Array.from(model.children).forEach(children => {
-//                 let modelChildrenBody = new CANNON.Body({
-//                     mass: 0,
-//                     position: new CANNON.Vec3(children.position.x, children.position.y, children.position.z),
-//                     shape: new CANNON.Box( new CANNON.Vec3(children.scale.x, children.scale.y, children.scale.z) ),
-//                     fixedRotation: true
-//                 })
-//                 world.addBody(modelChildrenBody)
-//                 children.position.copy( modelChildrenBody.position )
-//                 children.quaternion.copy( modelChildrenBody.quaternion )
-//                 modelBodies.push(modelChildrenBody)
-//             })
-//             console.log(modelBodies)
-//             model.updateMatrixWorld( true )
-//         }})
-
-        
-
+   loader.load('location.glb', (glb) =>  {
+        if (glb){
+            console.log(glb.scene)
+            model = glb.scene
+            model.scale.set(1, 1, 1)
+            model.position.set(0, 0, 0)
+            model.rotation.set(0, 0, 0)
+            model.castShadow = true
+            scene.add(model);
+            model.children.forEach(child => {
+                let box = new THREE.Box3;
+                box.setFromObject(child);
+                let modelBody = new CANNON.Body({
+                    mass: 0,
+                    position: new CANNON.Vec3((box.max.x+box.min.x)/2, (box.max.y+box.min.y)/2, (box.max.z+box.min.z)/2) 
+                })
+                let modelShape = new CANNON.Box( new CANNON.Vec3((box.max.x-box.min.x)/2, (box.max.y-box.min.y)/2, (box.max.z-box.min.z)/2) ) 
+                modelBody.addShape(modelShape)
+                world.addBody(modelBody)
+            })
+            model.updateMatrixWorld( true )
+        }})        
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize( window.innerWidth, window.innerHeight );
 renderer.shadowMap.enabled = true;
@@ -76,11 +69,10 @@ playerModel.castShadow = true;
 playerModel.receiveShadow = true;
 scene.add( playerModel )
 
-var playerModelShape = new CANNON.Box( new CANNON.Vec3(1, 2, 1) )
 var playerModelBody = new CANNON.Body({
-    mass: 1,
+    mass: 10,
     position: new CANNON.Vec3(0, 2, 0),
-    shape: playerModelShape,
+    shape: new CANNON.Box( new CANNON.Vec3(1, 2, 1) ),
     fixedRotation: true
 })
 world.addBody(playerModelBody)
@@ -248,22 +240,20 @@ function playerMove(){
     
 }
 let isFuseSpamSpace
+console.log(playerModelBody)
 function makeJump(){
     if (!player.isFlying && !isFuseSpamSpace){
         isFuseSpamSpace = true
-        playerModelBody.mass = 0
-        playerModelBody.updateMassProperties(true);
-        player.isFlying = true
         setTimeout(() => {
             clearInterval( smoothlyJump )
-            playerModelBody.mass = 10
-            playerModelBody.updateMassProperties(true);
         }, 300)
         setTimeout(() => {
             isFuseSpamSpace = false
-        }, 400)
+        }, 350)
         smoothlyJump = setInterval(() => {
-            playerModelBody.position.y += 0.04
+            playerModelBody.position.y += 0.035
+            playerModelBody.velocity.y = 0
+            console.log(playerModelBody.velocity.y)
             getAdvancedData()
         }, 5)
         
@@ -385,10 +375,6 @@ document.getElementById('onPlay').addEventListener('click', onPlay)
 
 function onPlay(){
     document.getElementById('menuBg').style.display = 'none'
-    playerModelBody.mass = 0
-    playerModelBody.updateMassProperties(true);
-    playerModelBody.velocity.set(0,0,0); 
-    playerModelBody.angularVelocity.set(0,0,0);
     player.flyMode = document.getElementById('playOrDevChoose').checked
     if (flyMode){
         player.maxSpeed.horizontal = 0.2

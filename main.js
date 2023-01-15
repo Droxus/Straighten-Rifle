@@ -36,7 +36,14 @@ let boxes = [], helpers = [], modelBodies = []
 let prevPosition = {}
 const loader = new THREE.GLTFLoader();
 let model
-   loader.load('location.glb', (glb) =>  {
+
+let cube1 = new THREE.Mesh( new THREE.BoxGeometry( 2, 2, 2 ), new THREE.MeshBasicMaterial( {color: 'white'} ) );
+cube1.position.set(20, 3, 25)
+cube1.rotation.set(0, 1, 0)
+console.log(cube1)
+scene.add(cube1)
+
+   loader.load('aimmap.glb', (glb) =>  {
         if (glb){
             console.log(glb.scene)
             model = glb.scene
@@ -45,17 +52,21 @@ let model
             model.rotation.set(0, 0, 0)
             model.castShadow = true
             scene.add(model);
+            // console.log(model.children[11].rotation.x)
             model.children.forEach(child => {
                 let box = new THREE.Box3;
                 box.setFromObject(child);
                 let modelBody = new CANNON.Body({
                     mass: 0,
-                    position: new CANNON.Vec3((box.max.x+box.min.x)/2, (box.max.y+box.min.y)/2, (box.max.z+box.min.z)/2) 
+                    position: new CANNON.Vec3((box.max.x+box.min.x)/2, (box.max.y+box.min.y)/2, (box.max.z+box.min.z)/2),
+                    shape: new CANNON.Box( new CANNON.Vec3(child.scale.x, child.scale.y, child.scale.z))
                 })
-                let modelShape = new CANNON.Box( new CANNON.Vec3((box.max.x-box.min.x)/2, (box.max.y-box.min.y)/2, (box.max.z-box.min.z)/2) ) 
-                modelBody.addShape(modelShape)
+                modelBody.quaternion.set(child.quaternion.x, child.quaternion.y, child.quaternion.z, child.quaternion.w)
+                modelBody.quaternion.normalize()
                 world.addBody(modelBody)
+                modelBodies.push(modelBody)
             })
+            console.log(modelBodies[11].boundingRadius - model.children[11].geometry.boundingSphere.radius*10)
             model.updateMatrixWorld( true )
         }})        
 const renderer = new THREE.WebGLRenderer();
@@ -76,7 +87,6 @@ var playerModelBody = new CANNON.Body({
     fixedRotation: true
 })
 world.addBody(playerModelBody)
-
 renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 renderer.shadowMap.enabled = true;
@@ -89,12 +99,6 @@ const sphere = new THREE.Mesh( new THREE.SphereGeometry(0.5, 100, 100), new THRE
 sphere.castShadow = true;
 sphere.receiveShadow = true;
 scene.add( sphere );
-
-// const cube1 = new THREE.Mesh( new THREE.BoxGeometry(0.6,  1 , 0.4), new THREE.MeshPhongMaterial( { color: 'red' } ) );
-// cube1.castShadow = true;
-// cube1.receiveShadow = true;
-// scene.add( cube1 ); 
-
 
 const stats = Stats()
 stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
@@ -132,7 +136,7 @@ spotLight.shadow.mapSize.height = 1024*16
 scene.add( spotLight );
     spotLight.position.set(
         0,
-        camera.position.y + 30,
+        camera.position.y + 200,
         0,
     )
 
@@ -152,6 +156,8 @@ renderer.shadowMap.enabled = true
 camera.position.set(10, modelHeight, 25)
 camera.rotation.order = 'YXZ'
 
+const cannonDebugRenderer = new THREE.CannonDebugRenderer(scene, world)
+
 animate();
 
 function animate() {
@@ -159,17 +165,15 @@ function animate() {
     stats.update()
 
     world.step(1 / 60)
+    cannonDebugRenderer.update()
 
     player.isFlying = Math.round(playerModel.position.y * 100) - Math.round(playerModelBody.position.y * 100) !== 0
 
     playerModel.position.copy( playerModelBody.position )
     playerModel.quaternion.copy( playerModelBody.quaternion )
-    
+
     sphere.position.copy( sphereBody.position )
     sphere.quaternion.copy( sphereBody.quaternion )
-
-    // cube1.position.copy( cubeBody.position )
-    // cube1.quaternion.copy( cubeBody.quaternion )
 
     stats.begin()
     renderer.render( scene, camera );

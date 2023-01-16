@@ -5,6 +5,29 @@ const camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.inner
 const euler = new THREE.Euler( 0, 0, 0, 'YXZ' );
 const vector = new THREE.Vector3();
 
+let sky, sun;
+
+function initSky() {
+
+    // Add Sky
+    sky = new Sky();
+    sky.scale.setScalar( 450000 );
+    scene.add( sky );
+
+    sun = new THREE.Vector3();
+    sun.setFromSphericalCoords( 1, 180, 90 )
+    sky.material.uniforms[ 'turbidity' ].value = 10;
+    sky.material.uniforms[ 'rayleigh' ].value = 3;
+    sky.material.uniforms[ 'mieCoefficient' ].value = 0.005;
+    sky.material.uniforms[ 'mieDirectionalG' ].value = 0.7;
+
+	const phi = THREE.MathUtils.degToRad( 90 - 2 );
+	const theta = THREE.MathUtils.degToRad( 180 );
+
+	sun.setFromSphericalCoords( 1, phi, theta );
+
+	sky.material.uniforms[ 'sunPosition' ].value.copy( sun );
+}
 const world = new CANNON.World()
 world.gravity.set(0, -9.8, 0) 
 
@@ -36,13 +59,6 @@ let boxes = [], helpers = [], modelBodies = []
 let prevPosition = {}
 const loader = new THREE.GLTFLoader();
 let model
-
-let cube1 = new THREE.Mesh( new THREE.BoxGeometry( 2, 2, 2 ), new THREE.MeshBasicMaterial( {color: 'white'} ) );
-cube1.position.set(20, 3, 25)
-cube1.rotation.set(0, 1, 0)
-console.log(cube1)
-scene.add(cube1)
-
    loader.load('aimmap.glb', (glb) =>  {
         if (glb){
             console.log(glb.scene)
@@ -66,7 +82,6 @@ scene.add(cube1)
                 world.addBody(modelBody)
                 modelBodies.push(modelBody)
             })
-            console.log(modelBodies[11].boundingRadius - model.children[11].geometry.boundingSphere.radius*10)
             model.updateMatrixWorld( true )
         }})        
 const renderer = new THREE.WebGLRenderer();
@@ -75,9 +90,10 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild( renderer.domElement );
 
-const playerModel = new THREE.Mesh( new THREE.BoxGeometry( 2, 4, 2 ), new THREE.MeshBasicMaterial(  { color: 'pink' }) );
-playerModel.castShadow = true;
+const playerModel = new THREE.Mesh( new THREE.BoxGeometry( 2, 4, 2 ), new THREE.MeshBasicMaterial(  { color: 'transparent' }) );
+playerModel .castShadow = true;
 playerModel.receiveShadow = true;
+playerModel.visible = false
 scene.add( playerModel )
 
 var playerModelBody = new CANNON.Body({
@@ -95,10 +111,10 @@ let cube = new THREE.Mesh( new THREE.BoxGeometry(500, 0.01, 500), new THREE.Mesh
 cube.receiveShadow = true;
 scene.add( cube );
 
-const sphere = new THREE.Mesh( new THREE.SphereGeometry(0.5, 100, 100), new THREE.MeshPhongMaterial( { color: 'blue'} ) );
-sphere.castShadow = true;
-sphere.receiveShadow = true;
-scene.add( sphere );
+// const sphere = new THREE.Mesh( new THREE.SphereGeometry(0.5, 100, 100), new THREE.MeshPhongMaterial( { color: 'blue'} ) );
+// sphere.castShadow = true;
+// sphere.receiveShadow = true;
+// scene.add( sphere );
 
 const stats = Stats()
 stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
@@ -115,15 +131,15 @@ groundBody.addShape(groundShape)
 groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2) 
 world.addBody(groundBody) 
 
-let sphereBody = new CANNON.Body({
-    mass: 9,
-    position: new CANNON.Vec3(0, 5, 0) 
-})
-let sphereShape = new CANNON.Sphere(0.5) 
-sphereBody.addShape(sphereShape)
-world.addBody(sphereBody)
+// let sphereBody = new CANNON.Body({
+//     mass: 9,
+//     position: new CANNON.Vec3(0, 5, 0) 
+// })
+// let sphereShape = new CANNON.Sphere(0.5) 
+// sphereBody.addShape(sphereShape)
+// world.addBody(sphereBody)
 
-scene.background = new THREE.Color( 'skyblue' )
+// scene.background = new THREE.Color( 'skyblue' )
 
 const hemiLight = new THREE.HemisphereLight( 0xffeeb1, 0x080820, 4 );
 scene.add( hemiLight );
@@ -156,24 +172,31 @@ renderer.shadowMap.enabled = true
 camera.position.set(10, modelHeight, 25)
 camera.rotation.order = 'YXZ'
 
-const cannonDebugRenderer = new THREE.CannonDebugRenderer(scene, world)
-
+// const cannonDebugRenderer = new THREE.CannonDebugRenderer(scene, world)
+initSky()
 animate();
-
 function animate() {
     requestAnimationFrame(animate)
     stats.update()
 
     world.step(1 / 60)
-    cannonDebugRenderer.update()
+    // cannonDebugRenderer.update()
 
     player.isFlying = Math.round(playerModel.position.y * 100) - Math.round(playerModelBody.position.y * 100) !== 0
 
     playerModel.position.copy( playerModelBody.position )
     playerModel.quaternion.copy( playerModelBody.quaternion )
 
-    sphere.position.copy( sphereBody.position )
-    sphere.quaternion.copy( sphereBody.quaternion )
+    if (!player.flyMode){
+        camera.position.x = playerModelBody.position.x
+        camera.position.y = playerModelBody.position.y + playerModelBody.shapes[0].halfExtents.y
+        camera.position.z = playerModelBody.position.z
+    }
+
+    // sphere.position.copy( sphereBody.position )
+    // sphere.quaternion.copy( sphereBody.quaternion )
+
+    getAdvancedData()
 
     stats.begin()
     renderer.render( scene, camera );
@@ -203,11 +226,11 @@ let keys = {
     ControlLeft: false,
     Space: false
 }
-let smoothlyMove, smoothlyJump
+let smoothlyMove, smoothlyJump, wSpeed = 0, xMax = 10, zMax = 10
+console.log(playerModelBody)
 function playerMove(){
     clearInterval( smoothlyMove )
     smoothlyMove = setInterval(() => {
-        getAdvancedData()
         if (Math.abs(player.speed.x) + Math.abs(player.speed.z) > player.maxSpeed.horizontal){
             player.speed.x = Math.abs(player.speed.x) > player.maxSpeed.horizontal / 2 ? player.speed.x / 2 : player.speed.x
             player.speed.z = Math.abs(player.speed.z) > player.maxSpeed.horizontal / 2 ? player.speed.z / 2 : player.speed.z
@@ -221,20 +244,21 @@ function playerMove(){
                 camera.translateX( player.speed.x * 20 )
             } else {
                 if (player.speed.z > 0){
-                    playerModelBody.position.x += Math.sin(camera.rotation.y) * -player.speed.z
-                    playerModelBody.position.z += Math.cos(Math.PI - camera.rotation.y) * player.speed.z
+                    playerModelBody.position.x += Math.sin(camera.rotation.y) * -player.speed.z + playerModelBody.velocity.x / 20
+                    playerModelBody.position.z += Math.cos(Math.PI - camera.rotation.y) * player.speed.z + playerModelBody.velocity.z / 20
                 }
                 if (player.speed.z < 0){
-                    playerModelBody.position.x += Math.sin(camera.rotation.y) * -player.speed.z
-                    playerModelBody.position.z += -Math.cos(camera.rotation.y) * player.speed.z
+                    playerModelBody.position.x += Math.sin(camera.rotation.y) * -player.speed.z + playerModelBody.velocity.x / 20
+                    playerModelBody.position.z += -Math.cos(camera.rotation.y) * player.speed.z + playerModelBody.velocity.z / 20
+                    
                 }
                 if (player.speed.x > 0){
-                    playerModelBody.position.x += Math.sin(camera.rotation.y + Math.PI / 2) * player.speed.x
-                    playerModelBody.position.z += -Math.cos(camera.rotation.y + Math.PI / 2) * -player.speed.x
+                    playerModelBody.position.x += Math.sin(camera.rotation.y + Math.PI / 2) * player.speed.x + playerModelBody.velocity.x / 20
+                    playerModelBody.position.z += -Math.cos(camera.rotation.y + Math.PI / 2) * -player.speed.x + playerModelBody.velocity.z / 20
                 }
                 if (player.speed.x < 0){
-                    playerModelBody.position.x += Math.sin(camera.rotation.y - Math.PI / 2) * -player.speed.x
-                    playerModelBody.position.z += -Math.cos(camera.rotation.y - Math.PI / 2) * player.speed.x
+                    playerModelBody.position.x += Math.sin(camera.rotation.y - Math.PI / 2) * -player.speed.x + playerModelBody.velocity.x / 20
+                    playerModelBody.position.z += -Math.cos(camera.rotation.y - Math.PI / 2) * player.speed.x + playerModelBody.velocity.z / 20
                 }
             }
         } else {
@@ -249,18 +273,9 @@ function makeJump(){
     if (!player.isFlying && !isFuseSpamSpace){
         isFuseSpamSpace = true
         setTimeout(() => {
-            clearInterval( smoothlyJump )
-        }, 300)
-        setTimeout(() => {
             isFuseSpamSpace = false
         }, 350)
-        smoothlyJump = setInterval(() => {
-            playerModelBody.position.y += 0.035
-            playerModelBody.velocity.y = 0
-            console.log(playerModelBody.velocity.y)
-            getAdvancedData()
-        }, 5)
-        
+        playerModelBody.velocity.y += 8
     }
 }
 function makeDuck(front){
@@ -289,6 +304,7 @@ function offKeyboard(event){
             } else {
                 player.speed.z = 0
             }
+            wSpeed = 0
             break;
         case 'KeyA':
             if (keys.KeyD){
@@ -315,7 +331,7 @@ function offKeyboard(event){
             if (!isFuseSpamCtrl && keys.ControlLeft){
                 isFuseSpamCtrl = true
                     let offCtrl = setInterval(() => {
-                        player.maxSpeed.horizontal = 0.05
+                        player.maxSpeed.horizontal = 0.1
                         isFuseSpamCtrl = false
                         makeDuck(false)
                         clearInterval(offCtrl)
@@ -323,7 +339,7 @@ function offKeyboard(event){
             }
             break;
         case 'ShiftLeft':
-            player.maxSpeed.horizontal = 0.05
+            player.maxSpeed.horizontal = 0.1
             break;
         case 'F2':
             onAdvancedInfo()
@@ -357,7 +373,7 @@ function onKeyboard(event){
         case 'ControlLeft':
             if (!isCtrlStamina){
                 isCtrlStamina = true
-                player.maxSpeed.horizontal = 0.02
+                player.maxSpeed.horizontal = 0.04
                 makeDuck(true)
                 setTimeout(() => {
                     isCtrlStamina = false
@@ -367,7 +383,7 @@ function onKeyboard(event){
             }
             break;
         case 'ShiftLeft':
-            player.maxSpeed.horizontal = 0.03
+            player.maxSpeed.horizontal = 0.06
             break;
         case 'Space':
             makeJump()
@@ -383,7 +399,7 @@ function onPlay(){
     if (flyMode){
         player.maxSpeed.horizontal = 0.2
     } else {
-        player.maxSpeed.horizontal = 0.05
+        player.maxSpeed.horizontal = 0.1
     }
     speedSide = 0, speedForward = 0, speedSide = 0, speedForwardmax = 0
     document.querySelector('canvas').requestPointerLock = document.querySelector('canvas').requestPointerLock ||
@@ -432,7 +448,6 @@ function onMouseMove( event ){
 
     euler.x = Math.max(Math.min(Math.PI/1.5, euler.x), -Math.PI/1.5)
     camera.quaternion.setFromEuler( euler );
-    getAdvancedData()
 }
 
 document.addEventListener('pointerlockerror', lockError, false);

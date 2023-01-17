@@ -47,10 +47,10 @@ class Sky extends THREE.Mesh {
 Sky.SkyShader = {
 
 	uniforms: {
-		'turbidity': { value: 2 },
-		'rayleigh': { value: 1 },
-		'mieCoefficient': { value: 0.005 },
-		'mieDirectionalG': { value: 0.8 },
+		'turbidity': { value: 10 },
+		'rayleigh': { value: 4 },
+		'mieCoefficient': { value: 0 },
+		'mieDirectionalG': { value: 1 },
 		'sunPosition': { value: new THREE.Vector3() },
 		'up': { value: new THREE.Vector3( 0, 1, 0 ) }
 	},

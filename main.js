@@ -6,23 +6,19 @@ const euler = new THREE.Euler( 0, 0, 0, 'YXZ' );
 const vector = new THREE.Vector3();
 
 let sky, sun;
-
 function initSky() {
-
-    // Add Sky
     sky = new Sky();
-    sky.scale.setScalar( 450000 );
+    sky.scale.setScalar( 4500 );
     scene.add( sky );
 
     sun = new THREE.Vector3();
-    sun.setFromSphericalCoords( 1, 180, 90 )
     sky.material.uniforms[ 'turbidity' ].value = 10;
-    sky.material.uniforms[ 'rayleigh' ].value = 3;
-    sky.material.uniforms[ 'mieCoefficient' ].value = 0.005;
-    sky.material.uniforms[ 'mieDirectionalG' ].value = 0.7;
+    sky.material.uniforms[ 'rayleigh' ].value = 4;
+    sky.material.uniforms[ 'mieCoefficient' ].value = 0.05;
+    sky.material.uniforms[ 'mieDirectionalG' ].value = 1;
 
-	const phi = THREE.MathUtils.degToRad( 90 - 2 );
-	const theta = THREE.MathUtils.degToRad( 180 );
+	const phi = THREE.MathUtils.degToRad( 90 );
+	const theta = THREE.MathUtils.degToRad( 90 );
 
 	sun.setFromSphericalCoords( 1, phi, theta );
 
@@ -72,6 +68,10 @@ let model
             model.children.forEach(child => {
                 let box = new THREE.Box3;
                 box.setFromObject(child);
+                const bbox = new THREE.LineSegments( new THREE.EdgesGeometry( new THREE.BoxGeometry( child.scale.x * 2 + 0.02, child.scale.y * 2 + 0.02, child.scale.z * 2 + 0.02 ) ), new THREE.LineBasicMaterial( { color: '#ff5900' } ) );
+                bbox.position.set(child.position.x, child.position.y , child.position.z)
+                bbox.rotation.set(child.rotation.x, child.rotation.y , child.rotation.z)
+                scene.add(bbox);
                 let modelBody = new CANNON.Body({
                     mass: 0,
                     position: new CANNON.Vec3((box.max.x+box.min.x)/2, (box.max.y+box.min.y)/2, (box.max.z+box.min.z)/2),
@@ -107,22 +107,12 @@ renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 renderer.shadowMap.enabled = true;
 
-let cube = new THREE.Mesh( new THREE.BoxGeometry(500, 0.01, 500), new THREE.MeshPhongMaterial( { color: 'chocolate' } ) );
-cube.receiveShadow = true;
+let cube = new THREE.Mesh( new THREE.BoxGeometry(500, 0.01, 500), new THREE.MeshBasicMaterial( { color: '#2b2b2b' } ) );
 scene.add( cube );
-
-// const sphere = new THREE.Mesh( new THREE.SphereGeometry(0.5, 100, 100), new THREE.MeshPhongMaterial( { color: 'blue'} ) );
-// sphere.castShadow = true;
-// sphere.receiveShadow = true;
-// scene.add( sphere );
 
 const stats = Stats()
 stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
 document.body.appendChild( stats.dom );
-
-
-
-
 let groundBody = new CANNON.Body({
     mass: 0
 }) 
@@ -130,45 +120,48 @@ let groundShape = new CANNON.Plane(0.1, 0.2)
 groundBody.addShape(groundShape) 
 groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2) 
 world.addBody(groundBody) 
+    const directionalLight1 = new THREE.DirectionalLight( 0xffffff, 0.25 );
+    directionalLight1.position.set(0, 200, 200)
+    scene.add( directionalLight1 );
+    directionalLight1.castShadow = true;
+    directionalLight1.receiveShadow = true;
 
-// let sphereBody = new CANNON.Body({
-//     mass: 9,
-//     position: new CANNON.Vec3(0, 5, 0) 
-// })
-// let sphereShape = new CANNON.Sphere(0.5) 
-// sphereBody.addShape(sphereShape)
-// world.addBody(sphereBody)
+    const directionalLight2 = new THREE.DirectionalLight( 0xffffff, 0.25 );
+    directionalLight2.position.set(0, 200, -200)
+    scene.add( directionalLight2 );
+    directionalLight2.castShadow = true;
+    directionalLight2.receiveShadow = true;
 
-// scene.background = new THREE.Color( 'skyblue' )
+    const directionalLight3 = new THREE.DirectionalLight( 0xffffff, 0.25 );
+    directionalLight3.position.set(200, 200, 0)
+    scene.add( directionalLight3 );
+    directionalLight3.castShadow = true;
+    directionalLight3.receiveShadow = true;
 
-const hemiLight = new THREE.HemisphereLight( 0xffeeb1, 0x080820, 4 );
-scene.add( hemiLight );
-const spotLight = new THREE.SpotLight( 0xffa95c,4 );
-spotLight.castShadow = true;
-spotLight.receiveShadow = true;
-spotLight.shadow.bias = -0.0001;
-spotLight.shadow.mapSize.width = 1024*16
-spotLight.shadow.mapSize.height = 1024*16
-scene.add( spotLight );
-    spotLight.position.set(
-        0,
-        camera.position.y + 200,
-        0,
-    )
+    const directionalLight4 = new THREE.DirectionalLight( 0xffffff, 0.25 );
+    directionalLight4.position.set(-200, 200, 0)
+    scene.add( directionalLight4 );
+    directionalLight4.castShadow = true;
+    directionalLight4.receiveShadow = true;
 
-    const pointLight = new THREE.PointLight( 'white', 4, 100 );
-    pointLight.position.set( 118, 50, -2 );
-    scene.add( pointLight )
-
-
-renderer.toneMapping = THREE.ReinhardToneMapping
-renderer.toneMappingExposure = 2.3
+renderer.toneMapping = THREE.LinearToneMapping
+renderer.toneMappingExposure = 1
 renderer.shadowMap.enabled = true
 
-// cube.castShadow = true;
-// floor.receiveShadow = true
+const renderPass = new THREE.RenderPass( scene, camera );
+const composer = new THREE.EffectComposer( renderer )
+composer.addPass( renderPass );
+const bloomPass = new THREE.UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight),
+    0.1,
+    0.1,
+    0.2
+)
+composer.addPass( bloomPass );
+bloomPass.stength = 3;
+bloomPass.radius = 1;
+bloomPass.threshold = 0
 
-// camera.position.set(118, modelHeight, -25)
 camera.position.set(10, modelHeight, 25)
 camera.rotation.order = 'YXZ'
 
@@ -176,6 +169,7 @@ camera.rotation.order = 'YXZ'
 initSky()
 animate();
 function animate() {
+    composer.render()
     requestAnimationFrame(animate)
     stats.update()
 
@@ -192,9 +186,6 @@ function animate() {
         camera.position.y = playerModelBody.position.y + playerModelBody.shapes[0].halfExtents.y
         camera.position.z = playerModelBody.position.z
     }
-
-    // sphere.position.copy( sphereBody.position )
-    // sphere.quaternion.copy( sphereBody.quaternion )
 
     getAdvancedData()
 
@@ -278,21 +269,39 @@ function makeJump(){
         playerModelBody.velocity.y += 8
     }
 }
+let smoothDucking
 function makeDuck(front){
     if (front){
-        playerModelBody.shapes[0].halfExtents = new CANNON.Vec3( 1, 1, 1 ) 
-        playerModelBody.shapes[0].boundingSphereRadiusNeedsUpdate = true;
-        playerModelBody.shapes[0].updateConvexPolyhedronRepresentation();
-        playerModelBody.computeAABB();
-        playerModelBody.position.y -= 1
-        playerModel.scale.y = 0.5
+        clearInterval(smoothDucking)
+        smoothDucking = setInterval(() => {
+            if (playerModelBody.shapes[0].halfExtents.y > 1){
+                playerModelBody.shapes[0].halfExtents.y -=  1/20
+                playerModelBody.shapes[0].boundingSphereRadiusNeedsUpdate = true;
+                playerModelBody.shapes[0].updateConvexPolyhedronRepresentation();
+                playerModelBody.computeAABB();
+                playerModelBody.position.y -= 1/20
+                playerModel.scale.y -= 0.5/20
+            } else {
+                playerModelBody.shapes[0].halfExtents.y = 1
+                clearInterval(smoothDucking)
+            }
+        }, 5)
+
     } else {
-        playerModelBody.shapes[0].halfExtents = new CANNON.Vec3( 1, 2, 1 ) 
-        playerModelBody.shapes[0].boundingSphereRadiusNeedsUpdate = true;
-        playerModelBody.shapes[0].updateConvexPolyhedronRepresentation();
-        playerModelBody.computeAABB();
-        playerModelBody.position.y += 1
-        playerModel.scale.y = 1
+        clearInterval(smoothDucking)
+        smoothDucking = setInterval(() => {
+            if (playerModelBody.shapes[0].halfExtents.y < 2){
+                playerModelBody.shapes[0].halfExtents.y += 0.05
+                playerModelBody.shapes[0].boundingSphereRadiusNeedsUpdate = true;
+                playerModelBody.shapes[0].updateConvexPolyhedronRepresentation();
+                playerModelBody.computeAABB();
+                playerModelBody.position.y += 0.05
+                playerModel.scale.y += 0.025
+            } else {
+                playerModelBody.shapes[0].halfExtents.y = 2
+                clearInterval(smoothDucking)
+            }
+        }, 5)
     }
 }
 function offKeyboard(event){
@@ -330,12 +339,9 @@ function offKeyboard(event){
         case 'ControlLeft':
             if (!isFuseSpamCtrl && keys.ControlLeft){
                 isFuseSpamCtrl = true
-                    let offCtrl = setInterval(() => {
-                        player.maxSpeed.horizontal = 0.1
-                        isFuseSpamCtrl = false
-                        makeDuck(false)
-                        clearInterval(offCtrl)
-                    }, 10)
+                player.maxSpeed.horizontal = 0.1
+                makeDuck(false)
+                isFuseSpamCtrl = false
             }
             break;
         case 'ShiftLeft':
@@ -371,7 +377,8 @@ function onKeyboard(event){
             playerMove()
             break;
         case 'ControlLeft':
-            if (!isCtrlStamina){
+            console.log('a' + playerModelBody.shapes[0].halfExtents.y)
+            if (!isCtrlStamina && Math.round(playerModelBody.shapes[0].halfExtents.y) == 2){
                 isCtrlStamina = true
                 player.maxSpeed.horizontal = 0.04
                 makeDuck(true)

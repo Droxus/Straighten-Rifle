@@ -158,3 +158,15 @@ body * {
     -ms-transform: translateX(26px);
     transform: translateX(26px);
   }
+#crosshair{
+    z-index: 2;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px;
+    height: 24px;
+    color: aqua;
+    opacity: 0.2;
+    font-size: 24px;
+}

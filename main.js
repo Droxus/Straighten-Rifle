@@ -48,10 +48,11 @@ let player = {
     isFlying: false,
     flyMode: false
 }
+let removeBody
 let modelHeight = 3
 let flyMode, speedSide = 0, speedForward = 0, speedForwardmax, vSpeed = 0
 let sensitivity = 1
-let boxes = [], helpers = [], modelBodies = []
+let boxes = [], helpers = [], modelBodies = [], bulletsBody = [], bullets = []
 let prevPosition = {}
 const loader = new THREE.GLTFLoader();
 let model
@@ -64,7 +65,6 @@ let model
             model.rotation.set(0, 0, 0)
             model.castShadow = true
             scene.add(model);
-            // console.log(model.children[11].rotation.x)
             model.children.forEach(child => {
                 let box = new THREE.Box3;
                 box.setFromObject(child);
@@ -100,8 +100,11 @@ var playerModelBody = new CANNON.Body({
     mass: 10,
     position: new CANNON.Vec3(0, 2, 0),
     shape: new CANNON.Box( new CANNON.Vec3(1, 2, 1) ),
-    fixedRotation: true
+    fixedRotation: true,
+    type: CANNON.DYNAMIC
 })
+playerModelBody.mass = 0;
+playerModelBody.updateMassProperties();
 world.addBody(playerModelBody)
 renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
@@ -120,30 +123,26 @@ let groundShape = new CANNON.Plane(0.1, 0.2)
 groundBody.addShape(groundShape) 
 groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2) 
 world.addBody(groundBody) 
-    const directionalLight1 = new THREE.DirectionalLight( 0xffffff, 0.25 );
+    const directionalLight1 = new THREE.DirectionalLight( '#ffffff', 0.2 );
     directionalLight1.position.set(0, 200, 200)
     scene.add( directionalLight1 );
     directionalLight1.castShadow = true;
     directionalLight1.receiveShadow = true;
-
-    const directionalLight2 = new THREE.DirectionalLight( 0xffffff, 0.25 );
+    const directionalLight2 = new THREE.DirectionalLight( '#ffffff', 0.2 );
     directionalLight2.position.set(0, 200, -200)
     scene.add( directionalLight2 );
     directionalLight2.castShadow = true;
     directionalLight2.receiveShadow = true;
-
-    const directionalLight3 = new THREE.DirectionalLight( 0xffffff, 0.25 );
+    const directionalLight3 = new THREE.DirectionalLight( '#ffffff', 0.2 );
     directionalLight3.position.set(200, 200, 0)
     scene.add( directionalLight3 );
     directionalLight3.castShadow = true;
     directionalLight3.receiveShadow = true;
-
-    const directionalLight4 = new THREE.DirectionalLight( 0xffffff, 0.25 );
+    const directionalLight4 = new THREE.DirectionalLight( '#ffffff', 0.2 );
     directionalLight4.position.set(-200, 200, 0)
     scene.add( directionalLight4 );
     directionalLight4.castShadow = true;
     directionalLight4.receiveShadow = true;
-
 renderer.toneMapping = THREE.LinearToneMapping
 renderer.toneMappingExposure = 1
 renderer.shadowMap.enabled = true
@@ -172,10 +171,9 @@ function animate() {
     composer.render()
     requestAnimationFrame(animate)
     stats.update()
-
+    if(removeBody) world.remove(removeBody)
     world.step(1 / 60)
     // cannonDebugRenderer.update()
-
     player.isFlying = Math.round(playerModel.position.y * 100) - Math.round(playerModelBody.position.y * 100) !== 0
 
     playerModel.position.copy( playerModelBody.position )
@@ -186,6 +184,10 @@ function animate() {
         camera.position.y = playerModelBody.position.y + playerModelBody.shapes[0].halfExtents.y
         camera.position.z = playerModelBody.position.z
     }
+
+    bullets.forEach((bullet, i) => {
+        bullet.position.copy( bulletsBody[i].position )
+    })
 
     getAdvancedData()
 
@@ -217,8 +219,7 @@ let keys = {
     ControlLeft: false,
     Space: false
 }
-let smoothlyMove, smoothlyJump, wSpeed = 0, xMax = 10, zMax = 10
-console.log(playerModelBody)
+let smoothlyMove, smoothlyJump
 function playerMove(){
     clearInterval( smoothlyMove )
     smoothlyMove = setInterval(() => {
@@ -258,15 +259,22 @@ function playerMove(){
     }, 5)
     
 }
-let isFuseSpamSpace
-console.log(playerModelBody)
+let isFuseSpamSpace, jumpHorizontalMoving, velOfJumpIndex
 function makeJump(){
     if (!player.isFlying && !isFuseSpamSpace){
         isFuseSpamSpace = true
         setTimeout(() => {
             isFuseSpamSpace = false
-        }, 350)
-        playerModelBody.velocity.y += 8
+        }, 300)
+        velOfJumpIndex = 60
+        setTimeout(() => {
+            clearInterval(smoothlyJump)
+        }, 240)
+        let smoothlyJump = setInterval(() => {
+            --velOfJumpIndex
+            playerModelBody.velocity.set(0, 0, 0)
+            playerModelBody.position.y += 0.002 * velOfJumpIndex
+        }, 5)
     }
 }
 let smoothDucking
@@ -291,12 +299,12 @@ function makeDuck(front){
         clearInterval(smoothDucking)
         smoothDucking = setInterval(() => {
             if (playerModelBody.shapes[0].halfExtents.y < 2){
-                playerModelBody.shapes[0].halfExtents.y += 0.05
+                playerModelBody.shapes[0].halfExtents.y += 1/20
                 playerModelBody.shapes[0].boundingSphereRadiusNeedsUpdate = true;
                 playerModelBody.shapes[0].updateConvexPolyhedronRepresentation();
                 playerModelBody.computeAABB();
-                playerModelBody.position.y += 0.05
-                playerModel.scale.y += 0.025
+                playerModelBody.position.y += 1/20
+                playerModel.scale.y += 0.5/20
             } else {
                 playerModelBody.shapes[0].halfExtents.y = 2
                 clearInterval(smoothDucking)
@@ -313,7 +321,6 @@ function offKeyboard(event){
             } else {
                 player.speed.z = 0
             }
-            wSpeed = 0
             break;
         case 'KeyA':
             if (keys.KeyD){
@@ -377,7 +384,6 @@ function onKeyboard(event){
             playerMove()
             break;
         case 'ControlLeft':
-            console.log('a' + playerModelBody.shapes[0].halfExtents.y)
             if (!isCtrlStamina && Math.round(playerModelBody.shapes[0].halfExtents.y) == 2){
                 isCtrlStamina = true
                 player.maxSpeed.horizontal = 0.04
@@ -398,6 +404,51 @@ function onKeyboard(event){
         }
     }
 }
+function onMouseClick(event){
+    switch (event.button) {
+        case 0:
+            makeShoot()
+            break;
+    }
+}
+function makeShoot(){ 
+    if (bullets.length > 20){
+        scene.remove(bullets[0])
+        bullets.splice(0, 1)
+        bulletsBody.splice(0, 1)
+    }
+    let bullet = new THREE.Mesh( new THREE.BoxGeometry( 0.1, 0.1, 0.4 ), new THREE.MeshBasicMaterial( {color: '#ff5900'} ) );
+    bullet.position.copy(camera.position)
+    bullet.quaternion.copy(camera.quaternion)
+    bullets.push(bullet)
+    scene.add( bullet )
+    let bulletBody = new CANNON.Body({
+        mass: 1,
+        position: camera.position,
+        shape: new CANNON.Box( new CANNON.Vec3(0.05, 0.05, 0.2)),
+        quaternion: camera.quaternion
+    })
+    bulletsBody.push(bulletBody)
+    bulletBody.quaternion.normalize()
+    bulletBody.position.x += Math.sin(camera.rotation.y) * -2
+    bulletBody.position.z += Math.cos(Math.PI - camera.rotation.y) * 2
+    bulletBody.position.y += Math.tan(camera.rotation.x) * 1
+    world.addBody(bulletBody)
+    let grounded
+    bulletBody.velocity.x += Math.sin(camera.rotation.y) * -200
+    bulletBody.velocity.z += Math.cos(Math.PI - camera.rotation.y) * 200
+    bulletBody.velocity.y += Math.tan(camera.rotation.x) * 200
+    bulletBody.addEventListener('collide', function onBulletCollide({ contact: { bi } }) {
+        const vTo = new CANNON.Vec3(Math.sin(camera.rotation.y) * -2000, Math.cos(Math.PI - camera.rotation.y) * 2000, Math.tan(camera.rotation.x) * 1000)
+        const ray = new CANNON.Ray(bulletBody.position, vTo)
+        const result = new CANNON.RaycastResult()
+        ray.intersectBody(bi, result)
+        grounded = result.hasHit
+        // bi.id == 25 ? console.log('HIT') : null
+        removeBody = bulletBody;
+        this.removeEventListener('collide', onBulletCollide);
+    })
+}
 document.getElementById('onPlay').addEventListener('click', onPlay)
 
 function onPlay(){
@@ -416,6 +467,7 @@ function onPlay(){
     window.addEventListener('mousemove', onMouseMove)
     window.addEventListener('keydown', onKeyboard, false)
     window.addEventListener('keyup', offKeyboard, false)
+    window.addEventListener('click', onMouseClick)
     if (document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen();
     } else if (document.documentElement.msRequestFullscreen) {
@@ -425,6 +477,9 @@ function onPlay(){
     } else if (document.documentElement.webkitRequestFullscreen) {
         document.documentElement.webkitRequestFullscreen();
     }
+    playerModelBody.mass = 10;
+    playerModelBody.updateMassProperties();
+    playerModelBody.velocity.y = 1
 }
 function onMenu(){
     document.getElementById('onPlay').removeEventListener('click', onPlay)
@@ -432,6 +487,7 @@ function onMenu(){
     window.removeEventListener('mousemove', onMouseMove)
     window.removeEventListener('keydown', onKeyboard)
     window.removeEventListener('keyup', offKeyboard)
+    window.removeEventListener('click', onMouseClick)
     setTimeout(() => {document.getElementById('onPlay').addEventListener('click', onPlay)}, 2500)
     keys = {
         KeyW: false,
@@ -453,7 +509,7 @@ function onMouseMove( event ){
     euler.x -= movementY / (1 / sensitivity * 1000)
     euler.y -= movementX / (1 / sensitivity * 1000)
 
-    euler.x = Math.max(Math.min(Math.PI/1.5, euler.x), -Math.PI/1.5)
+    euler.x = Math.max(Math.min(Math.PI/2.5, euler.x), -Math.PI/2.5)
     camera.quaternion.setFromEuler( euler );
 }
 

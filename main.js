@@ -100,13 +100,6 @@ renderer.setSize( window.innerWidth, window.innerHeight );
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild( renderer.domElement );
-
-// const playerModel = new THREE.Mesh( new THREE.BoxGeometry( 2, 4, 2 ), new THREE.MeshBasicMaterial(  { color: 'transparent' }) );
-// playerModel .castShadow = true;
-// playerModel.receiveShadow = true;
-// playerModel.visible = false
-// scene.add( playerModel )
-
 var playerModelBody = new CANNON.Body({
     mass: 10,
     position: new CANNON.Vec3(0, 2, 0),
@@ -186,12 +179,8 @@ function animate() {
     if(removeBody) world.remove(removeBody)
     world.step(1 / 60)
     // cannonDebugRenderer.update()
-    // player.isFlying = Math.round(playerModel.position.y * 100) - Math.round(playerModelBody.position.y * 100) !== 0
     player.isFlying = Math.round(prevposition * 100) - Math.round(playerModelBody.position.y * 100) !== 0
     prevposition = playerModelBody.position.y
-
-    // playerModel.position.copy( playerModelBody.position )
-    // playerModel.quaternion.copy( playerModelBody.quaternion )
 
     if (!player.flyMode){
         camera.position.x = playerModelBody.position.x
@@ -309,7 +298,6 @@ function makeDuck(front){
                 playerModelBody.shapes[0].updateConvexPolyhedronRepresentation();
                 playerModelBody.computeAABB();
                 playerModelBody.position.y -= 1/20
-                // playerModel.scale.y -= 0.5/20
             } else {
                 playerModelBody.shapes[0].halfExtents.y = 1
                 clearInterval(smoothDucking)
@@ -325,7 +313,6 @@ function makeDuck(front){
                 playerModelBody.shapes[0].updateConvexPolyhedronRepresentation();
                 playerModelBody.computeAABB();
                 playerModelBody.position.y += 1/20
-                // playerModel.scale.y += 0.5/20
             } else {
                 playerModelBody.shapes[0].halfExtents.y = 2
                 clearInterval(smoothDucking)

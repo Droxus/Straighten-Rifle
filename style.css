@@ -53,7 +53,7 @@ body * {
     background: transparent;
     border: none;
     transition: .4s;
-    color: white;
+    color: #ff5900;
 }
 #menu > *:hover{
     background: rgba(255, 49, 193, 0.05);

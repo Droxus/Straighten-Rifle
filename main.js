@@ -465,7 +465,7 @@ function makeShoot(){
     let intersetsExpectBullets = intersects.filter(e => e.object.name !== 'bullet')
     bulletBody.endPosition = {
         x: intersetsExpectBullets[0].point.x - Math.sin(camera.rotation.y) * -0.3,
-        y: intersetsExpectBullets[0].point.y - Math.tan(camera.rotation.x) * 0.15,
+        y: Math.max((intersetsExpectBullets[0].point.y - Math.tan(camera.rotation.x) * 0.15 - intersetsExpectBullets[0].distance * 0.02), 0),
         z: intersetsExpectBullets[0].point.z - Math.cos(Math.PI - camera.rotation.y) * 0.3,
     }
     world.addBody(bulletBody)

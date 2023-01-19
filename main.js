@@ -55,7 +55,7 @@ let sensitivity = 1
 let boxes = [], helpers = [], modelBodies = [], bulletsBody = [], bullets = []
 let prevPosition = {}
 const loader = new THREE.GLTFLoader();
-let model
+let model, sniperRifle
    loader.load('aimmap.glb', (glb) =>  {
         if (glb){
             console.log(glb.scene)
@@ -84,17 +84,28 @@ let model
             })
             model.updateMatrixWorld( true )
         }})        
+        loader.load('bobs_sniper-rifle.glb', (glb) =>  {
+            if (glb){
+                scene.add(glb.scene)
+                sniperRifle = glb.scene
+                sniperRifle.position.set(0, 5, 0)
+                // camera.attach(sniperRifle)
+                // sniperRifle.position.set(5, 5, 5)
+                // console.log(sniperRifle.position)
+                // console.log(sniperRifle)
+            }
+        })
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize( window.innerWidth, window.innerHeight );
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild( renderer.domElement );
 
-const playerModel = new THREE.Mesh( new THREE.BoxGeometry( 2, 4, 2 ), new THREE.MeshBasicMaterial(  { color: 'transparent' }) );
-playerModel .castShadow = true;
-playerModel.receiveShadow = true;
-playerModel.visible = false
-scene.add( playerModel )
+// const playerModel = new THREE.Mesh( new THREE.BoxGeometry( 2, 4, 2 ), new THREE.MeshBasicMaterial(  { color: 'transparent' }) );
+// playerModel .castShadow = true;
+// playerModel.receiveShadow = true;
+// playerModel.visible = false
+// scene.add( playerModel )
 
 var playerModelBody = new CANNON.Body({
     mass: 10,
@@ -165,6 +176,7 @@ camera.position.set(10, modelHeight, 25)
 camera.rotation.order = 'YXZ'
 
 // const cannonDebugRenderer = new THREE.CannonDebugRenderer(scene, world)
+let prevposition = playerModelBody.position.y
 initSky()
 animate();
 function animate() {
@@ -174,10 +186,12 @@ function animate() {
     if(removeBody) world.remove(removeBody)
     world.step(1 / 60)
     // cannonDebugRenderer.update()
-    player.isFlying = Math.round(playerModel.position.y * 100) - Math.round(playerModelBody.position.y * 100) !== 0
+    // player.isFlying = Math.round(playerModel.position.y * 100) - Math.round(playerModelBody.position.y * 100) !== 0
+    player.isFlying = Math.round(prevposition * 100) - Math.round(playerModelBody.position.y * 100) !== 0
+    prevposition = playerModelBody.position.y
 
-    playerModel.position.copy( playerModelBody.position )
-    playerModel.quaternion.copy( playerModelBody.quaternion )
+    // playerModel.position.copy( playerModelBody.position )
+    // playerModel.quaternion.copy( playerModelBody.quaternion )
 
     if (!player.flyMode){
         camera.position.x = playerModelBody.position.x
@@ -188,6 +202,13 @@ function animate() {
     bullets.forEach((bullet, i) => {
         bullet.position.copy( bulletsBody[i].position )
     })
+
+    if (sniperRifle){
+        sniperRifle.position.x = camera.position.x - Math.sin(camera.rotation.y - 0.4) * 1.5
+        sniperRifle.position.z = camera.position.z + Math.cos(Math.PI - camera.rotation.y + 0.4) * 1.5
+        sniperRifle.position.y = camera.position.y + Math.min(Math.max((Math.tan(camera.rotation.x + 0.1) - 0.5), -2), 2)
+        sniperRifle.quaternion.copy(camera.quaternion)
+    }
 
     getAdvancedData()
 
@@ -288,7 +309,7 @@ function makeDuck(front){
                 playerModelBody.shapes[0].updateConvexPolyhedronRepresentation();
                 playerModelBody.computeAABB();
                 playerModelBody.position.y -= 1/20
-                playerModel.scale.y -= 0.5/20
+                // playerModel.scale.y -= 0.5/20
             } else {
                 playerModelBody.shapes[0].halfExtents.y = 1
                 clearInterval(smoothDucking)
@@ -304,7 +325,7 @@ function makeDuck(front){
                 playerModelBody.shapes[0].updateConvexPolyhedronRepresentation();
                 playerModelBody.computeAABB();
                 playerModelBody.position.y += 1/20
-                playerModel.scale.y += 0.5/20
+                // playerModel.scale.y += 0.5/20
             } else {
                 playerModelBody.shapes[0].halfExtents.y = 2
                 clearInterval(smoothDucking)
@@ -420,6 +441,7 @@ function makeShoot(){
     let bullet = new THREE.Mesh( new THREE.BoxGeometry( 0.1, 0.1, 0.4 ), new THREE.MeshBasicMaterial( {color: '#ff5900'} ) );
     bullet.position.copy(camera.position)
     bullet.quaternion.copy(camera.quaternion)
+    bullet.name = 'bullet'
     bullets.push(bullet)
     scene.add( bullet )
     let bulletBody = new CANNON.Body({
@@ -432,19 +454,37 @@ function makeShoot(){
     bulletBody.quaternion.normalize()
     bulletBody.position.x += Math.sin(camera.rotation.y) * -2
     bulletBody.position.z += Math.cos(Math.PI - camera.rotation.y) * 2
-    bulletBody.position.y += Math.tan(camera.rotation.x) * 1
+    bulletBody.position.y += Math.tan(camera.rotation.x) * 1 - 0.5
+
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    pointer.x = ( (window.innerWidth/2) / window.innerWidth ) * 2 - 1;
+    pointer.y = - ( ((window.innerHeight+2)/2) / window.innerHeight ) * 2 + 1;
+    raycaster.setFromCamera( pointer, camera );
+    const intersects = raycaster.intersectObjects( scene.children );
+    let intersetsExpectBullets = intersects.filter(e => e.object.name !== 'bullet')
+    bulletBody.endPosition = {
+        x: intersetsExpectBullets[0].point.x - Math.sin(camera.rotation.y) * -0.3,
+        y: intersetsExpectBullets[0].point.y - Math.tan(camera.rotation.x) * 0.15,
+        z: intersetsExpectBullets[0].point.z - Math.cos(Math.PI - camera.rotation.y) * 0.3,
+    }
     world.addBody(bulletBody)
     let grounded
     bulletBody.velocity.x += Math.sin(camera.rotation.y) * -200
     bulletBody.velocity.z += Math.cos(Math.PI - camera.rotation.y) * 200
     bulletBody.velocity.y += Math.tan(camera.rotation.x) * 200
     bulletBody.addEventListener('collide', function onBulletCollide({ contact: { bi } }) {
+        bulletBody.velocity.set(0,0,0)
         const vTo = new CANNON.Vec3(Math.sin(camera.rotation.y) * -2000, Math.cos(Math.PI - camera.rotation.y) * 2000, Math.tan(camera.rotation.x) * 1000)
         const ray = new CANNON.Ray(bulletBody.position, vTo)
         const result = new CANNON.RaycastResult()
         ray.intersectBody(bi, result)
         grounded = result.hasHit
         // bi.id == 25 ? console.log('HIT') : null
+        let endPosition = bulletBody.endPosition
+        bulletBody.position.x = endPosition.x
+        bulletBody.position.y = endPosition.y
+        bulletBody.position.z = endPosition.z
         removeBody = bulletBody;
         this.removeEventListener('collide', onBulletCollide);
     })

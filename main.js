@@ -136,7 +136,7 @@ function hideLoader(){
     if (loadedAssets > 4){
         document.getElementById('loader').style.display = 'none'
         clearInterval(loadedInterval)
-        console.log('Loaded time take ' + loadedTime/1000 + ' sec')
+        console.log('Loading time takes ' + loadedTime/1000 + ' sec')
     }
 }
 const renderer = new THREE.WebGLRenderer();
@@ -246,24 +246,24 @@ function animate() {
         bullet.position.copy( bulletsBody[i].position )
     })
 
-    // if (sniperRifle){
-    //     sniperRifle.position.x = camera.position.x - Math.sin(camera.rotation.y - 0.4) * 2
-    //     sniperRifle.position.z = camera.position.z + Math.cos(Math.PI - camera.rotation.y + 0.4) * 2
-    //     sniperRifle.position.y = camera.position.y + Math.min(Math.max((Math.tan(camera.rotation.x + 0.1) - 0.5), -2), 2)
-    //     sniperRifle.quaternion.copy(camera.quaternion)
-    // }
-    // if (famasRifle){
-    //     famasRifle.position.x = camera.position.x - Math.sin(camera.rotation.y - 0.4) * 1.5
-    //     famasRifle.position.z = camera.position.z + Math.cos(Math.PI - camera.rotation.y + 0.4) * 1.5
-    //     famasRifle.position.y = camera.position.y + Math.min(Math.max((Math.tan(camera.rotation.x + 0.2) - 1), -2), 2)
-    //     famasRifle.quaternion.copy(camera.quaternion)
-    // }
-    // if (rifle){
-    //     rifle.position.x = camera.position.x - Math.sin(camera.rotation.y - 0.4) * 1.5
-    //     rifle.position.z = camera.position.z + Math.cos(Math.PI - camera.rotation.y + 0.4) * 1.5
-    //     rifle.position.y = camera.position.y + Math.min(Math.max((Math.tan(camera.rotation.x + 0.2) - 0.8), -2), 2)
-    //     rifle.quaternion.copy(camera.quaternion)
-    // }
+    if (sniperRifle){
+        sniperRifle.position.x = camera.position.x - Math.sin(camera.rotation.y - 0.4) * 2
+        sniperRifle.position.z = camera.position.z + Math.cos(Math.PI - camera.rotation.y + 0.4) * 2
+        sniperRifle.position.y = camera.position.y + Math.min(Math.max((Math.tan(camera.rotation.x + 0.1) - 0.5), -2), 2)
+        sniperRifle.quaternion.copy(camera.quaternion)
+    }
+    if (famasRifle){
+        famasRifle.position.x = camera.position.x - Math.sin(camera.rotation.y - 0.4) * 1.5
+        famasRifle.position.z = camera.position.z + Math.cos(Math.PI - camera.rotation.y + 0.4) * 1.5
+        famasRifle.position.y = camera.position.y + Math.min(Math.max((Math.tan(camera.rotation.x + 0.2) - 1), -2), 2)
+        famasRifle.quaternion.copy(camera.quaternion)
+    }
+    if (rifle){
+        rifle.position.x = camera.position.x - Math.sin(camera.rotation.y - 0.4) * 1.5
+        rifle.position.z = camera.position.z + Math.cos(Math.PI - camera.rotation.y + 0.4) * 1.5
+        rifle.position.y = camera.position.y + Math.min(Math.max((Math.tan(camera.rotation.x + 0.2) - 0.8), -2), 2)
+        rifle.quaternion.copy(camera.quaternion)
+    }
      if (pistol){
         pistol.position.x = camera.position.x - Math.sin(camera.rotation.y - 0.6) * 1.5
         pistol.position.z = camera.position.z + Math.cos(Math.PI - camera.rotation.y + 0.6) * 1.5
@@ -602,6 +602,7 @@ function onMenu(){
         ControlLeft: false,
         Space: false
     }
+    weapons.forEach(e => e.visible = false)
 }
 
 function onMouseMove( event ){

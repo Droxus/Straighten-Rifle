@@ -23,14 +23,14 @@ body * {
               user-select: none; 
 }
 #menuBg{
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(1, 1, 1, 0.4);
     position: sticky;
     display: grid;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    backdrop-filter: blur(4px) brightness(0.8);
+    backdrop-filter: blur(4px);
     z-index: 9999;
 }
 #menu{
@@ -169,4 +169,23 @@ body * {
     color: aqua;
     opacity: 0.2;
     font-size: 24px;
+}
+#loader{
+    background-color: black;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 99999999;
+    display: grid;
+}
+#loader > label{
+    color: #ff5900;
+    font-weight: bold;
+    display: flex;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 32px;
+    align-items: center;
+    justify-content: center;
 }

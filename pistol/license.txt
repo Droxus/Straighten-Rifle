@@ -1,0 +1,11 @@
+Model Information:
+* title:	USP-S Chromatic III
+* source:	https://sketchfab.com/3d-models/usp-s-chromatic-iii-16290d6fc7554205b4ee24c00ee749cc
+* author:	SPARXS (https://sketchfab.com/SPARXS)
+
+Model License:
+* license type:	CC-BY-NC-4.0 (http://creativecommons.org/licenses/by-nc/4.0/)
+* requirements:	Author must be credited. No commercial use.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "USP-S Chromatic III" (https://sketchfab.com/3d-models/usp-s-chromatic-iii-16290d6fc7554205b4ee24c00ee749cc) by SPARXS (https://sketchfab.com/SPARXS) licensed under CC-BY-NC-4.0 (http://creativecommons.org/licenses/by-nc/4.0/)

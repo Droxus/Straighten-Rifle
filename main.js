@@ -50,12 +50,12 @@ let player = {
 }
 let removeBody
 let modelHeight = 3
-let flyMode, speedSide = 0, speedForward = 0, speedForwardmax, vSpeed = 0
+let flyMode, speedSide = 0, speedForward = 0, speedForwardmax, vSpeed = 0, loadedAssets = 0, loadedTime = 0
 let sensitivity = 1
-let boxes = [], helpers = [], modelBodies = [], bulletsBody = [], bullets = []
+let boxes = [], helpers = [], modelBodies = [], bulletsBody = [], bullets = [], weapons = []
 let prevPosition = {}
 const loader = new THREE.GLTFLoader();
-let model, sniperRifle
+let model, sniperRifle, famasRifle, rifle, pistol
    loader.load('aimmap.glb', (glb) =>  {
         if (glb){
             console.log(glb.scene)
@@ -83,18 +83,62 @@ let model, sniperRifle
                 modelBodies.push(modelBody)
             })
             model.updateMatrixWorld( true )
+            hideLoader()
         }})        
         loader.load('bobs_sniper-rifle.glb', (glb) =>  {
             if (glb){
                 scene.add(glb.scene)
                 sniperRifle = glb.scene
+                sniperRifle.visible = false
                 sniperRifle.position.set(0, 5, 0)
-                // camera.attach(sniperRifle)
-                // sniperRifle.position.set(5, 5, 5)
-                // console.log(sniperRifle.position)
-                // console.log(sniperRifle)
+                weapons.push(sniperRifle)
+                hideLoader()
             }
         })
+        loader.load('famas/scene.glb', (glb) =>  {
+            if (glb){
+                scene.add(glb.scene)
+                famasRifle = glb.scene
+                famasRifle.visible = false
+                famasRifle.scale.set(0.1,0.1,0.1)
+                famasRifle.position.set(0, 5, 0)
+                weapons.push(famasRifle)
+                hideLoader()
+            }
+        })
+        loader.load('m4/scene.glb', (glb) =>  {
+            if (glb){
+                scene.add(glb.scene)
+                rifle = glb.scene
+                rifle.visible = false
+                rifle.scale.set(15,15,15)
+                rifle.position.set(0, 5, 0)
+                weapons.push(rifle)
+                hideLoader()
+            }
+        })
+        loader.load('pistol/scene.glb', (glb) =>  {
+            if (glb){
+                scene.add(glb.scene)
+                pistol = glb.scene
+                pistol.visible = false
+                pistol.scale.set(0.15,0.15,0.15)
+                pistol.position.set(0, 5, 0)
+                weapons.push(pistol)
+                hideLoader()
+            }
+        })
+let loadedInterval = setInterval(() => {
+    loadedTime += 10
+}, 10)
+function hideLoader(){
+    ++loadedAssets
+    if (loadedAssets > 4){
+        document.getElementById('loader').style.display = 'none'
+        clearInterval(loadedInterval)
+        console.log('Loaded time take ' + loadedTime/1000 + ' sec')
+    }
+}
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize( window.innerWidth, window.innerHeight );
 renderer.shadowMap.enabled = true;
@@ -107,6 +151,7 @@ var playerModelBody = new CANNON.Body({
     fixedRotation: true,
     type: CANNON.DYNAMIC
 })
+playerModelBody.name = 'playerModel';
 playerModelBody.mass = 0;
 playerModelBody.updateMassProperties();
 world.addBody(playerModelBody)
@@ -114,19 +159,28 @@ renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 renderer.shadowMap.enabled = true;
 
-let cube = new THREE.Mesh( new THREE.BoxGeometry(500, 0.01, 500), new THREE.MeshBasicMaterial( { color: '#2b2b2b' } ) );
-scene.add( cube );
-
+let floor = new THREE.Mesh( new THREE.BoxGeometry(500, 3, 500), new THREE.MeshBasicMaterial( { color: '#2b2b2b' } ) );
+floor.position.set(0,-1.5,0)
+scene.add( floor );
+let roof = new THREE.Mesh( new THREE.BoxGeometry(150, 3, 200), new THREE.MeshBasicMaterial( { color: '#2b2b2b' } ) );
+roof.visible = false
+roof.position.set(0, 31.5, 0)
+scene.add( roof );
 const stats = Stats()
 stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
 document.body.appendChild( stats.dom );
-let groundBody = new CANNON.Body({
-    mass: 0
+let floorBody = new CANNON.Body({
+    mass: 0,
+    position: new CANNON.Vec3(floor.position.x, floor.position.y, floor.position.z),
+    shape: new CANNON.Box(new CANNON.Vec3(250, 1.5, 250))
 }) 
-let groundShape = new CANNON.Plane(0.1, 0.2) 
-groundBody.addShape(groundShape) 
-groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2) 
-world.addBody(groundBody) 
+world.addBody(floorBody) 
+let roofBody = new CANNON.Body({
+    mass: 0,
+    position:  new CANNON.Vec3(roof.position.x, roof.position.y, roof.position.z),
+    shape: new CANNON.Box( new CANNON.Vec3(75, 1.5, 100))
+}) 
+world.addBody(roofBody) 
     const directionalLight1 = new THREE.DirectionalLight( '#ffffff', 0.2 );
     directionalLight1.position.set(0, 200, 200)
     scene.add( directionalLight1 );
@@ -192,13 +246,30 @@ function animate() {
         bullet.position.copy( bulletsBody[i].position )
     })
 
-    if (sniperRifle){
-        sniperRifle.position.x = camera.position.x - Math.sin(camera.rotation.y - 0.4) * 1.5
-        sniperRifle.position.z = camera.position.z + Math.cos(Math.PI - camera.rotation.y + 0.4) * 1.5
-        sniperRifle.position.y = camera.position.y + Math.min(Math.max((Math.tan(camera.rotation.x + 0.1) - 0.5), -2), 2)
-        sniperRifle.quaternion.copy(camera.quaternion)
+    // if (sniperRifle){
+    //     sniperRifle.position.x = camera.position.x - Math.sin(camera.rotation.y - 0.4) * 2
+    //     sniperRifle.position.z = camera.position.z + Math.cos(Math.PI - camera.rotation.y + 0.4) * 2
+    //     sniperRifle.position.y = camera.position.y + Math.min(Math.max((Math.tan(camera.rotation.x + 0.1) - 0.5), -2), 2)
+    //     sniperRifle.quaternion.copy(camera.quaternion)
+    // }
+    // if (famasRifle){
+    //     famasRifle.position.x = camera.position.x - Math.sin(camera.rotation.y - 0.4) * 1.5
+    //     famasRifle.position.z = camera.position.z + Math.cos(Math.PI - camera.rotation.y + 0.4) * 1.5
+    //     famasRifle.position.y = camera.position.y + Math.min(Math.max((Math.tan(camera.rotation.x + 0.2) - 1), -2), 2)
+    //     famasRifle.quaternion.copy(camera.quaternion)
+    // }
+    // if (rifle){
+    //     rifle.position.x = camera.position.x - Math.sin(camera.rotation.y - 0.4) * 1.5
+    //     rifle.position.z = camera.position.z + Math.cos(Math.PI - camera.rotation.y + 0.4) * 1.5
+    //     rifle.position.y = camera.position.y + Math.min(Math.max((Math.tan(camera.rotation.x + 0.2) - 0.8), -2), 2)
+    //     rifle.quaternion.copy(camera.quaternion)
+    // }
+     if (pistol){
+        pistol.position.x = camera.position.x - Math.sin(camera.rotation.y - 0.6) * 1.5
+        pistol.position.z = camera.position.z + Math.cos(Math.PI - camera.rotation.y + 0.6) * 1.5
+        pistol.position.y = camera.position.y + Math.min(Math.max((Math.tan(camera.rotation.x + 0.2) - 1.2), -2), 2)
+        pistol.quaternion.copy(camera.quaternion)
     }
-
     getAdvancedData()
 
     stats.begin()
@@ -442,7 +513,7 @@ function makeShoot(){
     bulletBody.position.x += Math.sin(camera.rotation.y) * -2
     bulletBody.position.z += Math.cos(Math.PI - camera.rotation.y) * 2
     bulletBody.position.y += Math.tan(camera.rotation.x) * 1 - 0.5
-
+    bulletBody.name = 'bullet'
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
     pointer.x = ( (window.innerWidth/2) / window.innerWidth ) * 2 - 1;
@@ -461,19 +532,21 @@ function makeShoot(){
     bulletBody.velocity.z += Math.cos(Math.PI - camera.rotation.y) * 200
     bulletBody.velocity.y += Math.tan(camera.rotation.x) * 200
     bulletBody.addEventListener('collide', function onBulletCollide({ contact: { bi } }) {
-        bulletBody.velocity.set(0,0,0)
-        const vTo = new CANNON.Vec3(Math.sin(camera.rotation.y) * -2000, Math.cos(Math.PI - camera.rotation.y) * 2000, Math.tan(camera.rotation.x) * 1000)
-        const ray = new CANNON.Ray(bulletBody.position, vTo)
-        const result = new CANNON.RaycastResult()
-        ray.intersectBody(bi, result)
-        grounded = result.hasHit
-        // bi.id == 25 ? console.log('HIT') : null
-        let endPosition = bulletBody.endPosition
-        bulletBody.position.x = endPosition.x
-        bulletBody.position.y = endPosition.y
-        bulletBody.position.z = endPosition.z
-        removeBody = bulletBody;
-        this.removeEventListener('collide', onBulletCollide);
+        if (bi.name !== 'bullet' && bi.name !== 'playerModel'){
+            bulletBody.velocity.set(0,0,0)
+            const vTo = new CANNON.Vec3(Math.sin(camera.rotation.y) * -2000, Math.cos(Math.PI - camera.rotation.y) * 2000, Math.tan(camera.rotation.x) * 1000)
+            const ray = new CANNON.Ray(bulletBody.position, vTo)
+            const result = new CANNON.RaycastResult()
+            ray.intersectBody(bi, result)
+            grounded = result.hasHit
+            // bi.id == 25 ? console.log('HIT') : null
+            let endPosition = bulletBody.endPosition
+            bulletBody.position.x = endPosition.x
+            bulletBody.position.y = endPosition.y
+            bulletBody.position.z = endPosition.z
+            removeBody = bulletBody;
+            this.removeEventListener('collide', onBulletCollide);
+        }
     })
 }
 document.getElementById('onPlay').addEventListener('click', onPlay)
@@ -507,6 +580,8 @@ function onPlay(){
     playerModelBody.mass = 10;
     playerModelBody.updateMassProperties();
     playerModelBody.velocity.y = 1
+    let randomWepon = Math.floor(Math.random() * 3.9)
+    weapons[randomWepon].visible = true
 }
 function onMenu(){
     document.getElementById('onPlay').removeEventListener('click', onPlay)

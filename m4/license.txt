@@ -1,0 +1,11 @@
+Model Information:
+* title:	Custom M4  technical
+* source:	https://sketchfab.com/3d-models/custom-m4-technical-997008f41fa742dea17fd6efce1029c8
+* author:	MwradMousavi (https://sketchfab.com/Mwrad4)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Custom M4  technical" (https://sketchfab.com/3d-models/custom-m4-technical-997008f41fa742dea17fd6efce1029c8) by MwradMousavi (https://sketchfab.com/Mwrad4) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

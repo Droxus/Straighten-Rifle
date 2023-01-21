@@ -45,6 +45,10 @@ let player = {
         y: 0,
         z: 0
     },
+    flyHorizontalSpeed: {
+        x: 0,
+        z: 0
+    },
     isFlying: false,
     flyMode: false
 }
@@ -90,7 +94,13 @@ let model, sniperRifle, famasRifle, rifle, pistol
                 scene.add(glb.scene)
                 sniperRifle = glb.scene
                 sniperRifle.visible = false
-                sniperRifle.position.set(0, 5, 0)
+                sniperRifle.position.set(0, 40, 0)
+                sniperRifle.rotationCameraX = 0.4
+                sniperRifle.rotationCameraZ = 0.4
+                sniperRifle.rotationCameraY = 0.1
+                sniperRifle.rotationCameraKefX = 2
+                sniperRifle.rotationCameraKefZ = 2
+                sniperRifle.rotationCameraKefY = 0.5
                 weapons.push(sniperRifle)
                 hideLoader()
             }
@@ -101,7 +111,13 @@ let model, sniperRifle, famasRifle, rifle, pistol
                 famasRifle = glb.scene
                 famasRifle.visible = false
                 famasRifle.scale.set(0.1,0.1,0.1)
-                famasRifle.position.set(0, 5, 0)
+                famasRifle.position.set(0, 40, 0)
+                famasRifle.rotationCameraX = 0.4
+                famasRifle.rotationCameraZ = 0.4
+                famasRifle.rotationCameraY = 0.2
+                famasRifle.rotationCameraKefX = 1.5
+                famasRifle.rotationCameraKefZ = 1.5
+                famasRifle.rotationCameraKefY = 1
                 weapons.push(famasRifle)
                 hideLoader()
             }
@@ -112,7 +128,13 @@ let model, sniperRifle, famasRifle, rifle, pistol
                 rifle = glb.scene
                 rifle.visible = false
                 rifle.scale.set(15,15,15)
-                rifle.position.set(0, 5, 0)
+                rifle.position.set(0, 40, 0)
+                rifle.rotationCameraX = 0.4
+                rifle.rotationCameraZ = 0.4
+                rifle.rotationCameraY = 0.2
+                rifle.rotationCameraKefX = 1.5
+                rifle.rotationCameraKefZ = 1.5
+                rifle.rotationCameraKefY = 0.8
                 weapons.push(rifle)
                 hideLoader()
             }
@@ -123,7 +145,13 @@ let model, sniperRifle, famasRifle, rifle, pistol
                 pistol = glb.scene
                 pistol.visible = false
                 pistol.scale.set(0.15,0.15,0.15)
-                pistol.position.set(0, 5, 0)
+                pistol.position.set(0, 40, 0)
+                pistol.rotationCameraX = 0.6
+                pistol.rotationCameraZ = 0.6
+                pistol.rotationCameraY = 0.2
+                pistol.rotationCameraKefX = 1.5
+                pistol.rotationCameraKefZ = 1.5
+                pistol.rotationCameraKefY = 1.2
                 weapons.push(pistol)
                 hideLoader()
             }
@@ -160,7 +188,7 @@ document.body.appendChild( renderer.domElement );
 renderer.shadowMap.enabled = true;
 
 let floor = new THREE.Mesh( new THREE.BoxGeometry(500, 3, 500), new THREE.MeshBasicMaterial( { color: '#2b2b2b' } ) );
-floor.position.set(0,-1.5,0)
+floor.position.set(0,-1.55,0)
 scene.add( floor );
 let roof = new THREE.Mesh( new THREE.BoxGeometry(150, 3, 200), new THREE.MeshBasicMaterial( { color: '#2b2b2b' } ) );
 roof.visible = false
@@ -245,30 +273,11 @@ function animate() {
     bullets.forEach((bullet, i) => {
         bullet.position.copy( bulletsBody[i].position )
     })
-
-    if (sniperRifle){
-        sniperRifle.position.x = camera.position.x - Math.sin(camera.rotation.y - 0.4) * 2
-        sniperRifle.position.z = camera.position.z + Math.cos(Math.PI - camera.rotation.y + 0.4) * 2
-        sniperRifle.position.y = camera.position.y + Math.min(Math.max((Math.tan(camera.rotation.x + 0.1) - 0.5), -2), 2)
-        sniperRifle.quaternion.copy(camera.quaternion)
-    }
-    if (famasRifle){
-        famasRifle.position.x = camera.position.x - Math.sin(camera.rotation.y - 0.4) * 1.5
-        famasRifle.position.z = camera.position.z + Math.cos(Math.PI - camera.rotation.y + 0.4) * 1.5
-        famasRifle.position.y = camera.position.y + Math.min(Math.max((Math.tan(camera.rotation.x + 0.2) - 1), -2), 2)
-        famasRifle.quaternion.copy(camera.quaternion)
-    }
-    if (rifle){
-        rifle.position.x = camera.position.x - Math.sin(camera.rotation.y - 0.4) * 1.5
-        rifle.position.z = camera.position.z + Math.cos(Math.PI - camera.rotation.y + 0.4) * 1.5
-        rifle.position.y = camera.position.y + Math.min(Math.max((Math.tan(camera.rotation.x + 0.2) - 0.8), -2), 2)
-        rifle.quaternion.copy(camera.quaternion)
-    }
-     if (pistol){
-        pistol.position.x = camera.position.x - Math.sin(camera.rotation.y - 0.6) * 1.5
-        pistol.position.z = camera.position.z + Math.cos(Math.PI - camera.rotation.y + 0.6) * 1.5
-        pistol.position.y = camera.position.y + Math.min(Math.max((Math.tan(camera.rotation.x + 0.2) - 1.2), -2), 2)
-        pistol.quaternion.copy(camera.quaternion)
+    if (loadedAssets > 4){
+        weapons[randomWeapon].position.x = camera.position.x - Math.sin(camera.rotation.y - weapons[randomWeapon].rotationCameraX) * weapons[randomWeapon].rotationCameraKefX
+        weapons[randomWeapon].position.z = camera.position.z + Math.cos(Math.PI - camera.rotation.y + weapons[randomWeapon].rotationCameraZ) * weapons[randomWeapon].rotationCameraKefZ
+        weapons[randomWeapon].position.y = camera.position.y + Math.min(Math.max((Math.tan(camera.rotation.x + weapons[randomWeapon].rotationCameraY) - weapons[randomWeapon].rotationCameraKefY), -2), 2)
+        weapons[randomWeapon].quaternion.copy(camera.quaternion)
     }
     getAdvancedData()
 
@@ -316,23 +325,31 @@ function playerMove(){
                 camera.translateZ( -player.speed.z * 20 )
                 camera.translateX( player.speed.x * 20 )
             } else {
-                if (player.speed.z > 0){
-                    playerModelBody.position.x += Math.sin(camera.rotation.y) * -player.speed.z + playerModelBody.velocity.x / 20
-                    playerModelBody.position.z += Math.cos(Math.PI - camera.rotation.y) * player.speed.z + playerModelBody.velocity.z / 20
-                }
-                if (player.speed.z < 0){
-                    playerModelBody.position.x += Math.sin(camera.rotation.y) * -player.speed.z + playerModelBody.velocity.x / 20
-                    playerModelBody.position.z += -Math.cos(camera.rotation.y) * player.speed.z + playerModelBody.velocity.z / 20
-                    
-                }
-                if (player.speed.x > 0){
-                    playerModelBody.position.x += Math.sin(camera.rotation.y + Math.PI / 2) * player.speed.x + playerModelBody.velocity.x / 20
-                    playerModelBody.position.z += -Math.cos(camera.rotation.y + Math.PI / 2) * -player.speed.x + playerModelBody.velocity.z / 20
-                }
-                if (player.speed.x < 0){
-                    playerModelBody.position.x += Math.sin(camera.rotation.y - Math.PI / 2) * -player.speed.x + playerModelBody.velocity.x / 20
-                    playerModelBody.position.z += -Math.cos(camera.rotation.y - Math.PI / 2) * player.speed.x + playerModelBody.velocity.z / 20
-                }
+                // if (!player.isFlying){
+                    isOnLanding = false
+                    if (player.speed.z > 0){
+                        playerModelBody.position.x += Math.sin(camera.rotation.y) * -player.speed.z + playerModelBody.velocity.x / 20
+                        playerModelBody.position.z += Math.cos(Math.PI - camera.rotation.y) * player.speed.z + playerModelBody.velocity.z / 20
+                    }
+                    if (player.speed.z < 0){
+                        playerModelBody.position.x += Math.sin(camera.rotation.y) * -player.speed.z + playerModelBody.velocity.x / 20
+                        playerModelBody.position.z += -Math.cos(camera.rotation.y) * player.speed.z + playerModelBody.velocity.z / 20
+                        
+                    }
+                    if (player.speed.x > 0){
+                        playerModelBody.position.x += Math.sin(camera.rotation.y + Math.PI / 2) * player.speed.x + playerModelBody.velocity.x / 20
+                        playerModelBody.position.z += -Math.cos(camera.rotation.y + Math.PI / 2) * -player.speed.x + playerModelBody.velocity.z / 20
+                    }
+                    if (player.speed.x < 0){
+                        playerModelBody.position.x += Math.sin(camera.rotation.y - Math.PI / 2) * -player.speed.x + playerModelBody.velocity.x / 20
+                        playerModelBody.position.z += -Math.cos(camera.rotation.y - Math.PI / 2) * player.speed.x + playerModelBody.velocity.z / 20
+                    }
+                // }
+                // else {
+                //     if (!isOnLanding){
+                //         onLanding()
+                //     }
+                // }
             }
         } else {
             clearInterval( smoothlyMove )
@@ -353,7 +370,7 @@ function makeJump(){
         }, 240)
         let smoothlyJump = setInterval(() => {
             --velOfJumpIndex
-            playerModelBody.velocity.set(0, 0, 0)
+            playerModelBody.velocity.y = 0
             playerModelBody.position.y += 0.002 * velOfJumpIndex
         }, 5)
     }
@@ -391,36 +408,103 @@ function makeDuck(front){
         }, 5)
     }
 }
+// let onLandingInterval
+// function onLanding(){
+//     onLandingInterval = setInterval(() => {
+//         if (!player.isFlying || !isFuseSpamSpace){
+//             if (!keys.KeyW){
+//                 if (keys.KeyS){
+//                     player.speed.z = -player.maxSpeed.horizontal
+//                 } else {
+//                     player.speed.z = 0
+//                 }
+//             }
+//             if (!keys.KeyS){
+//                 if (keys.KeyW){
+//                     player.speed.z = player.maxSpeed.horizontal
+//                 } else {
+//                     player.speed.z = 0
+//                 }
+//             }
+//             if (!keys.KeyA){
+//                 if (keys.KeyD){
+//                     player.speed.x = player.maxSpeed.horizontal
+//                 } else {
+//                     player.speed.x = 0
+//                 }
+//             }
+//             if (!keys.KeyD){
+//                 if (keys.KeyA){
+//                     player.speed.x = -player.maxSpeed.horizontal
+//                 } else {
+//                     player.speed.x = 0
+//                 }
+//             }
+//             clearInterval(onLandingInterval)
+//         }
+//     }, 5)
+// }
+let onLandingInterval, isOnLanding
+// function onLanding(){
+//     isOnLanding = true
+//     console.log(player.isFlying)
+//     // onLandingInterval = setInterval(() => {
+
+//     // }, 5)
+//     if (player.flyHorizontalSpeed.x){
+//         console.log('a')
+//     }
+// }
 function offKeyboard(event){
     event.preventDefault();
         switch (event.code) {
         case 'KeyW':
-            if (keys.KeyS){
-                player.speed.z = -player.maxSpeed.horizontal
-            } else {
-                player.speed.z = 0
-            }
+            // if (!player.isFlying){
+                if (keys.KeyS){
+                    player.speed.z = -player.maxSpeed.horizontal
+                } else {
+                    player.speed.z = 0
+                }
+            // } 
+            // else {
+            //     onLanding(event)
+            // }
             break;
         case 'KeyA':
-            if (keys.KeyD){
-                player.speed.x = player.maxSpeed.horizontal
-            } else {
-                player.speed.x = 0
-            }
+            // if (!player.isFlying){
+                if (keys.KeyD){
+                    player.speed.x = player.maxSpeed.horizontal
+                } else {
+                    player.speed.x = 0
+                }
+            // } 
+            // else {
+            //     onLanding(event)
+            // }
             break;
         case 'KeyS':
-            if (keys.KeyW){
-                player.speed.z = player.maxSpeed.horizontal
-            } else {
-                player.speed.z = 0
-            }
+            // if (!player.isFlying){
+                if (keys.KeyW){
+                    player.speed.z = player.maxSpeed.horizontal
+                } else {
+                    player.speed.z = 0
+                }
+            // } 
+            // else {
+            //     onLanding(event)
+            // }
             break;
         case 'KeyD':
-            if (keys.KeyA){
-                player.speed.x = -player.maxSpeed.horizontal
-            } else {
-                player.speed.x = 0
-            }
+            // if (!player.isFlying){
+                if (keys.KeyA){
+                    player.speed.x = -player.maxSpeed.horizontal
+                } else {
+                    player.speed.x = 0
+                }
+            // } 
+            // else {
+            //     onLanding(event)
+            // }
             break;
         case 'ControlLeft':
             if (!isFuseSpamCtrl && keys.ControlLeft){
@@ -447,20 +531,36 @@ function onKeyboard(event){
         keys[event.code] = true
         switch (event.code) {
         case 'KeyW':
-            player.speed.z = player.maxSpeed.horizontal
-            playerMove()
+            // if (!player.isFlying){
+                player.speed.z = player.maxSpeed.horizontal
+                playerMove()
+            // } else {
+            //     keys[event.code] = false
+            // }
             break;
         case 'KeyA':
-            player.speed.x = -player.maxSpeed.horizontal
-            playerMove()
+            // if (!player.isFlying){
+                player.speed.x = -player.maxSpeed.horizontal
+                playerMove()
+            // } else {
+            //     keys[event.code] = false
+            // }
             break;
         case 'KeyS':
-            player.speed.z = -player.maxSpeed.horizontal
-            playerMove()
+            // if (!player.isFlying){
+                player.speed.z = -player.maxSpeed.horizontal
+                playerMove()
+            // } else {
+            //     keys[event.code] = false
+            // }
             break;
         case 'KeyD':
-            player.speed.x = player.maxSpeed.horizontal
-            playerMove()
+            // if (!player.isFlying){
+                player.speed.x = player.maxSpeed.horizontal
+                playerMove()
+            // } else {
+            //     keys[event.code] = false
+            // }
             break;
         case 'ControlLeft':
             if (!isCtrlStamina && Math.round(playerModelBody.shapes[0].halfExtents.y) == 2){
@@ -550,7 +650,7 @@ function makeShoot(){
     })
 }
 document.getElementById('onPlay').addEventListener('click', onPlay)
-
+let randomWeapon = 0
 function onPlay(){
     document.getElementById('menuBg').style.display = 'none'
     player.flyMode = document.getElementById('playOrDevChoose').checked
@@ -580,8 +680,8 @@ function onPlay(){
     playerModelBody.mass = 10;
     playerModelBody.updateMassProperties();
     playerModelBody.velocity.y = 1
-    let randomWepon = Math.floor(Math.random() * 3.9)
-    weapons[randomWepon].visible = true
+    randomWeapon = Math.floor(Math.random() * 3.9)
+    weapons[randomWeapon].visible = true
 }
 function onMenu(){
     document.getElementById('onPlay').removeEventListener('click', onPlay)
@@ -602,7 +702,7 @@ function onMenu(){
         ControlLeft: false,
         Space: false
     }
-    weapons.forEach(e => e.visible = false)
+    weapons.forEach(e => {e.visible = false; e.position.set(0, 40, 0)})
 }
 
 function onMouseMove( event ){

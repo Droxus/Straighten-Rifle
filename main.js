@@ -24,12 +24,22 @@ function initSky() {
 
 	sky.material.uniforms[ 'sunPosition' ].value.copy( sun );
 }
-const world = new CANNON.World()
-world.gravity.set(0, -9.8, 0) 
+// const world = new CANNON.World()
+// world.gravity.set(0, -9.8, 0) 
 
-var upVector = new CANNON.Vec3(0, 1, 0);
-var contactNormal = new CANNON.Vec3(0, 0, 0);
+// let groundMaterial = new CANNON.Material()
 
+// var upVector = new CANNON.Vec3(0, 1, 0);
+// var contactNormal = new CANNON.Vec3(0, 0, 0);
+const playerModel = new THREE.Mesh(  new THREE.BoxGeometry( 2, 4, 2 ), new THREE.MeshBasicMaterial( {color: 0x00ff00} ) );
+playerModel.position.set(0, 2, 0)
+playerModel.geometry.computeBoundingBox()
+playerModel.geometry.userData.obb = new THREE.OBB().fromBox3(
+    playerModel.geometry.boundingBox
+)
+playerModel.userData.obb = new THREE.OBB()
+scene.add(playerModel)
+console.log(playerModel)
 let player = {
     speed: {
         x: 0,
@@ -56,7 +66,7 @@ let removeBody
 let modelHeight = 3
 let flyMode, speedSide = 0, speedForward = 0, speedForwardmax, vSpeed = 0, loadedAssets = 0, loadedTime = 0
 let sensitivity = 1
-let boxes = [], helpers = [], modelBodies = [], bulletsBody = [], bullets = [], weapons = []
+let boxes = [], helpers = [], modelBodies = [], bulletsBody = [], bullets = [], weapons = [], collisionResponsiveObjects = []
 let prevPosition = {}
 const loader = new THREE.GLTFLoader();
 let model, sniperRifle, famasRifle, rifle, pistol
@@ -72,21 +82,37 @@ let model, sniperRifle, famasRifle, rifle, pistol
             model.children.forEach(child => {
                 let box = new THREE.Box3;
                 box.setFromObject(child);
+                const geometry = new THREE.BoxGeometry( child.scale.x * 2, child.scale.y * 2, child.scale.z * 2 )
+                // geometry.userData.obb = new THREE.OBB();
+                const hitbox = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial( { color: 0x000000, wireframe: true } ) )
+                hitbox.geometry.computeBoundingBox()
+                hitbox.geometry.userData.obb = new THREE.OBB().fromBox3(
+                    hitbox.geometry.boundingBox
+                )
+                hitbox.userData.obb = new THREE.OBB()
+
+                hitbox.position.set(child.position.x, child.position.y , child.position.z)
+                hitbox.rotation.set(child.rotation.x, child.rotation.y , child.rotation.z)
+                hitbox.userData.obb.copy(hitbox.geometry.userData.obb)
+                scene.add(hitbox)
+                collisionResponsiveObjects.push(hitbox)
                 const bbox = new THREE.LineSegments( new THREE.EdgesGeometry( new THREE.BoxGeometry( child.scale.x * 2 + 0.02, child.scale.y * 2 + 0.02, child.scale.z * 2 + 0.02 ) ), new THREE.LineBasicMaterial( { color: '#ff5900' } ) );
                 bbox.position.set(child.position.x, child.position.y , child.position.z)
                 bbox.rotation.set(child.rotation.x, child.rotation.y , child.rotation.z)
+                // collisionResponsiveObjects.push(bbox)
                 scene.add(bbox);
-                let modelBody = new CANNON.Body({
-                    mass: 0,
-                    position: new CANNON.Vec3((box.max.x+box.min.x)/2, (box.max.y+box.min.y)/2, (box.max.z+box.min.z)/2),
-                    shape: new CANNON.Box( new CANNON.Vec3(child.scale.x, child.scale.y, child.scale.z))
-                })
-                modelBody.quaternion.set(child.quaternion.x, child.quaternion.y, child.quaternion.z, child.quaternion.w)
-                modelBody.quaternion.normalize()
-                world.addBody(modelBody)
-                modelBodies.push(modelBody)
+                // let modelBody = new CANNON.Body({
+                //     mass: 0,
+                //     position: new CANNON.Vec3((box.max.x+box.min.x)/2, (box.max.y+box.min.y)/2, (box.max.z+box.min.z)/2),
+                //     shape: new CANNON.Box( new CANNON.Vec3(child.scale.x, child.scale.y, child.scale.z)),
+                //     material: groundMaterial
+                // })
+                // modelBody.quaternion.set(child.quaternion.x, child.quaternion.y, child.quaternion.z, child.quaternion.w)
+                // modelBody.quaternion.normalize()
+                // world.addBody(modelBody)
+                // modelBodies.push(modelBody)
             })
-            model.updateMatrixWorld( true )
+            // model.updateMatrixWorld( true )
             hideLoader()
         }})        
         loader.load('bobs_sniper-rifle.glb', (glb) =>  {
@@ -172,17 +198,20 @@ renderer.setSize( window.innerWidth, window.innerHeight );
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild( renderer.domElement );
-var playerModelBody = new CANNON.Body({
-    mass: 10,
-    position: new CANNON.Vec3(0, 2, 0),
-    shape: new CANNON.Box( new CANNON.Vec3(1, 2, 1) ),
-    fixedRotation: true,
-    type: CANNON.DYNAMIC
-})
-playerModelBody.name = 'playerModel';
-playerModelBody.mass = 0;
-playerModelBody.updateMassProperties();
-world.addBody(playerModelBody)
+// let playerModelMaterial = new CANNON.Material()
+// let playerModelBody = new CANNON.Body({
+//     mass: 10,
+//     position: new CANNON.Vec3(0, 2, 0),
+//     shape: new CANNON.Box( new CANNON.Vec3(1, 2, 1) ),
+//     fixedRotation: true,
+//     type: CANNON.DYNAMIC,
+//     material: playerModelMaterial
+// })
+// const playerGroundContactMaterial = new CANNON.ContactMaterial(playerModelMaterial, groundMaterial, {restitution: 0})
+// playerModelBody.name = 'playerModel';
+// playerModelBody.mass = 0;
+// playerModelBody.updateMassProperties();
+// world.addBody(playerModelBody)
 renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 renderer.shadowMap.enabled = true;
@@ -197,18 +226,20 @@ scene.add( roof );
 const stats = Stats()
 stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
 document.body.appendChild( stats.dom );
-let floorBody = new CANNON.Body({
-    mass: 0,
-    position: new CANNON.Vec3(floor.position.x, floor.position.y, floor.position.z),
-    shape: new CANNON.Box(new CANNON.Vec3(250, 1.5, 250))
-}) 
-world.addBody(floorBody) 
-let roofBody = new CANNON.Body({
-    mass: 0,
-    position:  new CANNON.Vec3(roof.position.x, roof.position.y, roof.position.z),
-    shape: new CANNON.Box( new CANNON.Vec3(75, 1.5, 100))
-}) 
-world.addBody(roofBody) 
+// let floorBody = new CANNON.Body({
+//     mass: 0,
+//     position: new CANNON.Vec3(floor.position.x, floor.position.y, floor.position.z),
+//     shape: new CANNON.Box(new CANNON.Vec3(250, 1.5, 250)),
+//     material: groundMaterial
+// }) 
+// world.addBody(floorBody) 
+// let roofBody = new CANNON.Body({
+//     mass: 0,
+//     position:  new CANNON.Vec3(roof.position.x, roof.position.y, roof.position.z),
+//     shape: new CANNON.Box( new CANNON.Vec3(75, 1.5, 100)),
+//     material: groundMaterial
+// }) 
+// world.addBody(roofBody) 
     const directionalLight1 = new THREE.DirectionalLight( '#ffffff', 0.2 );
     directionalLight1.position.set(0, 200, 200)
     scene.add( directionalLight1 );
@@ -251,28 +282,47 @@ camera.position.set(10, modelHeight, 25)
 camera.rotation.order = 'YXZ'
 
 // const cannonDebugRenderer = new THREE.CannonDebugRenderer(scene, world)
-let prevposition = playerModelBody.position.y
+// let prevposition = playerModelBody.position.y
+// let prevpositionY = []
+// prevpositionY.push(playerModelBody.position.y)
+// prevpositionY.push(playerModelBody.position.y)
 initSky()
 animate();
 function animate() {
     composer.render()
     requestAnimationFrame(animate)
     stats.update()
-    if(removeBody) world.remove(removeBody)
-    world.step(1 / 60)
+
+    // if(removeBody) world.remove(removeBody)
+    // world.step(1 / 60)
     // cannonDebugRenderer.update()
-    player.isFlying = Math.round(prevposition * 100) - Math.round(playerModelBody.position.y * 100) !== 0
-    prevposition = playerModelBody.position.y
+    // player.isFlying = Math.round(prevposition * 100) - Math.round(playerModelBody.position.y * 100) !== 0
+    // player.isFlying = Math.round(prevposition[0] * 100) - Math.round(playerModelBody.position.y * 100) !== 0
+    // player.isFlying = playerModelBody.velocity.y < 0
+    // console.log(playerModelBody.velocity.y)
+    // if (!isGrounded()){
+    //     playerModelBody.velocity.x = 0
+    //     playerModelBody.velocity.z = 0
+    // }
+    // console.log(isGrounded())
+    
+    // prevpositionY = playerModelBody.position.y
+    // prevpositionY.push(playerModelBody.position.y)
+    // prevpositionY.shift()
+    // console.log(playerModelBody.position.y)
+    // if (player.isFlying){
+    //     console.log('SUIIIII')
+    // }
 
     if (!player.flyMode){
-        camera.position.x = playerModelBody.position.x
-        camera.position.y = playerModelBody.position.y + playerModelBody.shapes[0].halfExtents.y
-        camera.position.z = playerModelBody.position.z
+        camera.position.x = playerModel.position.x
+        camera.position.y = playerModel.position.y + playerModel.geometry.parameters.height/2 * playerModel.scale.y
+        camera.position.z = playerModel.position.z
     }
 
-    bullets.forEach((bullet, i) => {
-        bullet.position.copy( bulletsBody[i].position )
-    })
+    // bullets.forEach((bullet, i) => {
+    //     bullet.position.copy( bulletsBody[i].position )
+    // })
     if (loadedAssets > 4){
         weapons[randomWeapon].position.x = camera.position.x - Math.sin(camera.rotation.y - weapons[randomWeapon].rotationCameraX) * weapons[randomWeapon].rotationCameraKefX
         weapons[randomWeapon].position.z = camera.position.z + Math.cos(Math.PI - camera.rotation.y + weapons[randomWeapon].rotationCameraZ) * weapons[randomWeapon].rotationCameraKefZ
@@ -287,7 +337,32 @@ function animate() {
 };
 window.addEventListener('resize', onResize)
 document.oncontextmenu = document.body.oncontextmenu = function() {return false;}
-
+function isGrounded(){
+    let downDirection = new THREE.Vector3(0, -1, 0);
+    const raycaster1 = new THREE.Raycaster();
+    raycaster1.far = playerModel.geometry.parameters.height/2 * playerModel.scale.y
+    raycaster1.set(new THREE.Vector3( playerModel.position.x + playerModel.geometry.parameters.depth,
+         playerModel.position.y, playerModel.position.z + playerModel.geometry.parameters.width ), downDirection)
+    let intersects = []
+    intersects.push(raycaster1.intersectObjects( scene.children ))
+    const raycaster2 = new THREE.Raycaster();
+    raycaster2.far = playerModel.geometry.parameters.height/2 * playerModel.scale.y
+    raycaster2.set(new THREE.Vector3( playerModel.position.x - playerModel.geometry.parameters.depth,
+        playerModel.position.y, playerModel.position.z - playerModel.geometry.parameters.width ), downDirection)
+    intersects.push(raycaster2.intersectObjects( scene.children ))
+    const raycaster3 = new THREE.Raycaster();
+    raycaster3.far = playerModel.geometry.parameters.height/2 * playerModel.scale.y
+    raycaster3.set(new THREE.Vector3( playerModel.position.x + playerModel.geometry.parameters.depth,
+        playerModel.position.y, playerModel.position.z - playerModel.geometry.parameters.width ), downDirection)
+    intersects.push(raycaster3.intersectObjects( scene.children ))
+    const raycaster4 = new THREE.Raycaster();
+    raycaster4.far = playerModel.geometry.parameters.height/2 * playerModel.scale.y
+    raycaster4.set(new THREE.Vector3( playerModel.position.x - playerModel.geometry.parameters.depth,
+        playerModel.position.y, playerModel.position.z + playerModel.geometry.parameters.width ), downDirection)
+    intersects.push(raycaster4.intersectObjects( scene.children ))
+    if (intersects.flat(1)[0]) return true
+    return false
+}
 function onResize(){
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -309,6 +384,23 @@ let keys = {
     ControlLeft: false,
     Space: false
 }
+let smoothGravityAttraction, velOfGravityAttractionIndex, isGravityAttractioning
+function gravityAttraction(){
+    if (!isGrounded() && !isFuseSpamSpace && !isGravityAttractioning){
+        clearInterval(smoothGravityAttraction)
+        isGravityAttractioning = true
+        velOfGravityAttractionIndex = 0
+        smoothGravityAttraction = setInterval(() => {
+            if (!isGrounded()){
+                ++velOfGravityAttractionIndex
+                playerModel.position.y -= 0.002 * velOfGravityAttractionIndex
+            } else {
+                isGravityAttractioning = false
+                clearInterval(smoothGravityAttraction)
+            }
+        }, 5)
+    }
+}
 let smoothlyMove, smoothlyJump
 function playerMove(){
     clearInterval( smoothlyMove )
@@ -325,31 +417,32 @@ function playerMove(){
                 camera.translateZ( -player.speed.z * 20 )
                 camera.translateX( player.speed.x * 20 )
             } else {
-                // if (!player.isFlying){
+                if (isGrounded()){
                     isOnLanding = false
+                    player.flyHorizontalSpeed.x = player.speed.x
+                    player.flyHorizontalSpeed.z = player.speed.z
                     if (player.speed.z > 0){
-                        playerModelBody.position.x += Math.sin(camera.rotation.y) * -player.speed.z + playerModelBody.velocity.x / 20
-                        playerModelBody.position.z += Math.cos(Math.PI - camera.rotation.y) * player.speed.z + playerModelBody.velocity.z / 20
+                        playerModel.position.x += Math.sin(camera.rotation.y) * -player.speed.z
+                        playerModel.position.z += Math.cos(Math.PI - camera.rotation.y) * player.speed.z
                     }
                     if (player.speed.z < 0){
-                        playerModelBody.position.x += Math.sin(camera.rotation.y) * -player.speed.z + playerModelBody.velocity.x / 20
-                        playerModelBody.position.z += -Math.cos(camera.rotation.y) * player.speed.z + playerModelBody.velocity.z / 20
-                        
+                        playerModel.position.x += Math.sin(camera.rotation.y) * -player.speed.z
+                        playerModel.position.z += -Math.cos(camera.rotation.y) * player.speed.z  
                     }
                     if (player.speed.x > 0){
-                        playerModelBody.position.x += Math.sin(camera.rotation.y + Math.PI / 2) * player.speed.x + playerModelBody.velocity.x / 20
-                        playerModelBody.position.z += -Math.cos(camera.rotation.y + Math.PI / 2) * -player.speed.x + playerModelBody.velocity.z / 20
+                        playerModel.position.x += Math.sin(camera.rotation.y + Math.PI / 2) * player.speed.x 
+                        playerModel.position.z += -Math.cos(camera.rotation.y + Math.PI / 2) * -player.speed.x 
                     }
                     if (player.speed.x < 0){
-                        playerModelBody.position.x += Math.sin(camera.rotation.y - Math.PI / 2) * -player.speed.x + playerModelBody.velocity.x / 20
-                        playerModelBody.position.z += -Math.cos(camera.rotation.y - Math.PI / 2) * player.speed.x + playerModelBody.velocity.z / 20
+                        playerModel.position.x += Math.sin(camera.rotation.y - Math.PI / 2) * -player.speed.x 
+                        playerModel.position.z += -Math.cos(camera.rotation.y - Math.PI / 2) * player.speed.x
                     }
-                // }
-                // else {
-                //     if (!isOnLanding){
-                //         onLanding()
-                //     }
-                // }
+                    checkCollision()
+                }
+                else {
+                    onLanding()
+                    gravityAttraction()
+                }
             }
         } else {
             clearInterval( smoothlyMove )
@@ -357,37 +450,49 @@ function playerMove(){
     }, 5)
     
 }
+function checkCollision(){
+    playerModel.userData.obb.copy(playerModel.geometry.userData.obb)
+    playerModel.userData.obb.applyMatrix4(playerModel.matrixWorld)
+    collisionResponsiveObjects.forEach(obj => {
+        obj.userData.obb.copy(obj.geometry.userData.obb)
+        obj.userData.obb.applyMatrix4(obj.matrixWorld)
+        if (obj.userData.obb.intersectsOBB(playerModel.userData.obb)) {
+            obj.material.color.set('red')
+            console.log('COLLISION')
+        } else {
+            obj.material.color.set('green')
+        }
+    })
+}
 let isFuseSpamSpace, jumpHorizontalMoving, velOfJumpIndex
 function makeJump(){
-    if (!player.isFlying && !isFuseSpamSpace){
+    if (isGrounded() && !isFuseSpamSpace){
         isFuseSpamSpace = true
-        setTimeout(() => {
-            isFuseSpamSpace = false
-        }, 300)
+        onLanding()
         velOfJumpIndex = 60
         setTimeout(() => {
+            isFuseSpamSpace = false
             clearInterval(smoothlyJump)
+            gravityAttraction()
         }, 240)
         let smoothlyJump = setInterval(() => {
             --velOfJumpIndex
-            playerModelBody.velocity.y = 0
-            playerModelBody.position.y += 0.002 * velOfJumpIndex
+            playerModel.position.y += 0.002 * velOfJumpIndex
         }, 5)
     }
 }
 let smoothDucking
 function makeDuck(front){
+    console.log('DUCK')
     if (front){
         clearInterval(smoothDucking)
         smoothDucking = setInterval(() => {
-            if (playerModelBody.shapes[0].halfExtents.y > 1){
-                playerModelBody.shapes[0].halfExtents.y -=  1/20
-                playerModelBody.shapes[0].boundingSphereRadiusNeedsUpdate = true;
-                playerModelBody.shapes[0].updateConvexPolyhedronRepresentation();
-                playerModelBody.computeAABB();
-                playerModelBody.position.y -= 1/20
+            if (playerModel.scale.y > 0.5){
+                playerModel.scale.y -=  1/50
+                playerModel.position.y -= playerModel.geometry.parameters.depth / 50
+                // playerModel.geometry.computeBoundingBox()
             } else {
-                playerModelBody.shapes[0].halfExtents.y = 1
+                playerModel.scale.y = 0.5
                 clearInterval(smoothDucking)
             }
         }, 5)
@@ -395,116 +500,87 @@ function makeDuck(front){
     } else {
         clearInterval(smoothDucking)
         smoothDucking = setInterval(() => {
-            if (playerModelBody.shapes[0].halfExtents.y < 2){
-                playerModelBody.shapes[0].halfExtents.y += 1/20
-                playerModelBody.shapes[0].boundingSphereRadiusNeedsUpdate = true;
-                playerModelBody.shapes[0].updateConvexPolyhedronRepresentation();
-                playerModelBody.computeAABB();
-                playerModelBody.position.y += 1/20
+            if (playerModel.scale.y < 1){
+                playerModel.scale.y += 1/50
+                playerModel.position.y += playerModel.geometry.parameters.depth / 50
+                // playerModel.geometry.computeBoundingBox()
             } else {
-                playerModelBody.shapes[0].halfExtents.y = 2
+                playerModel.scale.y = 1
                 clearInterval(smoothDucking)
             }
         }, 5)
     }
 }
-// let onLandingInterval
-// function onLanding(){
-//     onLandingInterval = setInterval(() => {
-//         if (!player.isFlying || !isFuseSpamSpace){
-//             if (!keys.KeyW){
-//                 if (keys.KeyS){
-//                     player.speed.z = -player.maxSpeed.horizontal
-//                 } else {
-//                     player.speed.z = 0
-//                 }
-//             }
-//             if (!keys.KeyS){
-//                 if (keys.KeyW){
-//                     player.speed.z = player.maxSpeed.horizontal
-//                 } else {
-//                     player.speed.z = 0
-//                 }
-//             }
-//             if (!keys.KeyA){
-//                 if (keys.KeyD){
-//                     player.speed.x = player.maxSpeed.horizontal
-//                 } else {
-//                     player.speed.x = 0
-//                 }
-//             }
-//             if (!keys.KeyD){
-//                 if (keys.KeyA){
-//                     player.speed.x = -player.maxSpeed.horizontal
-//                 } else {
-//                     player.speed.x = 0
-//                 }
-//             }
-//             clearInterval(onLandingInterval)
-//         }
-//     }, 5)
-// }
 let onLandingInterval, isOnLanding
-// function onLanding(){
-//     isOnLanding = true
-//     console.log(player.isFlying)
-//     // onLandingInterval = setInterval(() => {
-
-//     // }, 5)
-//     if (player.flyHorizontalSpeed.x){
-//         console.log('a')
+function onLanding(){
+    if (!isOnLanding){
+        isOnLanding = true
+        clearInterval(onLandingInterval)
+        onLandingInterval = setInterval(() => {
+            if (!isGrounded()){
+                if (player.flyHorizontalSpeed.z > 0){
+                    playerModel.position.x += Math.sin(camera.rotation.y) * -player.flyHorizontalSpeed.z
+                    playerModel.position.z += Math.cos(Math.PI - camera.rotation.y) * player.flyHorizontalSpeed.z
+                }
+                if (player.flyHorizontalSpeed.z < 0){
+                    playerModel.position.x += Math.sin(camera.rotation.y) * -player.flyHorizontalSpeed.z
+                    playerModel.position.z += -Math.cos(camera.rotation.y) * player.flyHorizontalSpeed.z
+                }
+                if (player.flyHorizontalSpeed.x > 0){
+                    playerModel.position.x += Math.sin(camera.rotation.y + Math.PI / 2) * player.flyHorizontalSpeed.x
+                    playerModel.position.z += -Math.cos(camera.rotation.y + Math.PI / 2) * -player.flyHorizontalSpeed.x
+                }
+                if (player.flyHorizontalSpeed.x < 0){
+                    playerModel.position.x += Math.sin(camera.rotation.y - Math.PI / 2) * -player.flyHorizontalSpeed.x
+                    playerModel.position.z += -Math.cos(camera.rotation.y - Math.PI / 2) * player.flyHorizontalSpeed.x
+                }
+                checkCollision()
+            } else {
+                clearInterval(onLandingInterval)
+            }
+        }, 5)
+    }
+}
+// function onPlayerModelCollide({ contact: { bi } }) {
+//     if (bi.name !== 'bullet'){
+//         console.log('TAKE IT')
+//         // console.log(bi)
+//         // playerModelBody.velocity.x = playerModelBody.velocity.x * 2
+//         // playerModelBody.velocity.z = playerModelBody.velocity.z * 2
+//         // clearInterval(onLandingInterval)
+//         // playerModelBody.removeEventListener('collide', onPlayerModelCollide);
 //     }
 // }
 function offKeyboard(event){
     event.preventDefault();
         switch (event.code) {
         case 'KeyW':
-            // if (!player.isFlying){
                 if (keys.KeyS){
                     player.speed.z = -player.maxSpeed.horizontal
                 } else {
                     player.speed.z = 0
                 }
-            // } 
-            // else {
-            //     onLanding(event)
-            // }
             break;
         case 'KeyA':
-            // if (!player.isFlying){
                 if (keys.KeyD){
                     player.speed.x = player.maxSpeed.horizontal
                 } else {
                     player.speed.x = 0
                 }
-            // } 
-            // else {
-            //     onLanding(event)
-            // }
             break;
         case 'KeyS':
-            // if (!player.isFlying){
                 if (keys.KeyW){
                     player.speed.z = player.maxSpeed.horizontal
                 } else {
                     player.speed.z = 0
                 }
-            // } 
-            // else {
-            //     onLanding(event)
-            // }
             break;
         case 'KeyD':
-            // if (!player.isFlying){
                 if (keys.KeyA){
                     player.speed.x = -player.maxSpeed.horizontal
                 } else {
                     player.speed.x = 0
                 }
-            // } 
-            // else {
-            //     onLanding(event)
-            // }
             break;
         case 'ControlLeft':
             if (!isFuseSpamCtrl && keys.ControlLeft){
@@ -531,39 +607,24 @@ function onKeyboard(event){
         keys[event.code] = true
         switch (event.code) {
         case 'KeyW':
-            // if (!player.isFlying){
                 player.speed.z = player.maxSpeed.horizontal
                 playerMove()
-            // } else {
-            //     keys[event.code] = false
-            // }
             break;
         case 'KeyA':
-            // if (!player.isFlying){
                 player.speed.x = -player.maxSpeed.horizontal
                 playerMove()
-            // } else {
-            //     keys[event.code] = false
-            // }
             break;
         case 'KeyS':
             // if (!player.isFlying){
                 player.speed.z = -player.maxSpeed.horizontal
                 playerMove()
-            // } else {
-            //     keys[event.code] = false
-            // }
             break;
         case 'KeyD':
-            // if (!player.isFlying){
                 player.speed.x = player.maxSpeed.horizontal
                 playerMove()
-            // } else {
-            //     keys[event.code] = false
-            // }
             break;
         case 'ControlLeft':
-            if (!isCtrlStamina && Math.round(playerModelBody.shapes[0].halfExtents.y) == 2){
+            if (!isCtrlStamina && Math.round(playerModel.geometry.parameters.height) == 4){
                 isCtrlStamina = true
                 player.maxSpeed.horizontal = 0.04
                 makeDuck(true)
@@ -602,52 +663,52 @@ function makeShoot(){
     bullet.name = 'bullet'
     bullets.push(bullet)
     scene.add( bullet )
-    let bulletBody = new CANNON.Body({
-        mass: 1,
-        position: camera.position,
-        shape: new CANNON.Box( new CANNON.Vec3(0.05, 0.05, 0.2)),
-        quaternion: camera.quaternion
-    })
-    bulletsBody.push(bulletBody)
-    bulletBody.quaternion.normalize()
-    bulletBody.position.x += Math.sin(camera.rotation.y) * -2
-    bulletBody.position.z += Math.cos(Math.PI - camera.rotation.y) * 2
-    bulletBody.position.y += Math.tan(camera.rotation.x) * 1 - 0.5
-    bulletBody.name = 'bullet'
-    const raycaster = new THREE.Raycaster();
-    const pointer = new THREE.Vector2();
-    pointer.x = ( (window.innerWidth/2) / window.innerWidth ) * 2 - 1;
-    pointer.y = - ( ((window.innerHeight+2)/2) / window.innerHeight ) * 2 + 1;
-    raycaster.setFromCamera( pointer, camera );
-    const intersects = raycaster.intersectObjects( scene.children );
-    let intersetsExpectBullets = intersects.filter(e => e.object.name !== 'bullet')
-    bulletBody.endPosition = {
-        x: intersetsExpectBullets[0].point.x - Math.sin(camera.rotation.y) * -0.3,
-        y: Math.max((intersetsExpectBullets[0].point.y - Math.tan(camera.rotation.x) * 0.15 - intersetsExpectBullets[0].distance * 0.02), 0),
-        z: intersetsExpectBullets[0].point.z - Math.cos(Math.PI - camera.rotation.y) * 0.3,
-    }
-    world.addBody(bulletBody)
-    let grounded
-    bulletBody.velocity.x += Math.sin(camera.rotation.y) * -200
-    bulletBody.velocity.z += Math.cos(Math.PI - camera.rotation.y) * 200
-    bulletBody.velocity.y += Math.tan(camera.rotation.x) * 200
-    bulletBody.addEventListener('collide', function onBulletCollide({ contact: { bi } }) {
-        if (bi.name !== 'bullet' && bi.name !== 'playerModel'){
-            bulletBody.velocity.set(0,0,0)
-            const vTo = new CANNON.Vec3(Math.sin(camera.rotation.y) * -2000, Math.cos(Math.PI - camera.rotation.y) * 2000, Math.tan(camera.rotation.x) * 1000)
-            const ray = new CANNON.Ray(bulletBody.position, vTo)
-            const result = new CANNON.RaycastResult()
-            ray.intersectBody(bi, result)
-            grounded = result.hasHit
-            // bi.id == 25 ? console.log('HIT') : null
-            let endPosition = bulletBody.endPosition
-            bulletBody.position.x = endPosition.x
-            bulletBody.position.y = endPosition.y
-            bulletBody.position.z = endPosition.z
-            removeBody = bulletBody;
-            this.removeEventListener('collide', onBulletCollide);
-        }
-    })
+    // let bulletBody = new CANNON.Body({
+    //     mass: 1,
+    //     position: camera.position,
+    //     shape: new CANNON.Box( new CANNON.Vec3(0.05, 0.05, 0.2)),
+    //     quaternion: camera.quaternion
+    // })
+    // bulletsBody.push(bulletBody)
+    // bulletBody.quaternion.normalize()
+    // bulletBody.position.x += Math.sin(camera.rotation.y) * -2
+    // bulletBody.position.z += Math.cos(Math.PI - camera.rotation.y) * 2
+    // bulletBody.position.y += Math.tan(camera.rotation.x) * 1 - 0.5
+    // bulletBody.name = 'bullet'
+    // const raycaster = new THREE.Raycaster();
+    // const pointer = new THREE.Vector2();
+    // pointer.x = ( (window.innerWidth/2) / window.innerWidth ) * 2 - 1;
+    // pointer.y = - ( ((window.innerHeight+2)/2) / window.innerHeight ) * 2 + 1;
+    // raycaster.setFromCamera( pointer, camera );
+    // const intersects = raycaster.intersectObjects( scene.children );
+    // let intersetsExpectBullets = intersects.filter(e => e.object.name !== 'bullet')
+    // bulletBody.endPosition = {
+    //     x: intersetsExpectBullets[0].point.x - Math.sin(camera.rotation.y) * -0.3,
+    //     y: Math.max((intersetsExpectBullets[0].point.y - Math.tan(camera.rotation.x) * 0.15 - intersetsExpectBullets[0].distance * 0.02), 0),
+    //     z: intersetsExpectBullets[0].point.z - Math.cos(Math.PI - camera.rotation.y) * 0.3,
+    // }
+    // world.addBody(bulletBody)
+    // let grounded
+    // bulletBody.velocity.x += Math.sin(camera.rotation.y) * -200
+    // bulletBody.velocity.z += Math.cos(Math.PI - camera.rotation.y) * 200
+    // bulletBody.velocity.y += Math.tan(camera.rotation.x) * 200
+    // bulletBody.addEventListener('collide', function onBulletCollide({ contact: { bi } }) {
+    //     if (bi.name !== 'bullet' && bi.name !== 'playerModel'){
+    //         bulletBody.velocity.set(0,0,0)
+    //         // const vTo = new CANNON.Vec3(Math.sin(camera.rotation.y) * -2000, Math.cos(Math.PI - camera.rotation.y) * 2000, Math.tan(camera.rotation.x) * 1000)
+    //         // const ray = new CANNON.Ray(bulletBody.position, vTo)
+    //         // const result = new CANNON.RaycastResult()
+    //         // ray.intersectBody(bi, result)
+    //         // grounded = result.hasHit
+    //         // bi.id == 25 ? console.log('HIT') : null
+    //         let endPosition = bulletBody.endPosition
+    //         bulletBody.position.x = endPosition.x
+    //         bulletBody.position.y = endPosition.y
+    //         bulletBody.position.z = endPosition.z
+    //         removeBody = bulletBody;
+    //         this.removeEventListener('collide', onBulletCollide);
+    //     }
+    // })
 }
 document.getElementById('onPlay').addEventListener('click', onPlay)
 let randomWeapon = 0
@@ -677,9 +738,10 @@ function onPlay(){
     } else if (document.documentElement.webkitRequestFullscreen) {
         document.documentElement.webkitRequestFullscreen();
     }
-    playerModelBody.mass = 10;
-    playerModelBody.updateMassProperties();
-    playerModelBody.velocity.y = 1
+    // playerModelBody.mass = 10;
+    // playerModelBody.updateMassProperties();
+    // playerModelBody.velocity.y = 1
+    gravityAttraction()
     randomWeapon = Math.floor(Math.random() * 3.9)
     weapons[randomWeapon].visible = true
 }

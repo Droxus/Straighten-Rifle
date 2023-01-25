@@ -390,20 +390,21 @@ function isGrounded(){
     // playerModel.userData.obb.applyMatrix4(playerModel.matrixWorld)
     intersects = intersects.flat(1)
     // console.log(intersects)
+    intersects = intersects.filter(e => e.distance > raycaster1.far * 0.85)
     if (intersects[0]){
         intersects.sort((a, b) => {
-            if (a.distance > b.distance) return -1
-            if (a.distance < b.distance) return 1
+            if (a.distance > b.distance) return 1
+            if (a.distance < b.distance) return -1
             return 0
         })
         console.log(intersects[0])
-        if (intersects[0].distance > raycaster1.far * 0.85){
+        // if (intersects[0].distance > raycaster1.far * 0.85){
             groundedObjectID = intersects[0].object.id
             playerModel.position.y += (raycaster1.far-0.05) - intersects[0].distance
             // playerModelTest.position.y += raycaster1.far - intersects[0].distance
             console.log('Ground')
             return true 
-        }
+        // }
         // return true    
     }
     // if (intersects.length > 0){
@@ -608,11 +609,11 @@ function checkCollision(){
             // console.log(groundedObject)
             // console.log(obj)
             if (obj.userData.obb.intersectsOBB(playerModel.userData.obb)) {
-                if (!isGrounded()){
-                    clearInterval(onLandingInterval)
-                    clearInterval(smoothlyJump)
-                    gravityAttraction()
-                }
+                // if (!isGrounded()){
+                //     clearInterval(onLandingInterval)
+                //     clearInterval(smoothlyJump)
+                //     gravityAttraction()
+                // }
                 obj.material.color.set('red')
                 // console.log('COLLISION')
                 // console.log((obj.userData.obb.intersectsOBB(playerModel.userData.obb)))

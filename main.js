@@ -108,6 +108,8 @@ let model, sniperRifle, famasRifle, rifle, pistol
                 const bbox = new THREE.LineSegments( new THREE.EdgesGeometry( new THREE.BoxGeometry( child.scale.x * 2 + 0.02, child.scale.y * 2 + 0.02, child.scale.z * 2 + 0.02 ) ), new THREE.LineBasicMaterial( { color: '#ff5900' } ) );
                 bbox.position.set(child.position.x, child.position.y , child.position.z)
                 bbox.rotation.set(child.rotation.x, child.rotation.y , child.rotation.z)
+                // const helper = new THREE.VertexNormalsHelper( child, 1, 0xff0000 );
+                // scene.add( helper );
                 // collisionResponsiveObjects.push(bbox)
                 scene.add(bbox);
                 // let modelBody = new CANNON.Body({
@@ -353,45 +355,56 @@ function animate() {
 };
 window.addEventListener('resize', onResize)
 document.oncontextmenu = document.body.oncontextmenu = function() {return false;}
+let groundedObjectID
 function isGrounded(){
     let downDirection = new THREE.Vector3(0, -1, 0);
-    // const raycaster1 = new THREE.Raycaster();
-    // raycaster1.far = playerModel.geometry.parameters.height/2 * playerModel.scale.y
-    // raycaster1.set(new THREE.Vector3( playerModel.position.x + playerModel.geometry.parameters.depth/2 - 0.1,
-    //      playerModel.position.y, playerModel.position.z + playerModel.geometry.parameters.width/2 - 0.5 ), downDirection)
-    // let intersects = []
-    // intersects.push(raycaster1.intersectObjects( scene.children ))
-    // const raycaster2 = new THREE.Raycaster();
-    // raycaster2.far = playerModel.geometry.parameters.height/2 * playerModel.scale.y
-    // raycaster2.set(new THREE.Vector3( playerModel.position.x - playerModel.geometry.parameters.depth/2 + 0.1,
-    //     playerModel.position.y, playerModel.position.z - playerModel.geometry.parameters.width/2 + 0.5 ), downDirection)
-    // intersects.push(raycaster2.intersectObjects( scene.children ))
-    // const raycaster3 = new THREE.Raycaster();
-    // raycaster3.far = playerModel.geometry.parameters.height/2 * playerModel.scale.y
-    // raycaster3.set(new THREE.Vector3( playerModel.position.x + playerModel.geometry.parameters.depth/2 - 0.1,
-    //     playerModel.position.y, playerModel.position.z - playerModel.geometry.parameters.width/2 + 0.5 ), downDirection)
-    // intersects.push(raycaster3.intersectObjects( scene.children ))
-    // const raycaster4 = new THREE.Raycaster();
-    // raycaster4.far = playerModel.geometry.parameters.height/2 * playerModel.scale.y
-    // raycaster4.set(new THREE.Vector3( playerModel.position.x - playerModel.geometry.parameters.depth/2 + 0.1,
-    //     playerModel.position.y, playerModel.position.z + playerModel.geometry.parameters.width/2 - 0.5 ), downDirection)
-    // intersects.push(raycaster4.intersectObjects( scene.children ))
-
     const raycaster1 = new THREE.Raycaster();
     raycaster1.far = playerModel.geometry.parameters.height/2 * playerModel.scale.y + 0.1
-    raycaster1.set(new THREE.Vector3( playerModel.position.x, playerModel.position.y, playerModel.position.z), downDirection)
+    raycaster1.set(new THREE.Vector3( playerModel.position.x + playerModel.geometry.parameters.depth/2 ,
+         playerModel.position.y, playerModel.position.z + playerModel.geometry.parameters.width/2 ), downDirection)
     let intersects = []
     intersects.push(raycaster1.intersectObjects( scene.children ))
+    const raycaster2 = new THREE.Raycaster();
+    raycaster2.far = playerModel.geometry.parameters.height/2 * playerModel.scale.y + 0.1
+    raycaster2.set(new THREE.Vector3( playerModel.position.x - playerModel.geometry.parameters.depth/2,
+        playerModel.position.y, playerModel.position.z - playerModel.geometry.parameters.width/2 ), downDirection)
+    intersects.push(raycaster2.intersectObjects( scene.children ))
+    const raycaster3 = new THREE.Raycaster();
+    raycaster3.far = playerModel.geometry.parameters.height/2 * playerModel.scale.y + 0.1
+    raycaster3.set(new THREE.Vector3( playerModel.position.x + playerModel.geometry.parameters.depth/2,
+        playerModel.position.y, playerModel.position.z - playerModel.geometry.parameters.width/2 ), downDirection)
+    intersects.push(raycaster3.intersectObjects( scene.children ))
+    const raycaster4 = new THREE.Raycaster();
+    raycaster4.far = playerModel.geometry.parameters.height/2 * playerModel.scale.y + 0.1
+    raycaster4.set(new THREE.Vector3( playerModel.position.x - playerModel.geometry.parameters.depth/2 ,
+        playerModel.position.y, playerModel.position.z + playerModel.geometry.parameters.width/2 ), downDirection)
+    intersects.push(raycaster4.intersectObjects( scene.children ))
+
+    // const raycaster1 = new THREE.Raycaster();
+    // raycaster1.far = playerModel.geometry.parameters.height/2 * playerModel.scale.y + 0.05
+    // raycaster1.set(new THREE.Vector3( playerModel.position.x, playerModel.position.y, playerModel.position.z), downDirection)
+    // let intersects = []
+    // intersects.push(raycaster1.intersectObjects( scene.children ))
     // console.log(raycaster1.intersectObjects( scene.children ))
-    playerModel.userData.obb.copy(playerModel.geometry.userData.obb)
-    playerModel.userData.obb.applyMatrix4(playerModel.matrixWorld)
+    // playerModel.userData.obb.copy(playerModel.geometry.userData.obb)
+    // playerModel.userData.obb.applyMatrix4(playerModel.matrixWorld)
     intersects = intersects.flat(1)
-    console.log(intersects)
+    // console.log(intersects)
     if (intersects[0]){
-        if (intersects[0].distance < 2 && intersects[0].distance > 1.7){
-            playerModel.position.y += 2 - intersects[0].distance
-            playerModelTest.position.y += 2 - intersects[0].distance
+        intersects.sort((a, b) => {
+            if (a.distance > b.distance) return -1
+            if (a.distance < b.distance) return 1
+            return 0
+        })
+        console.log(intersects[0])
+        if (intersects[0].distance > raycaster1.far * 0.85){
+            groundedObjectID = intersects[0].object.id
+            playerModel.position.y += (raycaster1.far-0.05) - intersects[0].distance
+            // playerModelTest.position.y += raycaster1.far - intersects[0].distance
+            console.log('Ground')
+            return true 
         }
+        // return true    
     }
     // if (intersects.length > 0){
         // intersects.forEach(obj => {
@@ -421,11 +434,7 @@ function isGrounded(){
         // } else {
             //     return true
             // }
-    if (intersects[0]){
-        if (intersects[0].distance > 1.5){
-            return true    
-        }
-    } 
+            console.log('Fly')
     return false
 }
 function onResize(){
@@ -459,6 +468,7 @@ function gravityAttraction(){
             if (!isGrounded()){
                 ++velOfGravityAttractionIndex
                 playerModel.position.y -= 0.002 * velOfGravityAttractionIndex
+                playerModelTest.position.y -= 0.002 * velOfGravityAttractionIndex
             } else {
                 isGravityAttractioning = false
                 clearInterval(smoothGravityAttraction)
@@ -484,6 +494,7 @@ function playerMove(){
             } else {
                 // if (isGrounded() && !checkCollision()){
                     if (isGrounded()){
+                        checkCollision()
                     isOnLanding = false
                     player.flyHorizontalSpeed.x = player.speed.x
                     player.flyHorizontalSpeed.z = player.speed.z
@@ -510,29 +521,38 @@ function playerMove(){
                     // }
                     if (player.speed.z > 0){
                         // console.log(checkCollision(Math.sin(camera.rotation.y) * -player.speed.z, Math.cos(Math.PI - camera.rotation.y) * player.speed.z))
-                        if (!checkCollision(Math.sin(camera.rotation.y) * -player.speed.z, Math.cos(Math.PI - camera.rotation.y) * player.speed.z)){
-                            playerModel.position.x += Math.sin(camera.rotation.y) * -player.speed.z
-                            playerModel.position.z += Math.cos(Math.PI - camera.rotation.y) * player.speed.z
-                        }
+                        // if (!checkCollision(Math.sin(camera.rotation.y) * -player.speed.z, Math.cos(Math.PI - camera.rotation.y) * player.speed.z)){
+                        //     playerModel.position.x += Math.sin(camera.rotation.y) * -player.speed.z
+                        //     playerModel.position.z += Math.cos(Math.PI - camera.rotation.y) * player.speed.z
+                        // }
+                        playerModel.position.x += Math.sin(camera.rotation.y) * -player.speed.z
+                        playerModel.position.z += Math.cos(Math.PI - camera.rotation.y) * player.speed.z
                     }
                     if (player.speed.z < 0){
-                        if (!checkCollision(Math.sin(camera.rotation.y) * -player.speed.z, -Math.cos(camera.rotation.y) * player.speed.z)){
-                            playerModel.position.x += Math.sin(camera.rotation.y) * -player.speed.z
-                            playerModel.position.z += -Math.cos(camera.rotation.y) * player.speed.z  
-                        }
+                        // if (!checkCollision(Math.sin(camera.rotation.y) * -player.speed.z, -Math.cos(camera.rotation.y) * player.speed.z)){
+                        //     playerModel.position.x += Math.sin(camera.rotation.y) * -player.speed.z
+                        //     playerModel.position.z += -Math.cos(camera.rotation.y) * player.speed.z  
+                        // }
+                        playerModel.position.x += Math.sin(camera.rotation.y) * -player.speed.z
+                        playerModel.position.z += -Math.cos(camera.rotation.y) * player.speed.z  
                     }
                     if (player.speed.x > 0){
-                        if (!checkCollision(Math.sin(camera.rotation.y + Math.PI / 2) * player.speed.x , -Math.cos(camera.rotation.y + Math.PI / 2) * -player.speed.x)){
-                            playerModel.position.x += Math.sin(camera.rotation.y + Math.PI / 2) * player.speed.x 
-                            playerModel.position.z += -Math.cos(camera.rotation.y + Math.PI / 2) * -player.speed.x 
-                        }
+                        // if (!checkCollision(Math.sin(camera.rotation.y + Math.PI / 2) * player.speed.x , -Math.cos(camera.rotation.y + Math.PI / 2) * -player.speed.x)){
+                        //     playerModel.position.x += Math.sin(camera.rotation.y + Math.PI / 2) * player.speed.x 
+                        //     playerModel.position.z += -Math.cos(camera.rotation.y + Math.PI / 2) * -player.speed.x 
+                        // }
+                        playerModel.position.x += Math.sin(camera.rotation.y + Math.PI / 2) * player.speed.x 
+                        playerModel.position.z += -Math.cos(camera.rotation.y + Math.PI / 2) * -player.speed.x 
                     }
                     if (player.speed.x < 0){
-                        if (!checkCollision(Math.sin(camera.rotation.y - Math.PI / 2) * -player.speed.x , -Math.cos(camera.rotation.y - Math.PI / 2) * player.speed.x)){
-                            playerModel.position.x += Math.sin(camera.rotation.y - Math.PI / 2) * -player.speed.x 
-                            playerModel.position.z += -Math.cos(camera.rotation.y - Math.PI / 2) * player.speed.x
-                        }
+                        // if (!checkCollision(Math.sin(camera.rotation.y - Math.PI / 2) * -player.speed.x , -Math.cos(camera.rotation.y - Math.PI / 2) * player.speed.x)){
+                        //     playerModel.position.x += Math.sin(camera.rotation.y - Math.PI / 2) * -player.speed.x 
+                        //     playerModel.position.z += -Math.cos(camera.rotation.y - Math.PI / 2) * player.speed.x
+                        // }
+                        playerModel.position.x += Math.sin(camera.rotation.y - Math.PI / 2) * -player.speed.x 
+                        playerModel.position.z += -Math.cos(camera.rotation.y - Math.PI / 2) * player.speed.x
                     }
+                    // checkCollision()
                 }
                 else {
                     // if (!checkCollision()){
@@ -578,44 +598,71 @@ function playerMove(){
 //         }
 //     })
 // }
-function checkCollision(xCor, zCor){
-    playerModelTest.position.set(playerModel.position.x + xCor*2, playerModel.position.y, playerModel.position.z + zCor*2)
-    playerModelTest.userData.obb.copy(playerModelTest.geometry.userData.obb)
-    playerModelTest.userData.obb.applyMatrix4(playerModelTest.matrixWorld)
-    playerModel.userData.obb.copy(playerModel.geometry.userData.obb)
-    playerModel.userData.obb.applyMatrix4(playerModel.matrixWorld)
-    let isCollision = false
-    // collisionResponsiveObjects.forEach(obj => {
+function checkCollision(){
+        playerModel.userData.obb.copy(playerModel.geometry.userData.obb)
+        playerModel.userData.obb.applyMatrix4(playerModel.matrixWorld)
+        let isCollision = false
         for (const obj of collisionResponsiveObjects){
+            obj.userData.obb.copy(obj.geometry.userData.obb)
+            obj.userData.obb.applyMatrix4(obj.matrixWorld)
+            // console.log(groundedObject)
+            // console.log(obj)
             if (obj.userData.obb.intersectsOBB(playerModel.userData.obb)) {
+                if (!isGrounded()){
+                    clearInterval(onLandingInterval)
+                    clearInterval(smoothlyJump)
+                    gravityAttraction()
+                }
                 obj.material.color.set('red')
+                // console.log('COLLISION')
+                // console.log((obj.userData.obb.intersectsOBB(playerModel.userData.obb)))
+                // console.log(playerModel.prevPosition)
+                // console.log(playerModel.position.z - playerModel.prevPosition.z)
+                playerModel.position.set(playerModel.prevPosition.x, playerModel.position.y, playerModel.prevPosition.z)
+                // playerModel.position.x -= (playerModel.position.x - playerModel.prevPosition.x) * 2
+                // playerModel.position.z -= (playerModel.position.z - playerModel.prevPosition.z) * 2
+                isCollision = true
                 break
             } else {
                 obj.material.color.set('green')
             }
         }
-    for (const obj of collisionResponsiveObjects){
-        obj.userData.obb.copy(obj.geometry.userData.obb)
-        obj.userData.obb.applyMatrix4(obj.matrixWorld)
-        // console.log('A')
-        // console.log(obj.userData.obb.intersectsOBB(playerModelTest.userData.obb))
-        if (obj.userData.obb.intersectsOBB(playerModelTest.userData.obb)) {
-            // if (!isGrounded()){
-            //     clearInterval(onLandingInterval)
-            //     clearInterval(smoothlyJump)
-            //     gravityAttraction()
-            // }
-            isCollision = true
-            obj.material.color.set('red')
-            break
-        } else {
-            obj.material.color.set('green')
-        }
-        // if (obj.userData.obb.intersectsOBB(playerModelTest.userData.obb)) return true
-        // return false
-    }
-    return isCollision
+        return isCollision
+
 }
+// function checkCollision(xCor, zCor){
+//     playerModelTest.position.set(playerModel.position.x + xCor*2, playerModel.position.y, playerModel.position.z + zCor*2)
+//     playerModelTest.userData.obb.copy(playerModelTest.geometry.userData.obb)
+//     playerModelTest.userData.obb.applyMatrix4(playerModelTest.matrixWorld)
+//     playerModel.userData.obb.copy(playerModel.geometry.userData.obb)
+//     playerModel.userData.obb.applyMatrix4(playerModel.matrixWorld)
+//     let isCollision = false
+//     // collisionResponsiveObjects.forEach(obj => {
+//     for (const obj of collisionResponsiveObjects){
+//         obj.userData.obb.copy(obj.geometry.userData.obb)
+//         obj.userData.obb.applyMatrix4(obj.matrixWorld)
+//         // console.log('A')
+//         // console.log(obj.userData.obb.intersectsOBB(playerModelTest.userData.obb))
+//         if (obj.userData.obb.intersectsOBB(playerModel.userData.obb)) {
+//             obj.material.color.set('red')
+//             break
+//         } else {
+//             obj.material.color.set('green')
+//         }
+//         if (obj.userData.obb.intersectsOBB(playerModelTest.userData.obb)) {
+//             // if (!isGrounded()){
+//             //     clearInterval(onLandingInterval)
+//             //     clearInterval(smoothlyJump)
+//             //     gravityAttraction()
+//             // }
+//             isCollision = true
+//             break
+//         }
+//         // if (obj.userData.obb.intersectsOBB(playerModelTest.userData.obb)) return true
+//         // return false
+//     }
+//     return isCollision
+// }
 let isFuseSpamSpace, jumpHorizontalMoving, velOfJumpIndex
 function makeJump(){
     if (isGrounded() && !isFuseSpamSpace){
@@ -643,9 +690,12 @@ function makeDuck(front){
             if (playerModel.scale.y > 0.5){
                 playerModel.scale.y -=  1/50
                 playerModel.position.y -= playerModel.geometry.parameters.depth / 50
+                playerModelTest.scale.y -=  1/50
+                playerModelTest.position.y -= playerModelTest.geometry.parameters.depth / 50
                 // playerModel.geometry.computeBoundingBox()
             } else {
                 playerModel.scale.y = 0.5
+                playerModelTest.scale.y = 0.5
                 clearInterval(smoothDucking)
             }
         }, 5)
@@ -656,9 +706,12 @@ function makeDuck(front){
             if (playerModel.scale.y < 1){
                 playerModel.scale.y += 1/50
                 playerModel.position.y += playerModel.geometry.parameters.depth / 50
+                playerModelTest.scale.y += 1/50
+                playerModelTest.position.y += playerModel.geometry.parameters.depth / 50
                 // playerModel.geometry.computeBoundingBox()
             } else {
                 playerModel.scale.y = 1
+                playerModelTest.scale.y = 1
                 clearInterval(smoothDucking)
             }
         }, 5)
@@ -672,34 +725,41 @@ function onLanding(){
         onLandingInterval = setInterval(() => {
             // if (!isGrounded() && !checkCollision()){
                 if (!isGrounded()){
+                checkCollision()
                 playerModel.prevPosition = {
                     x: playerModel.position.x,
                     y: playerModel.position.y,
                     z: playerModel.position.z
                 }
                 if (player.flyHorizontalSpeed.z > 0){
-                    if (!checkCollision(Math.sin(camera.rotation.y) * -player.flyHorizontalSpeed.z, Math.cos(Math.PI - camera.rotation.y) * player.flyHorizontalSpeed.z)){
+                    // if (!checkCollision(Math.sin(camera.rotation.y) * -player.flyHorizontalSpeed.z, Math.cos(Math.PI - camera.rotation.y) * player.flyHorizontalSpeed.z)){
                         playerModel.position.x += Math.sin(camera.rotation.y) * -player.flyHorizontalSpeed.z
                         playerModel.position.z += Math.cos(Math.PI - camera.rotation.y) * player.flyHorizontalSpeed.z
-                    }
+                    // }
+                    // if (!checkCollision(Math.sin(camera.rotation.y) * -player.flyHorizontalSpeed.z, 0)){
+                    //     playerModel.position.x += Math.sin(camera.rotation.y) * -player.flyHorizontalSpeed.z
+                    // }
+                    // if (!checkCollision(0, Math.cos(Math.PI - camera.rotation.y) * player.flyHorizontalSpeed.z)){
+                    //     playerModel.position.z += Math.cos(Math.PI - camera.rotation.y) * player.flyHorizontalSpeed.z
+                    // }
                 }
                 if (player.flyHorizontalSpeed.z < 0){
-                    if (!checkCollision(Math.sin(camera.rotation.y) * -player.flyHorizontalSpeed.z, -Math.cos(camera.rotation.y) * player.flyHorizontalSpeed.z)){
+                    // if (!checkCollision(Math.sin(camera.rotation.y) * -player.flyHorizontalSpeed.z, -Math.cos(camera.rotation.y) * player.flyHorizontalSpeed.z)){
                         playerModel.position.x += Math.sin(camera.rotation.y) * -player.flyHorizontalSpeed.z
                         playerModel.position.z += -Math.cos(camera.rotation.y) * player.flyHorizontalSpeed.z
-                    }
+                    // }
                 }
                 if (player.flyHorizontalSpeed.x > 0){
-                    if (!checkCollision(Math.sin(camera.rotation.y + Math.PI / 2) * player.flyHorizontalSpeed.x, -Math.cos(camera.rotation.y + Math.PI / 2) * -player.flyHorizontalSpeed.x)){
+                    // if (!checkCollision(Math.sin(camera.rotation.y + Math.PI / 2) * player.flyHorizontalSpeed.x, -Math.cos(camera.rotation.y + Math.PI / 2) * -player.flyHorizontalSpeed.x)){
                         playerModel.position.x += Math.sin(camera.rotation.y + Math.PI / 2) * player.flyHorizontalSpeed.x
                         playerModel.position.z += -Math.cos(camera.rotation.y + Math.PI / 2) * -player.flyHorizontalSpeed.x
-                    }
+                    // }
                 }
                 if (player.flyHorizontalSpeed.x < 0){
-                    if (!checkCollision(Math.sin(camera.rotation.y - Math.PI / 2) * -player.flyHorizontalSpeed.x, -Math.cos(camera.rotation.y - Math.PI / 2) * player.flyHorizontalSpeed.x)){
+                    // if (!checkCollision(Math.sin(camera.rotation.y - Math.PI / 2) * -player.flyHorizontalSpeed.x, -Math.cos(camera.rotation.y - Math.PI / 2) * player.flyHorizontalSpeed.x)){
                         playerModel.position.x += Math.sin(camera.rotation.y - Math.PI / 2) * -player.flyHorizontalSpeed.x
                         playerModel.position.z += -Math.cos(camera.rotation.y - Math.PI / 2) * player.flyHorizontalSpeed.x
-                    }
+                    // }
                 }
             } else {
                 clearInterval(onLandingInterval)

@@ -24,13 +24,6 @@ function initSky() {
 
 	sky.material.uniforms[ 'sunPosition' ].value.copy( sun );
 }
-// const world = new CANNON.World()
-// world.gravity.set(0, -9.8, 0) 
-
-// let groundMaterial = new CANNON.Material()
-
-// var upVector = new CANNON.Vec3(0, 1, 0);
-// var contactNormal = new CANNON.Vec3(0, 0, 0);
 const playerModel = new THREE.Mesh(  new THREE.BoxGeometry( 2, 4, 2 ), new THREE.MeshBasicMaterial( {color: 0x00ff00} ) );
 playerModel.position.set(0, 2, 0)
 playerModel.geometry.computeBoundingBox()
@@ -39,16 +32,6 @@ playerModel.geometry.userData.obb = new THREE.OBB().fromBox3(
 )
 playerModel.userData.obb = new THREE.OBB()
 scene.add(playerModel)
-
-// const playerModelTest = new THREE.Mesh(  new THREE.BoxGeometry( 2, 4, 2 ), new THREE.MeshBasicMaterial( {color: 0x00ff00} ) );
-// playerModelTest.visible = false
-// playerModelTest.position.set(0, 2, 0)
-// playerModelTest.geometry.computeBoundingBox()
-// playerModelTest.geometry.userData.obb = new THREE.OBB().fromBox3(
-// playerModelTest.geometry.boundingBox
-// )
-// playerModelTest.userData.obb = new THREE.OBB()
-// scene.add(playerModelTest)
 console.log(playerModel)
 let player = {
     speed: {
@@ -90,11 +73,8 @@ let model, sniperRifle, famasRifle, rifle, pistol
             model.castShadow = true
             scene.add(model);
             model.children.forEach(child => {
-                let box = new THREE.Box3;
-                box.setFromObject(child);
                 const geometry = new THREE.BoxGeometry( child.scale.x * 2, child.scale.y * 2, child.scale.z * 2 )
-                // geometry.userData.obb = new THREE.OBB();
-                const hitbox = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial( { color: 0x000000, wireframe: true } ) )
+                const hitbox = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial( { color: 'transparent', wireframe: false, visible: false } ) )
                 hitbox.geometry.computeBoundingBox()
                 hitbox.geometry.userData.obb = new THREE.OBB().fromBox3(
                     hitbox.geometry.boundingBox
@@ -109,22 +89,8 @@ let model, sniperRifle, famasRifle, rifle, pistol
                 const bbox = new THREE.LineSegments( new THREE.EdgesGeometry( new THREE.BoxGeometry( child.scale.x * 2 + 0.02, child.scale.y * 2 + 0.02, child.scale.z * 2 + 0.02 ) ), new THREE.LineBasicMaterial( { color: '#ff5900' } ) );
                 bbox.position.set(child.position.x, child.position.y , child.position.z)
                 bbox.rotation.set(child.rotation.x, child.rotation.y , child.rotation.z)
-                // const helper = new THREE.VertexNormalsHelper( child, 1, 0xff0000 );
-                // scene.add( helper );
-                // collisionResponsiveObjects.push(bbox)
                 scene.add(bbox);
-                // let modelBody = new CANNON.Body({
-                //     mass: 0,
-                //     position: new CANNON.Vec3((box.max.x+box.min.x)/2, (box.max.y+box.min.y)/2, (box.max.z+box.min.z)/2),
-                //     shape: new CANNON.Box( new CANNON.Vec3(child.scale.x, child.scale.y, child.scale.z)),
-                //     material: groundMaterial
-                // })
-                // modelBody.quaternion.set(child.quaternion.x, child.quaternion.y, child.quaternion.z, child.quaternion.w)
-                // modelBody.quaternion.normalize()
-                // world.addBody(modelBody)
-                // modelBodies.push(modelBody)
             })
-            // model.updateMatrixWorld( true )
             hideLoader()
         }})        
         loader.load('bobs_sniper-rifle.glb', (glb) =>  {
@@ -210,31 +176,12 @@ renderer.setSize( window.innerWidth, window.innerHeight );
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild( renderer.domElement );
-// let playerModelMaterial = new CANNON.Material()
-// let playerModelBody = new CANNON.Body({
-//     mass: 10,
-//     position: new CANNON.Vec3(0, 2, 0),
-//     shape: new CANNON.Box( new CANNON.Vec3(1, 2, 1) ),
-//     fixedRotation: true,
-//     type: CANNON.DYNAMIC,
-//     material: playerModelMaterial
-// })
-// const playerGroundContactMaterial = new CANNON.ContactMaterial(playerModelMaterial, groundMaterial, {restitution: 0})
-// playerModelBody.name = 'playerModel';
-// playerModelBody.mass = 0;
-// playerModelBody.updateMassProperties();
-// world.addBody(playerModelBody)
 renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 renderer.shadowMap.enabled = true;
 
 let floor = new THREE.Mesh( new THREE.BoxGeometry(500, 3, 500), new THREE.MeshBasicMaterial( { color: '#2b2b2b' } ) );
 floor.name = 'floor'
-// floor.geometry.computeBoundingBox()
-// floor.geometry.userData.obb = new THREE.OBB().fromBox3(
-//     floor.geometry.boundingBox
-// )
-// floor.userData.obb = new THREE.OBB()
 
 floor.position.set(0,-1.55,0)
 scene.add( floor );
@@ -245,20 +192,6 @@ scene.add( roof );
 const stats = Stats()
 stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
 document.body.appendChild( stats.dom );
-// let floorBody = new CANNON.Body({
-//     mass: 0,
-//     position: new CANNON.Vec3(floor.position.x, floor.position.y, floor.position.z),
-//     shape: new CANNON.Box(new CANNON.Vec3(250, 1.5, 250)),
-//     material: groundMaterial
-// }) 
-// world.addBody(floorBody) 
-// let roofBody = new CANNON.Body({
-//     mass: 0,
-//     position:  new CANNON.Vec3(roof.position.x, roof.position.y, roof.position.z),
-//     shape: new CANNON.Box( new CANNON.Vec3(75, 1.5, 100)),
-//     material: groundMaterial
-// }) 
-// world.addBody(roofBody) 
     const directionalLight1 = new THREE.DirectionalLight( '#ffffff', 0.2 );
     directionalLight1.position.set(0, 200, 200)
     scene.add( directionalLight1 );
@@ -300,38 +233,12 @@ bloomPass.threshold = 0
 camera.position.set(10, modelHeight, 25)
 camera.rotation.order = 'YXZ'
 
-// const cannonDebugRenderer = new THREE.CannonDebugRenderer(scene, world)
-// let prevposition = playerModelBody.position.y
-// let prevpositionY = []
-// prevpositionY.push(playerModelBody.position.y)
-// prevpositionY.push(playerModelBody.position.y)
 initSky()
 animate();
 function animate() {
     composer.render()
     requestAnimationFrame(animate)
     stats.update()
-
-    // if(removeBody) world.remove(removeBody)
-    // world.step(1 / 60)
-    // cannonDebugRenderer.update()
-    // player.isFlying = Math.round(prevposition * 100) - Math.round(playerModelBody.position.y * 100) !== 0
-    // player.isFlying = Math.round(prevposition[0] * 100) - Math.round(playerModelBody.position.y * 100) !== 0
-    // player.isFlying = playerModelBody.velocity.y < 0
-    // console.log(playerModelBody.velocity.y)
-    // if (!isGrounded()){
-    //     playerModelBody.velocity.x = 0
-    //     playerModelBody.velocity.z = 0
-    // }
-    // console.log(isGrounded())
-    
-    // prevpositionY = playerModelBody.position.y
-    // prevpositionY.push(playerModelBody.position.y)
-    // prevpositionY.shift()
-    // console.log(playerModelBody.position.y)
-    // if (player.isFlying){
-    //     console.log('SUIIIII')
-    // }
 
     if (!player.flyMode){
         camera.position.x = playerModel.position.x
@@ -380,17 +287,7 @@ function isGrounded(){
     raycaster4.set(new THREE.Vector3( playerModel.position.x - playerModel.geometry.parameters.depth/2 ,
         playerModel.position.y, playerModel.position.z + playerModel.geometry.parameters.width/2 ), downDirection)
     intersects.push(raycaster4.intersectObjects( scene.children ))
-
-    // const raycaster1 = new THREE.Raycaster();
-    // raycaster1.far = playerModel.geometry.parameters.height/2 * playerModel.scale.y + 0.05
-    // raycaster1.set(new THREE.Vector3( playerModel.position.x, playerModel.position.y, playerModel.position.z), downDirection)
-    // let intersects = []
-    // intersects.push(raycaster1.intersectObjects( scene.children ))
-    // console.log(raycaster1.intersectObjects( scene.children ))
-    // playerModel.userData.obb.copy(playerModel.geometry.userData.obb)
-    // playerModel.userData.obb.applyMatrix4(playerModel.matrixWorld)
     intersects = intersects.flat(1)
-    // console.log(intersects)
     intersects = intersects.filter(e => e.distance > raycaster1.far * 0.9)
     if (intersects[0]){
         intersects.sort((a, b) => {
@@ -398,45 +295,10 @@ function isGrounded(){
             if (a.distance < b.distance) return -1
             return 0
         })
-        // console.log(intersects[0])
-        // if (intersects[0].distance > raycaster1.far * 0.85){
-            groundedObjectID = intersects[0].object.id
-            playerModel.position.y += (raycaster1.far-0.05) - intersects[0].distance
-            // playerModelTest.position.y += raycaster1.far - intersects[0].distance
-            // console.log('Ground')
-            return true 
-        // }
-        // return true    
+        groundedObjectID = intersects[0].object.id
+        playerModel.position.y += (raycaster1.far-0.05) - intersects[0].distance
+        return true 
     }
-    // if (intersects.length > 0){
-        // intersects.forEach(obj => {
-            // let obj = intersects[0]
-            // console.log(obj)
-            // console.log(obj.object.name == 'floor')
-            // if (obj.object.name == 'floor') return true
-            // if (obj.object.userData !== undefined){
-            //     obj.object.userData.obb.copy(obj.object.geometry.userData.obb)
-            //     obj.object.userData.obb.applyMatrix4(obj.object.matrixWorld)
-            //     if (obj.object.userData.obb.intersectsOBB(playerModel.userData.obb)) return true
-            // }
-            // console.log(obj)
-            
-        // })
-        // console.log(intersects[0])
-        // if (intersects[0]) {
-        //     if (intersects[0].object.name = 'floor') return true
-        //     if (obj.object.userData !== undefined){
-        //         console.log('OBB')
-        //         obj.object.userData.obb.copy(obj.object.geometry.userData.obb)
-        //         obj.object.userData.obb.applyMatrix4(obj.object.matrixWorld)
-        //         if (obj.object.userData.obb.intersectsOBB(playerModel.userData.obb)) return true
-        //     }
-        // }
-        // if (intersects[0].object.name == 'floor') return true
-        // } else {
-            //     return true
-            // }
-            // console.log('Fly')
     return false
 }
 function onResize(){
@@ -470,7 +332,6 @@ function gravityAttraction(){
             if (!isGrounded()){
                 ++velOfGravityAttractionIndex
                 playerModel.position.y -= 0.002 * velOfGravityAttractionIndex
-                // playerModelTest.position.y -= 0.002 * velOfGravityAttractionIndex
             } else {
                 isGravityAttractioning = false
                 clearInterval(smoothGravityAttraction)
@@ -494,9 +355,8 @@ function playerMove(){
                 camera.translateZ( -player.speed.z * 20 )
                 camera.translateX( player.speed.x * 20 )
             } else {
-                // if (isGrounded() && !checkCollision()){
-                    if (isGrounded()){
-                        checkCollision()
+                if (isGrounded()){
+                    checkCollision()
                     isOnLanding = false
                     player.flyHorizontalSpeed.x = player.speed.x
                     player.flyHorizontalSpeed.z = player.speed.z
@@ -505,61 +365,25 @@ function playerMove(){
                         y: playerModel.position.y,
                         z: playerModel.position.z
                     }
-                    // if (player.speed.z > 0){
-                    //     playerModel.position.x += Math.sin(camera.rotation.y) * -player.speed.z
-                    //     playerModel.position.z += Math.cos(Math.PI - camera.rotation.y) * player.speed.z
-                    // }
-                    // if (player.speed.z < 0){
-                    //     playerModel.position.x += Math.sin(camera.rotation.y) * -player.speed.z
-                    //     playerModel.position.z += -Math.cos(camera.rotation.y) * player.speed.z  
-                    // }
-                    // if (player.speed.x > 0){
-                    //     playerModel.position.x += Math.sin(camera.rotation.y + Math.PI / 2) * player.speed.x 
-                    //     playerModel.position.z += -Math.cos(camera.rotation.y + Math.PI / 2) * -player.speed.x 
-                    // }
-                    // if (player.speed.x < 0){
-                    //     playerModel.position.x += Math.sin(camera.rotation.y - Math.PI / 2) * -player.speed.x 
-                    //     playerModel.position.z += -Math.cos(camera.rotation.y - Math.PI / 2) * player.speed.x
-                    // }
                     if (player.speed.z > 0){
-                        // console.log(checkCollision(Math.sin(camera.rotation.y) * -player.speed.z, Math.cos(Math.PI - camera.rotation.y) * player.speed.z))
-                        // if (!checkCollision(Math.sin(camera.rotation.y) * -player.speed.z, Math.cos(Math.PI - camera.rotation.y) * player.speed.z)){
-                        //     playerModel.position.x += Math.sin(camera.rotation.y) * -player.speed.z
-                        //     playerModel.position.z += Math.cos(Math.PI - camera.rotation.y) * player.speed.z
-                        // }
                         playerModel.position.x += Math.sin(camera.rotation.y) * -player.speed.z
                         playerModel.position.z += Math.cos(Math.PI - camera.rotation.y) * player.speed.z
                     }
                     if (player.speed.z < 0){
-                        // if (!checkCollision(Math.sin(camera.rotation.y) * -player.speed.z, -Math.cos(camera.rotation.y) * player.speed.z)){
-                        //     playerModel.position.x += Math.sin(camera.rotation.y) * -player.speed.z
-                        //     playerModel.position.z += -Math.cos(camera.rotation.y) * player.speed.z  
-                        // }
                         playerModel.position.x += Math.sin(camera.rotation.y) * -player.speed.z
                         playerModel.position.z += -Math.cos(camera.rotation.y) * player.speed.z  
                     }
                     if (player.speed.x > 0){
-                        // if (!checkCollision(Math.sin(camera.rotation.y + Math.PI / 2) * player.speed.x , -Math.cos(camera.rotation.y + Math.PI / 2) * -player.speed.x)){
-                        //     playerModel.position.x += Math.sin(camera.rotation.y + Math.PI / 2) * player.speed.x 
-                        //     playerModel.position.z += -Math.cos(camera.rotation.y + Math.PI / 2) * -player.speed.x 
-                        // }
                         playerModel.position.x += Math.sin(camera.rotation.y + Math.PI / 2) * player.speed.x 
                         playerModel.position.z += -Math.cos(camera.rotation.y + Math.PI / 2) * -player.speed.x 
                     }
                     if (player.speed.x < 0){
-                        // if (!checkCollision(Math.sin(camera.rotation.y - Math.PI / 2) * -player.speed.x , -Math.cos(camera.rotation.y - Math.PI / 2) * player.speed.x)){
-                        //     playerModel.position.x += Math.sin(camera.rotation.y - Math.PI / 2) * -player.speed.x 
-                        //     playerModel.position.z += -Math.cos(camera.rotation.y - Math.PI / 2) * player.speed.x
-                        // }
                         playerModel.position.x += Math.sin(camera.rotation.y - Math.PI / 2) * -player.speed.x 
                         playerModel.position.z += -Math.cos(camera.rotation.y - Math.PI / 2) * player.speed.x
                     }
-                    // checkCollision()
                 }
                 else {
-                    // if (!checkCollision()){
-                        onLanding()
-                    // }
+                    onLanding()
                     gravityAttraction()
                 }
             }
@@ -568,38 +392,6 @@ function playerMove(){
         }
     }, 5)
 }
-// function checkCollision(){
-//     playerModel.userData.obb.copy(playerModel.geometry.userData.obb)
-//     playerModel.userData.obb.applyMatrix4(playerModel.matrixWorld)
-//     collisionResponsiveObjects.forEach(obj => {
-//         obj.userData.obb.copy(obj.geometry.userData.obb)
-//         obj.userData.obb.applyMatrix4(obj.matrixWorld)
-//         if (obj.userData.obb.intersectsOBB(playerModel.userData.obb)) {
-//             if (!isGrounded()){
-//                 clearInterval(onLandingInterval)
-//                 clearInterval(smoothlyJump)
-//                 gravityAttraction()
-//             }
-//             obj.material.color.set('red')
-//             // console.log('COLLISION')
-//             // console.log((obj.userData.obb.intersectsOBB(playerModel.userData.obb)))
-//             // console.log(playerModel.prevPosition)
-//             // console.log(playerModel.position.z - playerModel.prevPosition.z)
-//             // playerModel.position.set(playerModel.prevPosition.x, playerModel.position.y, playerModel.prevPosition.z)
-//             playerModel.position.x -= (playerModel.position.x - playerModel.prevPosition.x) * 3
-//             playerModel.position.z -= (playerModel.position.z - playerModel.prevPosition.z) * 3
-//             if (obj.userData.obb.intersectsOBB(playerModel.userData.obb)) {
-//                 obj.material.color.set('red')
-//             } else {
-//                 obj.material.color.set('green')
-//             }
-//             return true
-//         } else {
-//             obj.material.color.set('green')
-//             return false
-//         }
-//     })
-// }
 function checkCollision(){
         playerModel.userData.obb.copy(playerModel.geometry.userData.obb)
         playerModel.userData.obb.applyMatrix4(playerModel.matrixWorld)
@@ -607,49 +399,7 @@ function checkCollision(){
         for (const obj of collisionResponsiveObjects){
             obj.userData.obb.copy(obj.geometry.userData.obb)
             obj.userData.obb.applyMatrix4(obj.matrixWorld)
-            // console.log(groundedObject)
-            // console.log(obj)
             if (obj.userData.obb.intersectsOBB(playerModel.userData.obb)) {
-                // if (!isGrounded()){
-                //     clearInterval(onLandingInterval)
-                //     clearInterval(smoothlyJump)
-                //     gravityAttraction()
-                // }
-                // obj.material.color.set('red')
-                // console.log('COLLISION')
-                // console.log((obj.userData.obb.intersectsOBB(playerModel.userData.obb)))
-                // console.log(playerModel.prevPosition)
-                // console.log(playerModel.position.z - playerModel.prevPosition.z)
-                //     playerModel.position.set(collidePosition.x, playerModel.position.y, playerModel.prevPosition.z)
-                //     playerModel.userData.obb.copy(playerModel.geometry.userData.obb)
-                //     playerModel.userData.obb.applyMatrix4(playerModel.matrixWorld)
-                // if (obj.userData.obb.intersectsOBB(playerModel.userData.obb)){
-                //     playerModel.position.set(playerModel.prevPosition.x, playerModel.position.y, collidePosition.z)
-                // }
-                // console.log(obj.position)
-                // let xDiff = playerModel.position.x - obj.position.x
-                // console.log(xDiff)
-                // let zDiff = playerModel.position.z - obj.position.z
-                // console.log(zDiff)
-                // if (Math.abs(xDiff) < Math.abs(zDiff)){
-                //     playerModel.position.set(playerModel.position.x, playerModel.position.y, playerModel.prevPosition.z)
-                // } else if (Math.abs(xDiff) > Math.abs(zDiff)) {
-                //     playerModel.position.set(playerModel.prevPosition.x, playerModel.position.y, playerModel.position.z)
-                // } else {
-                //     playerModel.position.set(playerModel.prevPosition.x, playerModel.position.y, playerModel.prevPosition.z)
-                // }
-                // console.log(obj)
-
-                // let objFaces = []
-                // objFaces.push({x: obj.position.x, z: obj.position.z + obj.geometry.boundingBox.min.z})
-                // objFaces.push({x: obj.position.x + obj.geometry.boundingBox.max.x, z: obj.position.z})
-                // objFaces.push({x: obj.position.x, z: obj.position.z + obj.geometry.boundingBox.max.z})
-                // objFaces.push({x: obj.position.x + obj.geometry.boundingBox.min.x, z: obj.position.z})
-                // console.log(objFaces)
-
-                // let plyerModelPositionX = playerModel.position.x + playerModel.geometry.boundingBox.max.x * ((playerModel.position.x - playerModel.prevPosition.x) / Math.abs(playerModel.position.x - playerModel.prevPosition.x))
-                // let plyerModelPositionZ = playerModel.position.z + playerModel.geometry.boundingBox.max.z * ((playerModel.position.z - playerModel.prevPosition.z) / Math.abs(playerModel.position.z - playerModel.prevPosition.z))
-                // console.log(plyerModelPositionX)
                 let objectPosition
                 if (obj.geometry.boundingBox.max.x > obj.geometry.boundingBox.max.z){
                     objectPosition = {x: playerModel.position.x, z: obj.position.z}
@@ -658,18 +408,8 @@ function checkCollision(){
                 } else {
                     objectPosition = {x: obj.position.x, z: obj.position.z}
                 }
-                // console.log(obj.geometry.boundingBox.max.x, )
-                console.log(objectPosition)
-                // let xDiff1 = playerModel.position.x - obj.position.x + obj.geometry.boundingBox.max.x
-                // let xDiff2 = playerModel.position.x - obj.position.x + obj.geometry.boundingBox.min.x
-                // let xDiff = Math.min(Math.abs(xDiff1), Math.abs(xDiff2))
                 let xDiff = Math.abs(playerModel.position.x - objectPosition.x)
-                // console.log(xDiff)
-                // let zDiff1 = playerModel.position.z - obj.position.z + obj.geometry.boundingBox.min.z
-                // let zDiff2 = playerModel.position.z - obj.position.z + obj.geometry.boundingBox.max.z
-                // let zDiff = Math.min(Math.abs(zDiff1), Math.abs(zDiff2))
                 let zDiff = Math.abs(playerModel.position.z - objectPosition.z)
-                // console.log(zDiff)
                 if (xDiff < zDiff){
                     playerModel.position.set(playerModel.position.x, playerModel.position.y, playerModel.prevPosition.z)
                 } else if (xDiff > zDiff) {
@@ -677,71 +417,11 @@ function checkCollision(){
                 } else {
                     playerModel.position.set(playerModel.prevPosition.x, playerModel.position.y, playerModel.prevPosition.z)
                 }
-
-                // playerModel.userData.obb.copy(playerModel.geometry.userData.obb)
-                // playerModel.userData.obb.applyMatrix4(playerModel.matrixWorld)
-                // if (obj.userData.obb.intersectsOBB(playerModel.userData.obb)) {
-                //     playerModel.position.set(playerModel.prevPosition.z, playerModel.position.y, playerModel.prevPosition.z)
-                // }
-                // playerModel.position.x -= (playerModel.position.x - playerModel.prevPosition.x) * 2
-                // playerModel.position.z -= (playerModel.position.z - playerModel.prevPosition.z) * 2
                 isCollision = true
-                // break
-            } else {
-                // obj.material.color.set('green')
             }
         }
         return isCollision
 }
-// function checkCollision(){
-//     let downDirection = new THREE.Vector3(0, 0, -1);
-//     const raycaster1 = new THREE.Raycaster();
-//     raycaster1.far = playerModel.geometry.parameters.width*2
-//     raycaster1.set(new THREE.Vector3( playerModel.position.x ,  playerModel.position.y, playerModel.position.z ), downDirection)
-//     let intersects = []
-//     intersects.push(raycaster1.intersectObjects( scene.children ))
-//     intersects = intersects.flat(2)
-//     intersects = intersects.filter(e => e.object.id !== 8)
-//     if (intersects[0]){
-//         playerModel.position.set(intersects[0].point.x, playerModel.position.y, intersects[0].point.z)
-//     }
-    
-//     console.log(intersects)
-// }
-
-// function checkCollision(xCor, zCor){
-//     playerModelTest.position.set(playerModel.position.x + xCor*2, playerModel.position.y, playerModel.position.z + zCor*2)
-//     playerModelTest.userData.obb.copy(playerModelTest.geometry.userData.obb)
-//     playerModelTest.userData.obb.applyMatrix4(playerModelTest.matrixWorld)
-//     playerModel.userData.obb.copy(playerModel.geometry.userData.obb)
-//     playerModel.userData.obb.applyMatrix4(playerModel.matrixWorld)
-//     let isCollision = false
-//     // collisionResponsiveObjects.forEach(obj => {
-//     for (const obj of collisionResponsiveObjects){
-//         obj.userData.obb.copy(obj.geometry.userData.obb)
-//         obj.userData.obb.applyMatrix4(obj.matrixWorld)
-//         // console.log('A')
-//         // console.log(obj.userData.obb.intersectsOBB(playerModelTest.userData.obb))
-//         if (obj.userData.obb.intersectsOBB(playerModel.userData.obb)) {
-//             obj.material.color.set('red')
-//             break
-//         } else {
-//             obj.material.color.set('green')
-//         }
-//         if (obj.userData.obb.intersectsOBB(playerModelTest.userData.obb)) {
-//             // if (!isGrounded()){
-//             //     clearInterval(onLandingInterval)
-//             //     clearInterval(smoothlyJump)
-//             //     gravityAttraction()
-//             // }
-//             isCollision = true
-//             break
-//         }
-//         // if (obj.userData.obb.intersectsOBB(playerModelTest.userData.obb)) return true
-//         // return false
-//     }
-//     return isCollision
-// }
 let isFuseSpamSpace, jumpHorizontalMoving, velOfJumpIndex
 function makeJump(){
     if (isGrounded() && !isFuseSpamSpace){
@@ -756,25 +436,19 @@ function makeJump(){
         smoothlyJump = setInterval(() => {
             --velOfJumpIndex
             playerModel.position.y += 0.002 * velOfJumpIndex
-            // playerModelTest.position.y += 0.002 * velOfJumpIndex
         }, 5)
     }
 }
 let smoothDucking
 function makeDuck(front){
-    // console.log('DUCK')
     if (front){
         clearInterval(smoothDucking)
         smoothDucking = setInterval(() => {
             if (playerModel.scale.y > 0.5){
                 playerModel.scale.y -=  1/50
                 playerModel.position.y -= playerModel.geometry.parameters.depth / 50
-                // playerModelTest.scale.y -=  1/50
-                // playerModelTest.position.y -= playerModelTest.geometry.parameters.depth / 50
-                // playerModel.geometry.computeBoundingBox()
             } else {
                 playerModel.scale.y = 0.5
-                // playerModelTest.scale.y = 0.5
                 clearInterval(smoothDucking)
             }
         }, 5)
@@ -785,12 +459,8 @@ function makeDuck(front){
             if (playerModel.scale.y < 1){
                 playerModel.scale.y += 1/50
                 playerModel.position.y += playerModel.geometry.parameters.depth / 50
-                // playerModelTest.scale.y += 1/50
-                // playerModelTest.position.y += playerModel.geometry.parameters.depth / 50
-                // playerModel.geometry.computeBoundingBox()
             } else {
                 playerModel.scale.y = 1
-                // playerModelTest.scale.y = 1
                 clearInterval(smoothDucking)
             }
         }, 5)
@@ -802,7 +472,6 @@ function onLanding(){
         isOnLanding = true
         clearInterval(onLandingInterval)
         onLandingInterval = setInterval(() => {
-            // if (!isGrounded() && !checkCollision()){
                 if (!isGrounded()){
                 checkCollision()
                 playerModel.prevPosition = {
@@ -811,34 +480,20 @@ function onLanding(){
                     z: playerModel.position.z
                 }
                 if (player.flyHorizontalSpeed.z > 0){
-                    // if (!checkCollision(Math.sin(camera.rotation.y) * -player.flyHorizontalSpeed.z, Math.cos(Math.PI - camera.rotation.y) * player.flyHorizontalSpeed.z)){
                         playerModel.position.x += Math.sin(camera.rotation.y) * -player.flyHorizontalSpeed.z
                         playerModel.position.z += Math.cos(Math.PI - camera.rotation.y) * player.flyHorizontalSpeed.z
-                    // }
-                    // if (!checkCollision(Math.sin(camera.rotation.y) * -player.flyHorizontalSpeed.z, 0)){
-                    //     playerModel.position.x += Math.sin(camera.rotation.y) * -player.flyHorizontalSpeed.z
-                    // }
-                    // if (!checkCollision(0, Math.cos(Math.PI - camera.rotation.y) * player.flyHorizontalSpeed.z)){
-                    //     playerModel.position.z += Math.cos(Math.PI - camera.rotation.y) * player.flyHorizontalSpeed.z
-                    // }
                 }
                 if (player.flyHorizontalSpeed.z < 0){
-                    // if (!checkCollision(Math.sin(camera.rotation.y) * -player.flyHorizontalSpeed.z, -Math.cos(camera.rotation.y) * player.flyHorizontalSpeed.z)){
                         playerModel.position.x += Math.sin(camera.rotation.y) * -player.flyHorizontalSpeed.z
                         playerModel.position.z += -Math.cos(camera.rotation.y) * player.flyHorizontalSpeed.z
-                    // }
                 }
                 if (player.flyHorizontalSpeed.x > 0){
-                    // if (!checkCollision(Math.sin(camera.rotation.y + Math.PI / 2) * player.flyHorizontalSpeed.x, -Math.cos(camera.rotation.y + Math.PI / 2) * -player.flyHorizontalSpeed.x)){
                         playerModel.position.x += Math.sin(camera.rotation.y + Math.PI / 2) * player.flyHorizontalSpeed.x
                         playerModel.position.z += -Math.cos(camera.rotation.y + Math.PI / 2) * -player.flyHorizontalSpeed.x
-                    // }
                 }
                 if (player.flyHorizontalSpeed.x < 0){
-                    // if (!checkCollision(Math.sin(camera.rotation.y - Math.PI / 2) * -player.flyHorizontalSpeed.x, -Math.cos(camera.rotation.y - Math.PI / 2) * player.flyHorizontalSpeed.x)){
                         playerModel.position.x += Math.sin(camera.rotation.y - Math.PI / 2) * -player.flyHorizontalSpeed.x
                         playerModel.position.z += -Math.cos(camera.rotation.y - Math.PI / 2) * player.flyHorizontalSpeed.x
-                    // }
                 }
             } else {
                 clearInterval(onLandingInterval)
@@ -920,7 +575,6 @@ function onKeyboard(event){
                 playerMove()
             break;
         case 'KeyS':
-            // if (!player.isFlying){
                 player.speed.z = -player.maxSpeed.horizontal
                 playerMove()
             break;
@@ -1043,9 +697,6 @@ function onPlay(){
     } else if (document.documentElement.webkitRequestFullscreen) {
         document.documentElement.webkitRequestFullscreen();
     }
-    // playerModelBody.mass = 10;
-    // playerModelBody.updateMassProperties();
-    // playerModelBody.velocity.y = 1
     gravityAttraction()
     randomWeapon = Math.floor(Math.random() * 3.9)
     weapons[randomWeapon].visible = true

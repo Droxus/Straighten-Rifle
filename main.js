@@ -39,15 +39,16 @@ playerModel.geometry.userData.obb = new THREE.OBB().fromBox3(
 )
 playerModel.userData.obb = new THREE.OBB()
 scene.add(playerModel)
-const playerModelTest = new THREE.Mesh(  new THREE.BoxGeometry( 2, 4, 2 ), new THREE.MeshBasicMaterial( {color: 0x00ff00} ) );
-playerModelTest.visible = false
-playerModelTest.position.set(0, 2, 0)
-playerModelTest.geometry.computeBoundingBox()
-playerModelTest.geometry.userData.obb = new THREE.OBB().fromBox3(
-playerModelTest.geometry.boundingBox
-)
-playerModelTest.userData.obb = new THREE.OBB()
-scene.add(playerModelTest)
+
+// const playerModelTest = new THREE.Mesh(  new THREE.BoxGeometry( 2, 4, 2 ), new THREE.MeshBasicMaterial( {color: 0x00ff00} ) );
+// playerModelTest.visible = false
+// playerModelTest.position.set(0, 2, 0)
+// playerModelTest.geometry.computeBoundingBox()
+// playerModelTest.geometry.userData.obb = new THREE.OBB().fromBox3(
+// playerModelTest.geometry.boundingBox
+// )
+// playerModelTest.userData.obb = new THREE.OBB()
+// scene.add(playerModelTest)
 console.log(playerModel)
 let player = {
     speed: {
@@ -390,19 +391,19 @@ function isGrounded(){
     // playerModel.userData.obb.applyMatrix4(playerModel.matrixWorld)
     intersects = intersects.flat(1)
     // console.log(intersects)
-    intersects = intersects.filter(e => e.distance > raycaster1.far * 0.85)
+    intersects = intersects.filter(e => e.distance > raycaster1.far * 0.9)
     if (intersects[0]){
         intersects.sort((a, b) => {
             if (a.distance > b.distance) return 1
             if (a.distance < b.distance) return -1
             return 0
         })
-        console.log(intersects[0])
+        // console.log(intersects[0])
         // if (intersects[0].distance > raycaster1.far * 0.85){
             groundedObjectID = intersects[0].object.id
             playerModel.position.y += (raycaster1.far-0.05) - intersects[0].distance
             // playerModelTest.position.y += raycaster1.far - intersects[0].distance
-            console.log('Ground')
+            // console.log('Ground')
             return true 
         // }
         // return true    
@@ -435,7 +436,7 @@ function isGrounded(){
         // } else {
             //     return true
             // }
-            console.log('Fly')
+            // console.log('Fly')
     return false
 }
 function onResize(){
@@ -469,7 +470,7 @@ function gravityAttraction(){
             if (!isGrounded()){
                 ++velOfGravityAttractionIndex
                 playerModel.position.y -= 0.002 * velOfGravityAttractionIndex
-                playerModelTest.position.y -= 0.002 * velOfGravityAttractionIndex
+                // playerModelTest.position.y -= 0.002 * velOfGravityAttractionIndex
             } else {
                 isGravityAttractioning = false
                 clearInterval(smoothGravityAttraction)
@@ -614,23 +615,100 @@ function checkCollision(){
                 //     clearInterval(smoothlyJump)
                 //     gravityAttraction()
                 // }
-                obj.material.color.set('red')
+                // obj.material.color.set('red')
                 // console.log('COLLISION')
                 // console.log((obj.userData.obb.intersectsOBB(playerModel.userData.obb)))
                 // console.log(playerModel.prevPosition)
                 // console.log(playerModel.position.z - playerModel.prevPosition.z)
-                playerModel.position.set(playerModel.prevPosition.x, playerModel.position.y, playerModel.prevPosition.z)
+                //     playerModel.position.set(collidePosition.x, playerModel.position.y, playerModel.prevPosition.z)
+                //     playerModel.userData.obb.copy(playerModel.geometry.userData.obb)
+                //     playerModel.userData.obb.applyMatrix4(playerModel.matrixWorld)
+                // if (obj.userData.obb.intersectsOBB(playerModel.userData.obb)){
+                //     playerModel.position.set(playerModel.prevPosition.x, playerModel.position.y, collidePosition.z)
+                // }
+                // console.log(obj.position)
+                // let xDiff = playerModel.position.x - obj.position.x
+                // console.log(xDiff)
+                // let zDiff = playerModel.position.z - obj.position.z
+                // console.log(zDiff)
+                // if (Math.abs(xDiff) < Math.abs(zDiff)){
+                //     playerModel.position.set(playerModel.position.x, playerModel.position.y, playerModel.prevPosition.z)
+                // } else if (Math.abs(xDiff) > Math.abs(zDiff)) {
+                //     playerModel.position.set(playerModel.prevPosition.x, playerModel.position.y, playerModel.position.z)
+                // } else {
+                //     playerModel.position.set(playerModel.prevPosition.x, playerModel.position.y, playerModel.prevPosition.z)
+                // }
+                // console.log(obj)
+
+                // let objFaces = []
+                // objFaces.push({x: obj.position.x, z: obj.position.z + obj.geometry.boundingBox.min.z})
+                // objFaces.push({x: obj.position.x + obj.geometry.boundingBox.max.x, z: obj.position.z})
+                // objFaces.push({x: obj.position.x, z: obj.position.z + obj.geometry.boundingBox.max.z})
+                // objFaces.push({x: obj.position.x + obj.geometry.boundingBox.min.x, z: obj.position.z})
+                // console.log(objFaces)
+
+                // let plyerModelPositionX = playerModel.position.x + playerModel.geometry.boundingBox.max.x * ((playerModel.position.x - playerModel.prevPosition.x) / Math.abs(playerModel.position.x - playerModel.prevPosition.x))
+                // let plyerModelPositionZ = playerModel.position.z + playerModel.geometry.boundingBox.max.z * ((playerModel.position.z - playerModel.prevPosition.z) / Math.abs(playerModel.position.z - playerModel.prevPosition.z))
+                // console.log(plyerModelPositionX)
+                let objectPosition
+                if (obj.geometry.boundingBox.max.x > obj.geometry.boundingBox.max.z){
+                    objectPosition = {x: playerModel.position.x, z: obj.position.z}
+                } else if (obj.geometry.boundingBox.max.x < obj.geometry.boundingBox.max.z){
+                    objectPosition = {x: obj.position.x, z: playerModel.position.z}
+                } else {
+                    objectPosition = {x: obj.position.x, z: obj.position.z}
+                }
+                // console.log(obj.geometry.boundingBox.max.x, )
+                console.log(objectPosition)
+                // let xDiff1 = playerModel.position.x - obj.position.x + obj.geometry.boundingBox.max.x
+                // let xDiff2 = playerModel.position.x - obj.position.x + obj.geometry.boundingBox.min.x
+                // let xDiff = Math.min(Math.abs(xDiff1), Math.abs(xDiff2))
+                let xDiff = Math.abs(playerModel.position.x - objectPosition.x)
+                // console.log(xDiff)
+                // let zDiff1 = playerModel.position.z - obj.position.z + obj.geometry.boundingBox.min.z
+                // let zDiff2 = playerModel.position.z - obj.position.z + obj.geometry.boundingBox.max.z
+                // let zDiff = Math.min(Math.abs(zDiff1), Math.abs(zDiff2))
+                let zDiff = Math.abs(playerModel.position.z - objectPosition.z)
+                // console.log(zDiff)
+                if (xDiff < zDiff){
+                    playerModel.position.set(playerModel.position.x, playerModel.position.y, playerModel.prevPosition.z)
+                } else if (xDiff > zDiff) {
+                    playerModel.position.set(playerModel.prevPosition.x, playerModel.position.y, playerModel.position.z)
+                } else {
+                    playerModel.position.set(playerModel.prevPosition.x, playerModel.position.y, playerModel.prevPosition.z)
+                }
+
+                // playerModel.userData.obb.copy(playerModel.geometry.userData.obb)
+                // playerModel.userData.obb.applyMatrix4(playerModel.matrixWorld)
+                // if (obj.userData.obb.intersectsOBB(playerModel.userData.obb)) {
+                //     playerModel.position.set(playerModel.prevPosition.z, playerModel.position.y, playerModel.prevPosition.z)
+                // }
                 // playerModel.position.x -= (playerModel.position.x - playerModel.prevPosition.x) * 2
                 // playerModel.position.z -= (playerModel.position.z - playerModel.prevPosition.z) * 2
                 isCollision = true
-                break
+                // break
             } else {
-                obj.material.color.set('green')
+                // obj.material.color.set('green')
             }
         }
         return isCollision
-
 }
+// function checkCollision(){
+//     let downDirection = new THREE.Vector3(0, 0, -1);
+//     const raycaster1 = new THREE.Raycaster();
+//     raycaster1.far = playerModel.geometry.parameters.width*2
+//     raycaster1.set(new THREE.Vector3( playerModel.position.x ,  playerModel.position.y, playerModel.position.z ), downDirection)
+//     let intersects = []
+//     intersects.push(raycaster1.intersectObjects( scene.children ))
+//     intersects = intersects.flat(2)
+//     intersects = intersects.filter(e => e.object.id !== 8)
+//     if (intersects[0]){
+//         playerModel.position.set(intersects[0].point.x, playerModel.position.y, intersects[0].point.z)
+//     }
+    
+//     console.log(intersects)
+// }
+
 // function checkCollision(xCor, zCor){
 //     playerModelTest.position.set(playerModel.position.x + xCor*2, playerModel.position.y, playerModel.position.z + zCor*2)
 //     playerModelTest.userData.obb.copy(playerModelTest.geometry.userData.obb)
@@ -678,25 +756,25 @@ function makeJump(){
         smoothlyJump = setInterval(() => {
             --velOfJumpIndex
             playerModel.position.y += 0.002 * velOfJumpIndex
-            playerModelTest.position.y += 0.002 * velOfJumpIndex
+            // playerModelTest.position.y += 0.002 * velOfJumpIndex
         }, 5)
     }
 }
 let smoothDucking
 function makeDuck(front){
-    console.log('DUCK')
+    // console.log('DUCK')
     if (front){
         clearInterval(smoothDucking)
         smoothDucking = setInterval(() => {
             if (playerModel.scale.y > 0.5){
                 playerModel.scale.y -=  1/50
                 playerModel.position.y -= playerModel.geometry.parameters.depth / 50
-                playerModelTest.scale.y -=  1/50
-                playerModelTest.position.y -= playerModelTest.geometry.parameters.depth / 50
+                // playerModelTest.scale.y -=  1/50
+                // playerModelTest.position.y -= playerModelTest.geometry.parameters.depth / 50
                 // playerModel.geometry.computeBoundingBox()
             } else {
                 playerModel.scale.y = 0.5
-                playerModelTest.scale.y = 0.5
+                // playerModelTest.scale.y = 0.5
                 clearInterval(smoothDucking)
             }
         }, 5)
@@ -707,12 +785,12 @@ function makeDuck(front){
             if (playerModel.scale.y < 1){
                 playerModel.scale.y += 1/50
                 playerModel.position.y += playerModel.geometry.parameters.depth / 50
-                playerModelTest.scale.y += 1/50
-                playerModelTest.position.y += playerModel.geometry.parameters.depth / 50
+                // playerModelTest.scale.y += 1/50
+                // playerModelTest.position.y += playerModel.geometry.parameters.depth / 50
                 // playerModel.geometry.computeBoundingBox()
             } else {
                 playerModel.scale.y = 1
-                playerModelTest.scale.y = 1
+                // playerModelTest.scale.y = 1
                 clearInterval(smoothDucking)
             }
         }, 5)

@@ -24,7 +24,7 @@ function initSky() {
 
 	sky.material.uniforms[ 'sunPosition' ].value.copy( sun );
 }
-const playerModel = new THREE.Mesh(  new THREE.BoxGeometry( 2, 4, 2 ), new THREE.MeshBasicMaterial( {color: 0x00ff00} ) );
+const playerModel = new THREE.Mesh(  new THREE.BoxGeometry( 2, 4, 2 ), new THREE.MeshBasicMaterial( {color: 0x00ff00, visible: false} ) );
 playerModel.position.set(0, 2, 0)
 playerModel.name = "playermodel"
 playerModel.geometry.computeBoundingBox()
@@ -75,7 +75,7 @@ let model, sniperRifle, famasRifle, rifle, pistol
             scene.add(model);
             model.children.forEach(child => {
                 const geometry = new THREE.BoxGeometry( child.scale.x * 2, child.scale.y * 2, child.scale.z * 2 )
-                let hitbox = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial( { color: 'transparent', wireframe: false, visible: false } ) )
+                let hitbox = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial( { color: 'white', wireframe: false, visible: false } ) )
                 hitbox.geometry.computeBoundingBox()
                 hitbox.geometry.userData.obb = new THREE.OBB().fromBox3(
                     hitbox.geometry.boundingBox
@@ -97,8 +97,8 @@ let model, sniperRifle, famasRifle, rifle, pistol
         }})        
         loader.load('bobs_sniper-rifle.glb', (glb) =>  {
             if (glb){
-                scene.add(glb.scene)
                 sniperRifle = glb.scene
+                scene.add(sniperRifle)
                 sniperRifle.visible = false
                 sniperRifle.position.set(0, 40, 0)
                 sniperRifle.rotationCameraX = 0.4
@@ -107,14 +107,25 @@ let model, sniperRifle, famasRifle, rifle, pistol
                 sniperRifle.rotationCameraKefX = 2
                 sniperRifle.rotationCameraKefZ = 2
                 sniperRifle.rotationCameraKefY = 0.5
+                sniperRifle.characteristics = {
+                    damage: 50,
+                    fireRate: 2,
+                    reloadTime: 5,
+                    ammo: 5,
+                    recoil: 1,
+                    timeToRestore: 2.25
+                }
+                sniperRifle.name = "sniperRifle"
+                sniperRifle.canShoot = true
+                sniperRifle.ammo = sniperRifle.characteristics.ammo
                 weapons.push(sniperRifle)
                 hideLoader()
             }
         })
         loader.load('famas/scene.glb', (glb) =>  {
             if (glb){
-                scene.add(glb.scene)
                 famasRifle = glb.scene
+                scene.add(famasRifle)
                 famasRifle.visible = false
                 famasRifle.scale.set(0.1,0.1,0.1)
                 famasRifle.position.set(0, 40, 0)
@@ -124,14 +135,25 @@ let model, sniperRifle, famasRifle, rifle, pistol
                 famasRifle.rotationCameraKefX = 1.5
                 famasRifle.rotationCameraKefZ = 1.5
                 famasRifle.rotationCameraKefY = 1
+                famasRifle.name = "famasRifle"
+                famasRifle.characteristics = {
+                    damage: 20,
+                    fireRate: 0.5,
+                    reloadTime: 3,
+                    ammo: 15,
+                    recoil: 3,
+                    timeToRestore: 0.35 
+                }
+                famasRifle.canShoot = true
+                famasRifle.ammo = famasRifle.characteristics.ammo
                 weapons.push(famasRifle)
                 hideLoader()
             }
         })
         loader.load('m4/scene.glb', (glb) =>  {
             if (glb){
-                scene.add(glb.scene)
                 rifle = glb.scene
+                scene.add(rifle)
                 rifle.visible = false
                 rifle.scale.set(15,15,15)
                 rifle.position.set(0, 40, 0)
@@ -141,14 +163,25 @@ let model, sniperRifle, famasRifle, rifle, pistol
                 rifle.rotationCameraKefX = 1.5
                 rifle.rotationCameraKefZ = 1.5
                 rifle.rotationCameraKefY = 0.8
+                rifle.name = "rifle"
+                rifle.characteristics = {
+                    damage: 25,
+                    fireRate: 0.15,
+                    reloadTime: 3,
+                    ammo: 30,
+                    recoil: 5,
+                    timeToRestore: 0.35
+                }
+                rifle.canShoot = true
+                rifle.ammo = rifle.characteristics.ammo
                 weapons.push(rifle)
                 hideLoader()
             }
         })
         loader.load('pistol/scene.glb', (glb) =>  {
             if (glb){
-                scene.add(glb.scene)
                 pistol = glb.scene
+                scene.add(pistol)
                 pistol.visible = false
                 pistol.scale.set(0.15,0.15,0.15)
                 pistol.position.set(0, 40, 0)
@@ -158,6 +191,17 @@ let model, sniperRifle, famasRifle, rifle, pistol
                 pistol.rotationCameraKefX = 1.5
                 pistol.rotationCameraKefZ = 1.5
                 pistol.rotationCameraKefY = 1.2
+                pistol.name = "pistol"
+                pistol.characteristics = {
+                    damage: 15,
+                    fireRate: 0.25,
+                    reloadTime: 2,
+                    ammo: 12,
+                    recoil: 2,
+                    timeToRestore: 0.45 
+                }
+                pistol.canShoot = true
+                pistol.ammo = pistol.characteristics.ammo
                 weapons.push(pistol)
                 hideLoader()
             }
@@ -247,10 +291,6 @@ function animate() {
         camera.position.y = playerModel.position.y + playerModel.geometry.parameters.height/2 * playerModel.scale.y
         camera.position.z = playerModel.position.z
     }
-
-    // bullets.forEach((bullet, i) => {
-    //     bullet.position.copy( bulletsBody[i].position )
-    // })
     if (loadedAssets > 4){
         weapons[randomWeapon].position.x = camera.position.x - Math.sin(camera.rotation.y - weapons[randomWeapon].rotationCameraX) * weapons[randomWeapon].rotationCameraKefX
         weapons[randomWeapon].position.z = camera.position.z + Math.cos(Math.PI - camera.rotation.y + weapons[randomWeapon].rotationCameraZ) * weapons[randomWeapon].rotationCameraKefZ
@@ -498,16 +538,6 @@ function onLanding(){
         }, 5)
     }
 }
-// function onPlayerModelCollide({ contact: { bi } }) {
-//     if (bi.name !== 'bullet'){
-//         console.log('TAKE IT')
-//         // console.log(bi)
-//         // playerModelBody.velocity.x = playerModelBody.velocity.x * 2
-//         // playerModelBody.velocity.z = playerModelBody.velocity.z * 2
-//         // clearInterval(onLandingInterval)
-//         // playerModelBody.removeEventListener('collide', onPlayerModelCollide);
-//     }
-// }
 function offKeyboard(event){
     event.preventDefault();
         switch (event.code) {
@@ -600,14 +630,116 @@ function onKeyboard(event){
         }
     }
 }
+let mouseClick = true
 function onMouseClick(event){
+    // console.log(event)
     switch (event.button) {
         case 0:
-            makeShoot()
+            mouseClick = true
+            onFireAttack()
+            break;
+        case 2:
+            onScope()
             break;
     }
 }
-function makeShoot(){ 
+function onMouseUp(event){
+    switch (event.button) {
+        case 0:
+            mouseClick = false
+            break;
+    }
+}
+let fireShootInterval, fireRate
+function onFireAttack(){
+    // pistol.characteristics = {
+    //     damage: 15,
+    //     fireRate: 0.5,
+    //     reloadTime: 2,
+    //     ammo: 12,
+    //     recoil: 2,
+    //     timeToRestore: 0.2
+    // }
+    if (weapons[randomWeapon].canShoot){
+        switch (weapons[randomWeapon].name) {
+            case 'sniperRifle':
+                makeShoot()
+                fireRate = setTimeout(() => {
+                    sniperRifle.canShoot = true
+                }, sniperRifle.characteristics.fireRate * 1000)
+                break;
+            case 'famasRifle':
+                makeShoot()
+                setTimeout(() => {
+                    makeShoot()
+                }, 100)
+                setTimeout(() => {
+                    makeShoot()
+                }, 100)
+                fireRate = setTimeout(() => {
+                    famasRifle.canShoot = true
+                }, famasRifle.characteristics.fireRate * 1000)
+                break;
+            case 'rifle':
+                makeShoot()
+                clearInterval(fireShootInterval)
+                fireRate = setTimeout(() => {
+                    rifle.canShoot = true
+                }, rifle.characteristics.fireRate * 1000)
+                fireShootInterval = setInterval(() => {
+                    if (mouseClick){
+                        clearTimeout(fireRate)
+                        makeShoot()
+                    } else {
+                        rifle.canShoot = true
+                        clearInterval(fireShootInterval)
+                    }
+                }, rifle.characteristics.fireRate * 1000)
+                break;
+            case 'pistol':
+                makeShoot()
+                fireRate = setTimeout(() => {
+                    pistol.canShoot = true
+                }, pistol.characteristics.fireRate * 1000)
+                break;
+        }
+    }
+}
+function onScope(){
+    if (weapons[randomWeapon].name == 'sniperRifle'){
+        if (document.getElementById('awpScope').style.display !== 'none'){
+            if (camera.zoom == 2){
+                camera.zoom = 5
+                camera.updateProjectionMatrix();
+                sensitivity /= 2.5
+            } else {
+                sensitivity *= camera.zoom
+                camera.zoom = 1
+                camera.updateProjectionMatrix();
+                document.getElementById('awpScope').style.display = 'none'
+            }
+        } else {
+            camera.zoom = 2
+            camera.updateProjectionMatrix();
+            document.getElementById('awpScope').style.display = 'grid'
+            sensitivity /= 2
+        }
+    }
+}
+let timeToRestoreInterval, timeToRestore = 0
+function makeShoot(){
+    clearInterval(timeToRestoreInterval)
+    timeToRestoreInterval = setInterval(() => {
+        if (timeToRestore < weapons[randomWeapon].characteristics.timeToRestore*1000){
+            timeToRestore += 5
+        } else {
+            clearInterval(timeToRestoreInterval)
+        }
+    }, 5)
+    let recoil = ((weapons[randomWeapon].characteristics.timeToRestore*1000 - timeToRestore) * weapons[randomWeapon].characteristics.recoil) / 250
+    let recoilY = (recoil*8) * (Math.random() + 0.5) * 2
+    let recoilX = recoil * (Math.random() - 0.5) * 5
+    console.log(recoil)
     if (bullets.length > 50){
         scene.remove(bullets[0])
         bullets.splice(0, 1)
@@ -615,14 +747,14 @@ function makeShoot(){
     let bullet = new THREE.Mesh( new THREE.BoxGeometry( 0.1, 0.1, 0.2 ), new THREE.MeshBasicMaterial( {color: '#ff5900'} ) );
     bullet.position.copy(camera.position)
     bullet.quaternion.copy(camera.quaternion)
-    bullet.name = 'bullet'
+    bullet.name = "bullet"
     bullets.push(bullet)
     scene.add( bullet )
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
     raycaster.far = 500
-    pointer.x = ( (window.innerWidth/2-5) / window.innerWidth ) * 2 - 1;
-    pointer.y = - ( ((window.innerHeight+4)/2) / window.innerHeight ) * 2 + 1;
+    pointer.x = ( (window.innerWidth/2 + recoilX) / window.innerWidth ) * 2 - 1;
+    pointer.y = - ( ((window.innerHeight)/2  - recoilY) / window.innerHeight ) * 2 + 1;
     raycaster.setFromCamera( pointer, camera );
     const intersects = raycaster.intersectObjects( scene.children );
     let intersetsExpectBullets = intersects.filter(e => e.object.name !== 'bullet' && e.object.name !== 'playermodel' && e.object.name !== 'hitbox' && e.object.name !== 'bbox')
@@ -644,10 +776,12 @@ function makeShoot(){
         bullet.position.set(bullet.endPosition.x, bullet.endPosition.y, bullet.endPosition.z)
     }, timeToEndPosition)
     let smoothBulletShooting = setInterval(() => {
-        bullet.position.x += Math.sin(bullet.cameraPosition.y + 0.01) * -velocity
-        bullet.position.y += Math.tan(bullet.cameraPosition.x + 0.00495) * velocity
-        bullet.position.z += Math.cos(Math.PI - bullet.cameraPosition.y - 0.01) * velocity
+        bullet.position.x += Math.sin(bullet.cameraPosition.y + 0.01 - recoilX * 0.001) * -velocity
+        bullet.position.y += Math.tan(bullet.cameraPosition.x + 0.00495 + recoilY * 0.000495) * velocity
+        bullet.position.z += Math.cos(Math.PI - bullet.cameraPosition.y - 0.01 + recoilX * 0.001) * velocity
     }, 5)
+    weapons[randomWeapon].canShoot = false
+    timeToRestore = 0
 }
 document.getElementById('onPlay').addEventListener('click', onPlay)
 let randomWeapon = 0
@@ -667,7 +801,8 @@ function onPlay(){
     window.addEventListener('mousemove', onMouseMove)
     window.addEventListener('keydown', onKeyboard, false)
     window.addEventListener('keyup', offKeyboard, false)
-    window.addEventListener('click', onMouseClick)
+    window.addEventListener('mousedown', onMouseClick)
+    window.addEventListener('mouseup', onMouseUp)
     if (document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen();
     } else if (document.documentElement.msRequestFullscreen) {
@@ -678,8 +813,13 @@ function onPlay(){
         document.documentElement.webkitRequestFullscreen();
     }
     gravityAttraction()
-    randomWeapon = Math.floor(Math.random() * 3.9)
+    // randomWeapon = Math.floor(Math.random() * 3.9)
+    randomWeapon = 1
     weapons[randomWeapon].visible = true
+    document.getElementById('awpScope').style.display = 'none'
+    sensitivity *= camera.zoom
+    camera.zoom = 1
+    camera.updateProjectionMatrix();
 }
 function onMenu(){
     document.getElementById('onPlay').removeEventListener('click', onPlay)
@@ -687,7 +827,8 @@ function onMenu(){
     window.removeEventListener('mousemove', onMouseMove)
     window.removeEventListener('keydown', onKeyboard)
     window.removeEventListener('keyup', offKeyboard)
-    window.removeEventListener('click', onMouseClick)
+    window.removeEventListener('mousedown', onMouseClick)
+    window.removeEventListener('mouseup', onMouseUp)
     setTimeout(() => {document.getElementById('onPlay').addEventListener('click', onPlay)}, 2500)
     keys = {
         KeyW: false,

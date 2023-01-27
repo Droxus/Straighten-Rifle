@@ -163,7 +163,7 @@ body * {
     position: absolute;
     left: 50%;
     top: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-25%, -55%);
     width: 24px;
     height: 24px;
     color: aqua;
@@ -188,4 +188,39 @@ body * {
     font-size: 32px;
     align-items: center;
     justify-content: center;
+}
+#awpScope{
+    display: none;
+    position: absolute;
+    width: 50vw;
+    height: 50vw;
+    z-index: 2;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: transparent;
+    border-radius: 50%;
+    border: 100vh solid black;
+}
+#verticalLine{
+    display: block;
+    position: absolute;
+    width: 100vw;
+    height: 2px;
+    z-index: 2;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: black;
+}
+#horizontalLine{
+    display: block;
+    position: absolute;
+    width: 2px;
+    height: 100vw;
+    z-index: 2;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: black;
 }

@@ -26,6 +26,7 @@ function initSky() {
 }
 const playerModel = new THREE.Mesh(  new THREE.BoxGeometry( 2, 4, 2 ), new THREE.MeshBasicMaterial( {color: 0x00ff00} ) );
 playerModel.position.set(0, 2, 0)
+playerModel.name = "playermodel"
 playerModel.geometry.computeBoundingBox()
 playerModel.geometry.userData.obb = new THREE.OBB().fromBox3(
     playerModel.geometry.boundingBox
@@ -74,21 +75,22 @@ let model, sniperRifle, famasRifle, rifle, pistol
             scene.add(model);
             model.children.forEach(child => {
                 const geometry = new THREE.BoxGeometry( child.scale.x * 2, child.scale.y * 2, child.scale.z * 2 )
-                const hitbox = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial( { color: 'transparent', wireframe: false, visible: false } ) )
+                let hitbox = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial( { color: 'transparent', wireframe: false, visible: false } ) )
                 hitbox.geometry.computeBoundingBox()
                 hitbox.geometry.userData.obb = new THREE.OBB().fromBox3(
                     hitbox.geometry.boundingBox
                 )
                 hitbox.userData.obb = new THREE.OBB()
-
                 hitbox.position.set(child.position.x, child.position.y , child.position.z)
                 hitbox.rotation.set(child.rotation.x, child.rotation.y , child.rotation.z)
                 hitbox.userData.obb.copy(hitbox.geometry.userData.obb)
+                hitbox.name = "hitbox"
                 scene.add(hitbox)
                 collisionResponsiveObjects.push(hitbox)
-                const bbox = new THREE.LineSegments( new THREE.EdgesGeometry( new THREE.BoxGeometry( child.scale.x * 2 + 0.02, child.scale.y * 2 + 0.02, child.scale.z * 2 + 0.02 ) ), new THREE.LineBasicMaterial( { color: '#ff5900' } ) );
+                let bbox = new THREE.LineSegments( new THREE.EdgesGeometry( new THREE.BoxGeometry( child.scale.x * 2 + 0.02, child.scale.y * 2 + 0.02, child.scale.z * 2 + 0.02 ) ), new THREE.LineBasicMaterial( { color: '#ff5900' } ) );
                 bbox.position.set(child.position.x, child.position.y , child.position.z)
                 bbox.rotation.set(child.rotation.x, child.rotation.y , child.rotation.z)
+                bbox.name = "bbox"
                 scene.add(bbox);
             })
             hideLoader()
@@ -263,42 +265,37 @@ function animate() {
 };
 window.addEventListener('resize', onResize)
 document.oncontextmenu = document.body.oncontextmenu = function() {return false;}
-let groundedObjectID
 function isGrounded(){
     let downDirection = new THREE.Vector3(0, -1, 0);
-    const raycaster1 = new THREE.Raycaster();
-    raycaster1.far = playerModel.geometry.parameters.height/2 * playerModel.scale.y + 0.1
-    raycaster1.set(new THREE.Vector3( playerModel.position.x + playerModel.geometry.parameters.depth/2 ,
-         playerModel.position.y, playerModel.position.z + playerModel.geometry.parameters.width/2 ), downDirection)
-    let intersects = []
-    intersects.push(raycaster1.intersectObjects( scene.children ))
-    const raycaster2 = new THREE.Raycaster();
-    raycaster2.far = playerModel.geometry.parameters.height/2 * playerModel.scale.y + 0.1
-    raycaster2.set(new THREE.Vector3( playerModel.position.x - playerModel.geometry.parameters.depth/2,
-        playerModel.position.y, playerModel.position.z - playerModel.geometry.parameters.width/2 ), downDirection)
-    intersects.push(raycaster2.intersectObjects( scene.children ))
-    const raycaster3 = new THREE.Raycaster();
-    raycaster3.far = playerModel.geometry.parameters.height/2 * playerModel.scale.y + 0.1
-    raycaster3.set(new THREE.Vector3( playerModel.position.x + playerModel.geometry.parameters.depth/2,
-        playerModel.position.y, playerModel.position.z - playerModel.geometry.parameters.width/2 ), downDirection)
-    intersects.push(raycaster3.intersectObjects( scene.children ))
-    const raycaster4 = new THREE.Raycaster();
-    raycaster4.far = playerModel.geometry.parameters.height/2 * playerModel.scale.y + 0.1
-    raycaster4.set(new THREE.Vector3( playerModel.position.x - playerModel.geometry.parameters.depth/2 ,
-        playerModel.position.y, playerModel.position.z + playerModel.geometry.parameters.width/2 ), downDirection)
-    intersects.push(raycaster4.intersectObjects( scene.children ))
+    let raycasterPositions = [], intersects = []
+    raycasterPositions.push(new THREE.Vector3( playerModel.position.x + playerModel.geometry.parameters.depth/2, playerModel.position.y, playerModel.position.z + playerModel.geometry.parameters.width/2 ))
+    raycasterPositions.push(new THREE.Vector3( playerModel.position.x - playerModel.geometry.parameters.depth/2, playerModel.position.y, playerModel.position.z - playerModel.geometry.parameters.width/2 ))
+    raycasterPositions.push(new THREE.Vector3( playerModel.position.x + playerModel.geometry.parameters.depth/2, playerModel.position.y, playerModel.position.z - playerModel.geometry.parameters.width/2 ))
+    raycasterPositions.push(new THREE.Vector3( playerModel.position.x - playerModel.geometry.parameters.depth/2, playerModel.position.y, playerModel.position.z + playerModel.geometry.parameters.width/2 ))
+    raycasterPositions.push(new THREE.Vector3( playerModel.position.x + playerModel.geometry.parameters.depth/2, playerModel.position.y, playerModel.position.z ))
+    raycasterPositions.push(new THREE.Vector3( playerModel.position.x - playerModel.geometry.parameters.depth/2, playerModel.position.y, playerModel.position.z ))
+    raycasterPositions.push(new THREE.Vector3( playerModel.position.x, playerModel.position.y, playerModel.position.z + playerModel.geometry.parameters.width/2 ))
+    raycasterPositions.push(new THREE.Vector3( playerModel.position.x, playerModel.position.y, playerModel.position.z - playerModel.geometry.parameters.width/2 ))
+    raycasterPositions.push(new THREE.Vector3( playerModel.position.x, playerModel.position.y, playerModel.position.z ))
+    const raycaster = new THREE.Raycaster();
+    raycaster.far = playerModel.geometry.parameters.height/2 * playerModel.scale.y + 0.1
+    raycasterPositions.forEach(ray => {
+        raycaster.set(ray, downDirection)
+        intersects.push(raycaster.intersectObjects( scene.children ))
+    })
     intersects = intersects.flat(1)
-    intersects = intersects.filter(e => e.distance > raycaster1.far * 0.9)
+    intersects = intersects.filter(e => e.distance > raycaster.far * 0.9)
     if (intersects[0]){
         intersects.sort((a, b) => {
             if (a.distance > b.distance) return 1
             if (a.distance < b.distance) return -1
             return 0
         })
-        groundedObjectID = intersects[0].object.id
-        playerModel.position.y += (raycaster1.far-0.05) - intersects[0].distance
+        playerModel.position.y += (raycaster.far-0.05) - intersects[0].distance
+        // console.log('ground')
         return true 
     }
+    console.log('fly')
     return false
 }
 function onResize(){
@@ -611,63 +608,46 @@ function onMouseClick(event){
     }
 }
 function makeShoot(){ 
-    if (bullets.length > 20){
+    if (bullets.length > 50){
         scene.remove(bullets[0])
         bullets.splice(0, 1)
-        bulletsBody.splice(0, 1)
     }
-    let bullet = new THREE.Mesh( new THREE.BoxGeometry( 0.1, 0.1, 0.4 ), new THREE.MeshBasicMaterial( {color: '#ff5900'} ) );
+    let bullet = new THREE.Mesh( new THREE.BoxGeometry( 0.1, 0.1, 0.2 ), new THREE.MeshBasicMaterial( {color: '#ff5900'} ) );
     bullet.position.copy(camera.position)
     bullet.quaternion.copy(camera.quaternion)
     bullet.name = 'bullet'
     bullets.push(bullet)
     scene.add( bullet )
-    // let bulletBody = new CANNON.Body({
-    //     mass: 1,
-    //     position: camera.position,
-    //     shape: new CANNON.Box( new CANNON.Vec3(0.05, 0.05, 0.2)),
-    //     quaternion: camera.quaternion
-    // })
-    // bulletsBody.push(bulletBody)
-    // bulletBody.quaternion.normalize()
-    // bulletBody.position.x += Math.sin(camera.rotation.y) * -2
-    // bulletBody.position.z += Math.cos(Math.PI - camera.rotation.y) * 2
-    // bulletBody.position.y += Math.tan(camera.rotation.x) * 1 - 0.5
-    // bulletBody.name = 'bullet'
-    // const raycaster = new THREE.Raycaster();
-    // const pointer = new THREE.Vector2();
-    // pointer.x = ( (window.innerWidth/2) / window.innerWidth ) * 2 - 1;
-    // pointer.y = - ( ((window.innerHeight+2)/2) / window.innerHeight ) * 2 + 1;
-    // raycaster.setFromCamera( pointer, camera );
-    // const intersects = raycaster.intersectObjects( scene.children );
-    // let intersetsExpectBullets = intersects.filter(e => e.object.name !== 'bullet')
-    // bulletBody.endPosition = {
-    //     x: intersetsExpectBullets[0].point.x - Math.sin(camera.rotation.y) * -0.3,
-    //     y: Math.max((intersetsExpectBullets[0].point.y - Math.tan(camera.rotation.x) * 0.15 - intersetsExpectBullets[0].distance * 0.02), 0),
-    //     z: intersetsExpectBullets[0].point.z - Math.cos(Math.PI - camera.rotation.y) * 0.3,
-    // }
-    // world.addBody(bulletBody)
-    // let grounded
-    // bulletBody.velocity.x += Math.sin(camera.rotation.y) * -200
-    // bulletBody.velocity.z += Math.cos(Math.PI - camera.rotation.y) * 200
-    // bulletBody.velocity.y += Math.tan(camera.rotation.x) * 200
-    // bulletBody.addEventListener('collide', function onBulletCollide({ contact: { bi } }) {
-    //     if (bi.name !== 'bullet' && bi.name !== 'playerModel'){
-    //         bulletBody.velocity.set(0,0,0)
-    //         // const vTo = new CANNON.Vec3(Math.sin(camera.rotation.y) * -2000, Math.cos(Math.PI - camera.rotation.y) * 2000, Math.tan(camera.rotation.x) * 1000)
-    //         // const ray = new CANNON.Ray(bulletBody.position, vTo)
-    //         // const result = new CANNON.RaycastResult()
-    //         // ray.intersectBody(bi, result)
-    //         // grounded = result.hasHit
-    //         // bi.id == 25 ? console.log('HIT') : null
-    //         let endPosition = bulletBody.endPosition
-    //         bulletBody.position.x = endPosition.x
-    //         bulletBody.position.y = endPosition.y
-    //         bulletBody.position.z = endPosition.z
-    //         removeBody = bulletBody;
-    //         this.removeEventListener('collide', onBulletCollide);
-    //     }
-    // })
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    raycaster.far = 500
+    pointer.x = ( (window.innerWidth/2-5) / window.innerWidth ) * 2 - 1;
+    pointer.y = - ( ((window.innerHeight+4)/2) / window.innerHeight ) * 2 + 1;
+    raycaster.setFromCamera( pointer, camera );
+    const intersects = raycaster.intersectObjects( scene.children );
+    let intersetsExpectBullets = intersects.filter(e => e.object.name !== 'bullet' && e.object.name !== 'playermodel' && e.object.name !== 'hitbox' && e.object.name !== 'bbox')
+    let distanceToEndPosition = intersetsExpectBullets[0].distance
+    bullet.endPosition = {
+        x: intersetsExpectBullets[0].point.x,
+        y: intersetsExpectBullets[0].point.y,
+        z: intersetsExpectBullets[0].point.z,
+    }
+    bullet.cameraPosition = {
+        x: camera.rotation.x,
+        y: camera.rotation.y
+    }
+    bullet.position.set(weapons[randomWeapon].position.x + Math.sin(camera.rotation.y) * -2, weapons[randomWeapon].position.y + Math.tan(camera.rotation.x) * 1, weapons[randomWeapon].position.z + Math.cos(Math.PI - camera.rotation.y) * 2)
+    let velocity = 500 / 200
+    let timeToEndPosition = (distanceToEndPosition / velocity) * 5
+    setTimeout(() => {
+        clearInterval(smoothBulletShooting)
+        bullet.position.set(bullet.endPosition.x, bullet.endPosition.y, bullet.endPosition.z)
+    }, timeToEndPosition)
+    let smoothBulletShooting = setInterval(() => {
+        bullet.position.x += Math.sin(bullet.cameraPosition.y + 0.01) * -velocity
+        bullet.position.y += Math.tan(bullet.cameraPosition.x + 0.00495) * velocity
+        bullet.position.z += Math.cos(Math.PI - bullet.cameraPosition.y - 0.01) * velocity
+    }, 5)
 }
 document.getElementById('onPlay').addEventListener('click', onPlay)
 let randomWeapon = 0

@@ -107,6 +107,7 @@ let model, sniperRifle, famasRifle, rifle, pistol
                 sniperRifle.rotationCameraKefX = 2
                 sniperRifle.rotationCameraKefZ = 2
                 sniperRifle.rotationCameraKefY = 0.5
+                sniperRifle.rotationZ = 0
                 sniperRifle.characteristics = {
                     damage: 50,
                     fireRate: 2,
@@ -135,6 +136,7 @@ let model, sniperRifle, famasRifle, rifle, pistol
                 famasRifle.rotationCameraKefX = 1.5
                 famasRifle.rotationCameraKefZ = 1.5
                 famasRifle.rotationCameraKefY = 1
+                famasRifle.rotationZ = 0
                 famasRifle.name = "famasRifle"
                 famasRifle.characteristics = {
                     damage: 20,
@@ -163,6 +165,7 @@ let model, sniperRifle, famasRifle, rifle, pistol
                 rifle.rotationCameraKefX = 1.5
                 rifle.rotationCameraKefZ = 1.5
                 rifle.rotationCameraKefY = 0.8
+                rifle.rotationZ = 0
                 rifle.name = "rifle"
                 rifle.characteristics = {
                     damage: 25,
@@ -191,6 +194,7 @@ let model, sniperRifle, famasRifle, rifle, pistol
                 pistol.rotationCameraKefX = 1.5
                 pistol.rotationCameraKefZ = 1.5
                 pistol.rotationCameraKefY = 1.2
+                pistol.rotationZ = 0
                 pistol.name = "pistol"
                 pistol.characteristics = {
                     damage: 15,
@@ -296,6 +300,7 @@ function animate() {
         weapons[randomWeapon].position.z = camera.position.z + Math.cos(Math.PI - camera.rotation.y + weapons[randomWeapon].rotationCameraZ) * weapons[randomWeapon].rotationCameraKefZ
         weapons[randomWeapon].position.y = camera.position.y + Math.min(Math.max((Math.tan(camera.rotation.x + weapons[randomWeapon].rotationCameraY) - weapons[randomWeapon].rotationCameraKefY), -2), 2)
         weapons[randomWeapon].quaternion.copy(camera.quaternion)
+        weapons[randomWeapon].rotation.z += weapons[randomWeapon].rotationZ
     }
     getAdvancedData()
 
@@ -332,10 +337,8 @@ function isGrounded(){
             return 0
         })
         playerModel.position.y += (raycaster.far-0.05) - intersects[0].distance
-        // console.log('ground')
         return true 
     }
-    console.log('fly')
     return false
 }
 function onResize(){
@@ -445,12 +448,21 @@ function checkCollision(){
                 } else {
                     objectPosition = {x: obj.position.x, z: obj.position.z}
                 }
+                console.log()
                 let xDiff = Math.abs(playerModel.position.x - objectPosition.x)
                 let zDiff = Math.abs(playerModel.position.z - objectPosition.z)
                 if (xDiff < zDiff){
-                    playerModel.position.set(playerModel.position.x, playerModel.position.y, playerModel.prevPosition.z)
+                    if (Math.abs(playerModel.position.z - obj.position.z) > Math.abs(playerModel.prevPosition.z - obj.position.z)){
+                        playerModel.position.set(playerModel.position.x, playerModel.position.y, playerModel.position.z)
+                    } else {
+                        playerModel.position.set(playerModel.position.x, playerModel.position.y, playerModel.prevPosition.z)
+                    }
                 } else if (xDiff > zDiff) {
-                    playerModel.position.set(playerModel.prevPosition.x, playerModel.position.y, playerModel.position.z)
+                    if (Math.abs(playerModel.position.x - obj.position.x) > Math.abs(playerModel.prevPosition.x - obj.position.x)){
+                        playerModel.position.set(playerModel.position.x, playerModel.position.y, playerModel.position.z)
+                    } else {
+                        playerModel.position.set(playerModel.prevPosition.x, playerModel.position.y, playerModel.position.z)
+                    }
                 } else {
                     playerModel.position.set(playerModel.prevPosition.x, playerModel.position.y, playerModel.prevPosition.z)
                 }
@@ -509,6 +521,10 @@ function onLanding(){
         isOnLanding = true
         clearInterval(onLandingInterval)
         onLandingInterval = setInterval(() => {
+                if (Math.abs(player.flyHorizontalSpeed.z) + Math.abs(player.flyHorizontalSpeed.x) > player.maxSpeed.horizontal){
+                    player.flyHorizontalSpeed.z = player.flyHorizontalSpeed.z /2
+                    player.flyHorizontalSpeed.x = player.flyHorizontalSpeed.x /2
+                }
                 if (!isGrounded()){
                 checkCollision()
                 playerModel.prevPosition = {
@@ -627,12 +643,42 @@ function onKeyboard(event){
         case 'Space':
             makeJump()
             break;
+        case 'KeyR':
+            makeReload()
+            break;
         }
+    }
+}
+let reloadingTime, isReloading = false
+function makeReload(){
+    if (weapons[randomWeapon].ammo < weapons[randomWeapon].characteristics.ammo && !isReloading){
+        isReloading = true
+        clearInterval(reloadingTime)
+        let rotateToReload = setInterval(() => {
+            if (weapons[randomWeapon].rotationZ > -Math.PI/4){
+                weapons[randomWeapon].rotationZ += -0.05
+            } else {
+                clearInterval(rotateToReload)
+            }
+        }, 5)
+        setTimeout(() => {
+            let rotateBack = setInterval(() => {
+                if (weapons[randomWeapon].rotationZ < 0){
+                    weapons[randomWeapon].rotationZ += 0.05
+                } else {
+                    clearInterval(rotateBack)
+                }
+            }, 5)
+        }, (weapons[randomWeapon].characteristics.reloadTime * 1000) - 500)
+        reloadingTime = setTimeout(() => {
+            weapons[randomWeapon].ammo = weapons[randomWeapon].characteristics.ammo
+            document.getElementById('amountAmmo').innerText = weapons[randomWeapon].ammo
+            isReloading = false
+        }, weapons[randomWeapon].characteristics.reloadTime * 1000)
     }
 }
 let mouseClick = true
 function onMouseClick(event){
-    // console.log(event)
     switch (event.button) {
         case 0:
             mouseClick = true
@@ -652,15 +698,7 @@ function onMouseUp(event){
 }
 let fireShootInterval, fireRate
 function onFireAttack(){
-    // pistol.characteristics = {
-    //     damage: 15,
-    //     fireRate: 0.5,
-    //     reloadTime: 2,
-    //     ammo: 12,
-    //     recoil: 2,
-    //     timeToRestore: 0.2
-    // }
-    if (weapons[randomWeapon].canShoot){
+    if (weapons[randomWeapon].canShoot && !isReloading){
         switch (weapons[randomWeapon].name) {
             case 'sniperRifle':
                 makeShoot()
@@ -728,60 +766,65 @@ function onScope(){
 }
 let timeToRestoreInterval, timeToRestore = 0
 function makeShoot(){
-    clearInterval(timeToRestoreInterval)
-    timeToRestoreInterval = setInterval(() => {
-        if (timeToRestore < weapons[randomWeapon].characteristics.timeToRestore*1000){
-            timeToRestore += 5
-        } else {
-            clearInterval(timeToRestoreInterval)
+    if (weapons[randomWeapon].ammo > 0 && !isReloading){
+        clearInterval(timeToRestoreInterval)
+        timeToRestoreInterval = setInterval(() => {
+            if (timeToRestore < weapons[randomWeapon].characteristics.timeToRestore*1000){
+                timeToRestore += 5
+            } else {
+                clearInterval(timeToRestoreInterval)
+            }
+        }, 5)
+        let recoil = ((weapons[randomWeapon].characteristics.timeToRestore*1000 - timeToRestore) * weapons[randomWeapon].characteristics.recoil) / 250
+        let recoilY = (recoil*8) * (Math.random() + 0.5) * 2
+        let recoilX = recoil * (Math.random() - 0.5) * 5
+        if (bullets.length > 50){
+            scene.remove(bullets[0])
+            bullets.splice(0, 1)
         }
-    }, 5)
-    let recoil = ((weapons[randomWeapon].characteristics.timeToRestore*1000 - timeToRestore) * weapons[randomWeapon].characteristics.recoil) / 250
-    let recoilY = (recoil*8) * (Math.random() + 0.5) * 2
-    let recoilX = recoil * (Math.random() - 0.5) * 5
-    console.log(recoil)
-    if (bullets.length > 50){
-        scene.remove(bullets[0])
-        bullets.splice(0, 1)
+        let bullet = new THREE.Mesh( new THREE.BoxGeometry( 0.1, 0.1, 0.2 ), new THREE.MeshBasicMaterial( {color: '#ff5900'} ) );
+        bullet.position.copy(camera.position)
+        bullet.quaternion.copy(camera.quaternion)
+        bullet.name = "bullet"
+        bullets.push(bullet)
+        scene.add( bullet )
+        const raycaster = new THREE.Raycaster();
+        const pointer = new THREE.Vector2();
+        raycaster.far = 500
+        pointer.x = ( (window.innerWidth/2 + recoilX) / window.innerWidth ) * 2 - 1;
+        pointer.y = - ( ((window.innerHeight)/2  - recoilY) / window.innerHeight ) * 2 + 1;
+        raycaster.setFromCamera( pointer, camera );
+        const intersects = raycaster.intersectObjects( scene.children );
+        let intersetsExpectBullets = intersects.filter(e => e.object.name !== 'bullet' && e.object.name !== 'playermodel' && e.object.name !== 'hitbox' && e.object.name !== 'bbox')
+        let distanceToEndPosition = intersetsExpectBullets[0].distance
+        bullet.endPosition = {
+            x: intersetsExpectBullets[0].point.x,
+            y: intersetsExpectBullets[0].point.y,
+            z: intersetsExpectBullets[0].point.z,
+        }
+        bullet.cameraPosition = {
+            x: camera.rotation.x,
+            y: camera.rotation.y
+        }
+        bullet.position.set(weapons[randomWeapon].position.x + Math.sin(camera.rotation.y) * -2, weapons[randomWeapon].position.y + Math.tan(camera.rotation.x) * 1, weapons[randomWeapon].position.z + Math.cos(Math.PI - camera.rotation.y) * 2)
+        let velocity = 500 / 200
+        let timeToEndPosition = (distanceToEndPosition / velocity) * 5
+        setTimeout(() => {
+            clearInterval(smoothBulletShooting)
+            bullet.position.set(bullet.endPosition.x, bullet.endPosition.y, bullet.endPosition.z)
+        }, timeToEndPosition)
+        let smoothBulletShooting = setInterval(() => {
+            bullet.position.x += Math.sin(bullet.cameraPosition.y + 0.01 - recoilX * 0.001) * -velocity
+            bullet.position.y += Math.tan(bullet.cameraPosition.x + 0.00495 + recoilY * 0.000495) * velocity
+            bullet.position.z += Math.cos(Math.PI - bullet.cameraPosition.y - 0.01 + recoilX * 0.001) * velocity
+        }, 5)
+        weapons[randomWeapon].canShoot = false
+        timeToRestore = 0
+        weapons[randomWeapon].ammo--
+        document.getElementById('amountAmmo').innerText = weapons[randomWeapon].ammo
+    } else {
+        makeReload()
     }
-    let bullet = new THREE.Mesh( new THREE.BoxGeometry( 0.1, 0.1, 0.2 ), new THREE.MeshBasicMaterial( {color: '#ff5900'} ) );
-    bullet.position.copy(camera.position)
-    bullet.quaternion.copy(camera.quaternion)
-    bullet.name = "bullet"
-    bullets.push(bullet)
-    scene.add( bullet )
-    const raycaster = new THREE.Raycaster();
-    const pointer = new THREE.Vector2();
-    raycaster.far = 500
-    pointer.x = ( (window.innerWidth/2 + recoilX) / window.innerWidth ) * 2 - 1;
-    pointer.y = - ( ((window.innerHeight)/2  - recoilY) / window.innerHeight ) * 2 + 1;
-    raycaster.setFromCamera( pointer, camera );
-    const intersects = raycaster.intersectObjects( scene.children );
-    let intersetsExpectBullets = intersects.filter(e => e.object.name !== 'bullet' && e.object.name !== 'playermodel' && e.object.name !== 'hitbox' && e.object.name !== 'bbox')
-    let distanceToEndPosition = intersetsExpectBullets[0].distance
-    bullet.endPosition = {
-        x: intersetsExpectBullets[0].point.x,
-        y: intersetsExpectBullets[0].point.y,
-        z: intersetsExpectBullets[0].point.z,
-    }
-    bullet.cameraPosition = {
-        x: camera.rotation.x,
-        y: camera.rotation.y
-    }
-    bullet.position.set(weapons[randomWeapon].position.x + Math.sin(camera.rotation.y) * -2, weapons[randomWeapon].position.y + Math.tan(camera.rotation.x) * 1, weapons[randomWeapon].position.z + Math.cos(Math.PI - camera.rotation.y) * 2)
-    let velocity = 500 / 200
-    let timeToEndPosition = (distanceToEndPosition / velocity) * 5
-    setTimeout(() => {
-        clearInterval(smoothBulletShooting)
-        bullet.position.set(bullet.endPosition.x, bullet.endPosition.y, bullet.endPosition.z)
-    }, timeToEndPosition)
-    let smoothBulletShooting = setInterval(() => {
-        bullet.position.x += Math.sin(bullet.cameraPosition.y + 0.01 - recoilX * 0.001) * -velocity
-        bullet.position.y += Math.tan(bullet.cameraPosition.x + 0.00495 + recoilY * 0.000495) * velocity
-        bullet.position.z += Math.cos(Math.PI - bullet.cameraPosition.y - 0.01 + recoilX * 0.001) * velocity
-    }, 5)
-    weapons[randomWeapon].canShoot = false
-    timeToRestore = 0
 }
 document.getElementById('onPlay').addEventListener('click', onPlay)
 let randomWeapon = 0
@@ -813,13 +856,14 @@ function onPlay(){
         document.documentElement.webkitRequestFullscreen();
     }
     gravityAttraction()
-    // randomWeapon = Math.floor(Math.random() * 3.9)
-    randomWeapon = 1
+    randomWeapon = Math.floor(Math.random() * 3.9)
     weapons[randomWeapon].visible = true
     document.getElementById('awpScope').style.display = 'none'
     sensitivity *= camera.zoom
     camera.zoom = 1
     camera.updateProjectionMatrix();
+    document.getElementById('amountAmmo').innerText = weapons[randomWeapon].ammo
+    document.getElementById('totalAmmo').innerText = weapons[randomWeapon].characteristics.ammo
 }
 function onMenu(){
     document.getElementById('onPlay').removeEventListener('click', onPlay)
@@ -851,7 +895,7 @@ function onMouseMove( event ){
     euler.x -= movementY / (1 / sensitivity * 1000)
     euler.y -= movementX / (1 / sensitivity * 1000)
 
-    euler.x = Math.max(Math.min(Math.PI/2.5, euler.x), -Math.PI/2.5)
+    euler.x = Math.max(Math.min(Math.PI/2, euler.x), -Math.PI/2)
     camera.quaternion.setFromEuler( euler );
 }
 

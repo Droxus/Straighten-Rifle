@@ -5,6 +5,7 @@ const camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.inner
 const euler = new THREE.Euler( 0, 0, 0, 'YXZ' );
 const vector = new THREE.Vector3();
 
+const defaultSpeed = 0.1
 let sky, sun;
 function initSky() {
     sky = new Sky();
@@ -36,6 +37,11 @@ scene.add(playerModel)
 console.log(playerModel)
 let player = {
     speed: {
+        x: 0,
+        y: 0,
+        z: 0
+    },
+    realSpeed: {
         x: 0,
         y: 0,
         z: 0
@@ -379,8 +385,9 @@ function gravityAttraction(){
         }, 5)
     }
 }
-let smoothlyMove, smoothlyJump
+let smoothlyMove, smoothlyJump, inertiaSpeed = {x: 0, z: 0}
 function playerMove(){
+    clearInterval(inertiaSmothlyMove)
     clearInterval( smoothlyMove )
     smoothlyMove = setInterval(() => {
         if (Math.abs(player.speed.x) + Math.abs(player.speed.z) > player.maxSpeed.horizontal){
@@ -398,28 +405,38 @@ function playerMove(){
                 if (isGrounded()){
                     checkCollision()
                     isOnLanding = false
-                    player.flyHorizontalSpeed.x = player.speed.x
-                    player.flyHorizontalSpeed.z = player.speed.z
+                    player.flyHorizontalSpeed.x = player.realSpeed.x || 0
+                    player.flyHorizontalSpeed.z = player.realSpeed.z || 0
                     playerModel.prevPosition = {
                         x: playerModel.position.x,
                         y: playerModel.position.y,
                         z: playerModel.position.z
                     }
                     if (player.speed.z > 0){
-                        playerModel.position.x += Math.sin(camera.rotation.y) * -player.speed.z
-                        playerModel.position.z += Math.cos(Math.PI - camera.rotation.y) * player.speed.z
+                        player.realSpeed.z = Math.max(Math.min(player.speed.z, player.realSpeed.z + player.speed.z/50), 0)
+                        playerModel.position.x += Math.sin(camera.rotation.y) * -player.realSpeed.z
+                        playerModel.position.z += Math.cos(Math.PI - camera.rotation.y) * player.realSpeed.z
                     }
                     if (player.speed.z < 0){
-                        playerModel.position.x += Math.sin(camera.rotation.y) * -player.speed.z
-                        playerModel.position.z += -Math.cos(camera.rotation.y) * player.speed.z  
+                        player.realSpeed.z = Math.min(Math.max(player.speed.z, player.realSpeed.z + player.speed.z/50), 0)
+                        playerModel.position.x += Math.sin(camera.rotation.y) * -player.realSpeed.z
+                        playerModel.position.z += -Math.cos(camera.rotation.y) * player.realSpeed.z 
                     }
                     if (player.speed.x > 0){
-                        playerModel.position.x += Math.sin(camera.rotation.y + Math.PI / 2) * player.speed.x 
-                        playerModel.position.z += -Math.cos(camera.rotation.y + Math.PI / 2) * -player.speed.x 
+                        player.realSpeed.x = Math.max(Math.min(player.speed.x, player.realSpeed.x + player.speed.x/50), 0)
+                        playerModel.position.x += Math.sin(camera.rotation.y + Math.PI / 2) * player.realSpeed.x 
+                        playerModel.position.z += -Math.cos(camera.rotation.y + Math.PI / 2) * -player.realSpeed.x
                     }
                     if (player.speed.x < 0){
-                        playerModel.position.x += Math.sin(camera.rotation.y - Math.PI / 2) * -player.speed.x 
-                        playerModel.position.z += -Math.cos(camera.rotation.y - Math.PI / 2) * player.speed.x
+                        player.realSpeed.x = Math.min(Math.max(player.speed.x, player.realSpeed.x + player.speed.x/50), 0)
+                        playerModel.position.x += Math.sin(camera.rotation.y - Math.PI / 2) * -player.realSpeed.x 
+                        playerModel.position.z += -Math.cos(camera.rotation.y - Math.PI / 2) * player.realSpeed.x
+                    }
+                    if (player.speed.x !== 0 && player.speed.z == 0){
+                        player.realSpeed.z = 0
+                    }
+                    if (player.speed.z !== 0 && player.speed.x == 0){
+                        player.realSpeed.x = 0
                     }
                 }
                 else {
@@ -428,14 +445,61 @@ function playerMove(){
                 }
             }
         } else {
+            inertiaMove()
             clearInterval( smoothlyMove )
         }
     }, 5)
 }
+let inertiaSmothlyMove
+function inertiaMove(){
+    inertiaSpeed.x = player.maxSpeed.horizontal * player.realSpeed.x / Math.abs(player.realSpeed.x)
+    inertiaSpeed.z = player.maxSpeed.horizontal * player.realSpeed.z / Math.abs(player.realSpeed.z)
+    clearInterval(inertiaSmothlyMove)
+        inertiaSmothlyMove = setInterval(() => {
+            if (isGrounded()){
+                checkCollision()
+                isOnLanding = false
+                player.flyHorizontalSpeed.x = player.realSpeed.x || 0
+                player.flyHorizontalSpeed.z = player.realSpeed.z || 0
+                playerModel.prevPosition = {
+                    x: playerModel.position.x,
+                    y: playerModel.position.y,
+                    z: playerModel.position.z
+                }
+                if ((player.speed.x == 0 && player.speed.x !== player.realSpeed.x) || (player.speed.z == 0 && player.speed.z !== player.realSpeed.z)){
+                    if (inertiaSpeed.x > 0){
+                        player.realSpeed.x = Math.max(0, player.realSpeed.x - inertiaSpeed.x/50)
+                        playerModel.position.x += Math.sin(camera.rotation.y + Math.PI / 2) * player.realSpeed.x 
+                        playerModel.position.z += -Math.cos(camera.rotation.y + Math.PI / 2) * -player.realSpeed.x
+                    }
+                    if (inertiaSpeed.x < 0){
+                        player.realSpeed.x = Math.min(0, player.realSpeed.x - inertiaSpeed.x/50)
+                        playerModel.position.x += Math.sin(camera.rotation.y - Math.PI / 2) * -player.realSpeed.x 
+                        playerModel.position.z += -Math.cos(camera.rotation.y - Math.PI / 2) * player.realSpeed.x
+                    }
+                    if (inertiaSpeed.z > 0){
+                        player.realSpeed.z = Math.max(0, player.realSpeed.z - inertiaSpeed.z/50)
+                        playerModel.position.x += Math.sin(camera.rotation.y) * -player.realSpeed.z
+                        playerModel.position.z += Math.cos(Math.PI - camera.rotation.y) * player.realSpeed.z
+                    }
+                    if (inertiaSpeed.z < 0){
+                        player.realSpeed.z = Math.min(0, player.realSpeed.z - inertiaSpeed.z/50)
+                        playerModel.position.x += Math.sin(camera.rotation.y) * -player.realSpeed.z
+                        playerModel.position.z += -Math.cos(camera.rotation.y) * player.realSpeed.z 
+                    }
+                } else {
+                    clearInterval(inertiaSmothlyMove)
+                }
+            } else {
+                onLanding()
+                gravityAttraction()
+                clearInterval(inertiaSmothlyMove)
+            }
+        })
+}
 function checkCollision(){
         playerModel.userData.obb.copy(playerModel.geometry.userData.obb)
         playerModel.userData.obb.applyMatrix4(playerModel.matrixWorld)
-        let isCollision = false
         for (const obj of collisionResponsiveObjects){
             obj.userData.obb.copy(obj.geometry.userData.obb)
             obj.userData.obb.applyMatrix4(obj.matrixWorld)
@@ -448,7 +512,6 @@ function checkCollision(){
                 } else {
                     objectPosition = {x: obj.position.x, z: obj.position.z}
                 }
-                console.log()
                 let xDiff = Math.abs(playerModel.position.x - objectPosition.x)
                 let zDiff = Math.abs(playerModel.position.z - objectPosition.z)
                 if (xDiff < zDiff){
@@ -466,10 +529,8 @@ function checkCollision(){
                 } else {
                     playerModel.position.set(playerModel.prevPosition.x, playerModel.position.y, playerModel.prevPosition.z)
                 }
-                isCollision = true
             }
         }
-        return isCollision
 }
 let isFuseSpamSpace, jumpHorizontalMoving, velOfJumpIndex
 function makeJump(){
@@ -521,11 +582,11 @@ function onLanding(){
         isOnLanding = true
         clearInterval(onLandingInterval)
         onLandingInterval = setInterval(() => {
-                if (Math.abs(player.flyHorizontalSpeed.z) + Math.abs(player.flyHorizontalSpeed.x) > player.maxSpeed.horizontal){
-                    player.flyHorizontalSpeed.z = player.flyHorizontalSpeed.z /2
-                    player.flyHorizontalSpeed.x = player.flyHorizontalSpeed.x /2
-                }
-                if (!isGrounded()){
+            if (Math.abs(player.flyHorizontalSpeed.z) + Math.abs(player.flyHorizontalSpeed.x) > player.maxSpeed.horizontal){
+                player.flyHorizontalSpeed.z = player.flyHorizontalSpeed.z /2
+                player.flyHorizontalSpeed.x = player.flyHorizontalSpeed.x /2
+            }
+            if (!isGrounded()){
                 checkCollision()
                 playerModel.prevPosition = {
                     x: playerModel.position.x,
@@ -549,6 +610,7 @@ function onLanding(){
                         playerModel.position.z += -Math.cos(camera.rotation.y - Math.PI / 2) * player.flyHorizontalSpeed.x
                 }
             } else {
+                inertiaMove()
                 clearInterval(onLandingInterval)
             }
         }, 5)
@@ -776,6 +838,10 @@ function makeShoot(){
             }
         }, 5)
         let recoil = ((weapons[randomWeapon].characteristics.timeToRestore*1000 - timeToRestore) * weapons[randomWeapon].characteristics.recoil) / 250
+        if (!isGrounded()){
+            recoil += 10
+        }
+        recoil += ((Math.abs(player.realSpeed.x) + Math.abs(player.realSpeed.z)) / defaultSpeed) * 10
         let recoilY = (recoil*8) * (Math.random() + 0.5) * 2
         let recoilX = recoil * (Math.random() - 0.5) * 5
         if (bullets.length > 50){
@@ -795,12 +861,12 @@ function makeShoot(){
         pointer.y = - ( ((window.innerHeight)/2  - recoilY) / window.innerHeight ) * 2 + 1;
         raycaster.setFromCamera( pointer, camera );
         const intersects = raycaster.intersectObjects( scene.children );
-        let intersetsExpectBullets = intersects.filter(e => e.object.name !== 'bullet' && e.object.name !== 'playermodel' && e.object.name !== 'hitbox' && e.object.name !== 'bbox')
-        let distanceToEndPosition = intersetsExpectBullets[0].distance
+        let intersetsFiltered = intersects.filter(e => e.object.name !== 'bullet' && e.object.name !== 'playermodel' && e.object.name !== 'hitbox' && e.object.name !== 'bbox')
+        let distanceToEndPosition = intersetsFiltered[0].distance
         bullet.endPosition = {
-            x: intersetsExpectBullets[0].point.x,
-            y: intersetsExpectBullets[0].point.y,
-            z: intersetsExpectBullets[0].point.z,
+            x: intersetsFiltered[0].point.x,
+            y: intersetsFiltered[0].point.y,
+            z: intersetsFiltered[0].point.z,
         }
         bullet.cameraPosition = {
             x: camera.rotation.x,
@@ -822,6 +888,9 @@ function makeShoot(){
         timeToRestore = 0
         weapons[randomWeapon].ammo--
         document.getElementById('amountAmmo').innerText = weapons[randomWeapon].ammo
+        if (weapons[randomWeapon].ammo < 1 && !isReloading){
+            makeReload()
+        }
     } else {
         makeReload()
     }
@@ -857,6 +926,7 @@ function onPlay(){
     }
     gravityAttraction()
     randomWeapon = Math.floor(Math.random() * 3.9)
+    console.log(randomWeapon)
     weapons[randomWeapon].visible = true
     document.getElementById('awpScope').style.display = 'none'
     sensitivity *= camera.zoom
@@ -961,6 +1031,10 @@ function getAdvancedData(){
         document.getElementById('axis').innerText = 'z'
     } else {
         document.getElementById('axis').innerText = 'x'
+    }
+    if (player){
+        document.getElementById('speedX').innerText = player.realSpeed.x
+        document.getElementById('speedZ').innerText = player.realSpeed.z
     }
 }
 

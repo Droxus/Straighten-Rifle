@@ -1,3 +1,4 @@
+// import * as Bot from './bot.js'
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.1, 1000 );
@@ -5,7 +6,7 @@ const camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.inner
 const euler = new THREE.Euler( 0, 0, 0, 'YXZ' );
 const vector = new THREE.Vector3();
 
-const defaultSpeed = 0.1
+const defaultSpeed = 0.11
 let sky, sun;
 function initSky() {
     sky = new Sky();
@@ -35,6 +36,17 @@ playerModel.geometry.userData.obb = new THREE.OBB().fromBox3(
 playerModel.userData.obb = new THREE.OBB()
 scene.add(playerModel)
 console.log(playerModel)
+const enemyModel = new THREE.Mesh(  new THREE.BoxGeometry( 2, 4, 2 ), new THREE.MeshBasicMaterial( {color: 0x00ff00, visible: true, wireframe: true} ) );
+enemyModel.position.set(0, 2, 0)
+enemyModel.name = "enemyModel"
+enemyModel.geometry.computeBoundingBox()
+enemyModel.geometry.userData.obb = new THREE.OBB().fromBox3(
+    enemyModel.geometry.boundingBox
+)
+enemyModel.userData.obb = new THREE.OBB()
+enemyModel.health = 100
+scene.add(enemyModel)
+console.log(enemyModel)
 let player = {
     speed: {
         x: 0,
@@ -62,12 +74,10 @@ let player = {
     isFlying: false,
     flyMode: false
 }
-let removeBody
 let modelHeight = 3
-let flyMode, speedSide = 0, speedForward = 0, speedForwardmax, vSpeed = 0, loadedAssets = 0, loadedTime = 0
+let loadedAssets = 0, loadedTime = 0
 let sensitivity = 1
-let boxes = [], helpers = [], modelBodies = [], bulletsBody = [], bullets = [], weapons = [], collisionResponsiveObjects = []
-let prevPosition = {}
+let boxes = [], helpers = [], bullets = [], weapons = [], collisionResponsiveObjects = [], spawnEnemyAndPath = [], spawnArea = []
 const loader = new THREE.GLTFLoader();
 let model, sniperRifle, famasRifle, rifle, pistol
    loader.load('aimmap.glb', (glb) =>  {
@@ -80,24 +90,33 @@ let model, sniperRifle, famasRifle, rifle, pistol
             model.castShadow = true
             scene.add(model);
             model.children.forEach(child => {
-                const geometry = new THREE.BoxGeometry( child.scale.x * 2, child.scale.y * 2, child.scale.z * 2 )
-                let hitbox = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial( { color: 'white', wireframe: false, visible: false } ) )
-                hitbox.geometry.computeBoundingBox()
-                hitbox.geometry.userData.obb = new THREE.OBB().fromBox3(
-                    hitbox.geometry.boundingBox
-                )
-                hitbox.userData.obb = new THREE.OBB()
-                hitbox.position.set(child.position.x, child.position.y , child.position.z)
-                hitbox.rotation.set(child.rotation.x, child.rotation.y , child.rotation.z)
-                hitbox.userData.obb.copy(hitbox.geometry.userData.obb)
-                hitbox.name = "hitbox"
-                scene.add(hitbox)
-                collisionResponsiveObjects.push(hitbox)
-                let bbox = new THREE.LineSegments( new THREE.EdgesGeometry( new THREE.BoxGeometry( child.scale.x * 2 + 0.02, child.scale.y * 2 + 0.02, child.scale.z * 2 + 0.02 ) ), new THREE.LineBasicMaterial( { color: '#ff5900' } ) );
-                bbox.position.set(child.position.x, child.position.y , child.position.z)
-                bbox.rotation.set(child.rotation.x, child.rotation.y , child.rotation.z)
-                bbox.name = "bbox"
-                scene.add(bbox);
+                if (child.name.slice(0, 4) !== 'Path' && child.name.slice(0, 10) !== 'SpawnEnemy' && child.name.slice(0, 5) !== 'Spawn'){
+                    const geometry = new THREE.BoxGeometry( child.scale.x * 2, child.scale.y * 2, child.scale.z * 2 )
+                    let hitbox = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial( { color: 'white', wireframe: false, visible: false } ) )
+                    hitbox.geometry.computeBoundingBox()
+                    hitbox.geometry.userData.obb = new THREE.OBB().fromBox3(
+                        hitbox.geometry.boundingBox
+                    )
+                    hitbox.userData.obb = new THREE.OBB()
+                    hitbox.position.set(child.position.x, child.position.y , child.position.z)
+                    hitbox.rotation.set(child.rotation.x, child.rotation.y , child.rotation.z)
+                    hitbox.userData.obb.copy(hitbox.geometry.userData.obb)
+                    hitbox.name = "hitbox"
+                    scene.add(hitbox)
+                    collisionResponsiveObjects.push(hitbox)
+                    let bbox = new THREE.LineSegments( new THREE.EdgesGeometry( new THREE.BoxGeometry( child.scale.x * 2 + 0.02, child.scale.y * 2 + 0.02, child.scale.z * 2 + 0.02 ) ), new THREE.LineBasicMaterial( { color: '#ff5900' } ) );
+                    bbox.position.set(child.position.x, child.position.y , child.position.z)
+                    bbox.rotation.set(child.rotation.x, child.rotation.y , child.rotation.z)
+                    bbox.name = "bbox"
+                    scene.add(bbox);
+                } else {
+                    child.visible = false
+                    if (child.name.slice(0, 4) == 'Path' || child.name.slice(0, 10) == 'SpawnEnemy'){
+                        spawnEnemyAndPath.push(child)
+                    } else {
+                        spawnArea.push(child)
+                    }
+                }
             })
             hideLoader()
         }})        
@@ -334,8 +353,10 @@ function isGrounded(){
         raycaster.set(ray, downDirection)
         intersects.push(raycaster.intersectObjects( scene.children ))
     })
+    // child.name.slice(0, 4) !== 'Path' && child.name.slice(0, 10) !== 'SpawnEnemy'
     intersects = intersects.flat(1)
     intersects = intersects.filter(e => e.distance > raycaster.far * 0.9)
+    intersects = intersects.filter(e => e.object.name.slice(0, 4) !== 'Path' && e.object.name.slice(0, 10) !== 'SpawnEnemy' && e.object.name.slice(0, 5) !== 'Spawn')
     if (intersects[0]){
         intersects.sort((a, b) => {
             if (a.distance > b.distance) return 1
@@ -650,13 +671,13 @@ function offKeyboard(event){
         case 'ControlLeft':
             if (!isFuseSpamCtrl && keys.ControlLeft){
                 isFuseSpamCtrl = true
-                player.maxSpeed.horizontal = 0.1
+                player.maxSpeed.horizontal = defaultSpeed
                 makeDuck(false)
                 isFuseSpamCtrl = false
             }
             break;
         case 'ShiftLeft':
-            player.maxSpeed.horizontal = 0.1
+            player.maxSpeed.horizontal = defaultSpeed
             break;
         case 'F2':
             onAdvancedInfo()
@@ -690,7 +711,7 @@ function onKeyboard(event){
         case 'ControlLeft':
             if (!isCtrlStamina && Math.round(playerModel.geometry.parameters.height) == 4){
                 isCtrlStamina = true
-                player.maxSpeed.horizontal = 0.04
+                player.maxSpeed.horizontal = 0.06
                 makeDuck(true)
                 setTimeout(() => {
                     isCtrlStamina = false
@@ -700,7 +721,7 @@ function onKeyboard(event){
             }
             break;
         case 'ShiftLeft':
-            player.maxSpeed.horizontal = 0.06
+            player.maxSpeed.horizontal = 0.08
             break;
         case 'Space':
             makeJump()
@@ -862,28 +883,30 @@ function makeShoot(){
         raycaster.setFromCamera( pointer, camera );
         const intersects = raycaster.intersectObjects( scene.children );
         let intersetsFiltered = intersects.filter(e => e.object.name !== 'bullet' && e.object.name !== 'playermodel' && e.object.name !== 'hitbox' && e.object.name !== 'bbox')
-        let distanceToEndPosition = intersetsFiltered[0].distance
-        bullet.endPosition = {
-            x: intersetsFiltered[0].point.x,
-            y: intersetsFiltered[0].point.y,
-            z: intersetsFiltered[0].point.z,
+        if (intersetsFiltered[0]){
+            let distanceToEndPosition = intersetsFiltered[0].distance
+            bullet.endPosition = {
+                x: intersetsFiltered[0].point.x,
+                y: intersetsFiltered[0].point.y,
+                z: intersetsFiltered[0].point.z,
+            }
+            bullet.cameraPosition = {
+                x: camera.rotation.x,
+                y: camera.rotation.y
+            }
+            bullet.position.set(weapons[randomWeapon].position.x + Math.sin(camera.rotation.y) * -2, weapons[randomWeapon].position.y + Math.tan(camera.rotation.x) * 1, weapons[randomWeapon].position.z + Math.cos(Math.PI - camera.rotation.y) * 2)
+            let velocity = 500 / 200
+            let timeToEndPosition = (distanceToEndPosition / velocity) * 5
+            setTimeout(() => {
+                clearInterval(smoothBulletShooting)
+                bullet.position.set(bullet.endPosition.x, bullet.endPosition.y, bullet.endPosition.z)
+            }, timeToEndPosition)
+            let smoothBulletShooting = setInterval(() => {
+                bullet.position.x += Math.sin(bullet.cameraPosition.y + 0.01 - recoilX * 0.001) * -velocity
+                bullet.position.y += Math.tan(bullet.cameraPosition.x + 0.00495 + recoilY * 0.000495) * velocity
+                bullet.position.z += Math.cos(Math.PI - bullet.cameraPosition.y - 0.01 + recoilX * 0.001) * velocity
+            }, 5)
         }
-        bullet.cameraPosition = {
-            x: camera.rotation.x,
-            y: camera.rotation.y
-        }
-        bullet.position.set(weapons[randomWeapon].position.x + Math.sin(camera.rotation.y) * -2, weapons[randomWeapon].position.y + Math.tan(camera.rotation.x) * 1, weapons[randomWeapon].position.z + Math.cos(Math.PI - camera.rotation.y) * 2)
-        let velocity = 500 / 200
-        let timeToEndPosition = (distanceToEndPosition / velocity) * 5
-        setTimeout(() => {
-            clearInterval(smoothBulletShooting)
-            bullet.position.set(bullet.endPosition.x, bullet.endPosition.y, bullet.endPosition.z)
-        }, timeToEndPosition)
-        let smoothBulletShooting = setInterval(() => {
-            bullet.position.x += Math.sin(bullet.cameraPosition.y + 0.01 - recoilX * 0.001) * -velocity
-            bullet.position.y += Math.tan(bullet.cameraPosition.x + 0.00495 + recoilY * 0.000495) * velocity
-            bullet.position.z += Math.cos(Math.PI - bullet.cameraPosition.y - 0.01 + recoilX * 0.001) * velocity
-        }, 5)
         weapons[randomWeapon].canShoot = false
         timeToRestore = 0
         weapons[randomWeapon].ammo--
@@ -900,12 +923,11 @@ let randomWeapon = 0
 function onPlay(){
     document.getElementById('menuBg').style.display = 'none'
     player.flyMode = document.getElementById('playOrDevChoose').checked
-    if (flyMode){
+    if (player.flyMode){
         player.maxSpeed.horizontal = 0.2
     } else {
-        player.maxSpeed.horizontal = 0.1
+        player.maxSpeed.horizontal = 0.12
     }
-    speedSide = 0, speedForward = 0, speedSide = 0, speedForwardmax = 0
     document.querySelector('canvas').requestPointerLock = document.querySelector('canvas').requestPointerLock ||
     document.querySelector('canvas').mozRequestPointerLock ||
     document.querySelector('canvas').webkitRequestPointerLock;
@@ -925,8 +947,8 @@ function onPlay(){
         document.documentElement.webkitRequestFullscreen();
     }
     gravityAttraction()
-    randomWeapon = Math.floor(Math.random() * 3.9)
-    console.log(randomWeapon)
+    randomWeapon = Math.floor(Math.random() * 4)
+    // console.log(randomWeapon)
     weapons[randomWeapon].visible = true
     document.getElementById('awpScope').style.display = 'none'
     sensitivity *= camera.zoom
@@ -934,6 +956,7 @@ function onPlay(){
     camera.updateProjectionMatrix();
     document.getElementById('amountAmmo').innerText = weapons[randomWeapon].ammo
     document.getElementById('totalAmmo').innerText = weapons[randomWeapon].characteristics.ammo
+    spawnModels()
 }
 function onMenu(){
     document.getElementById('onPlay').removeEventListener('click', onPlay)
@@ -957,7 +980,18 @@ function onMenu(){
     }
     weapons.forEach(e => {e.visible = false; e.position.set(0, 40, 0)})
 }
-
+function spawnModels(){
+    let randomSpawnIndex = Math.floor(Math.random() * 4)
+    let randomSpawn = spawnEnemyAndPath.filter(e => e.name.slice(0, 10) == 'SpawnEnemy')[randomSpawnIndex]
+    let randomPositionX = randomSpawn.position.x + randomSpawn.scale.x * (Math.random()-0.5) * 2
+    let randomPositionZ = randomSpawn.position.z + randomSpawn.scale.z * (Math.random()-0.5) * 2
+    enemyModel.position.set(randomPositionX, randomSpawn.position.y + 1.95, randomPositionZ)
+    randomSpawnIndex = Math.floor(Math.random() * 4)
+    randomSpawn = spawnArea[randomSpawnIndex]
+    randomPositionX = randomSpawn.position.x + randomSpawn.scale.x * (Math.random()-0.5) * 2
+    randomPositionZ = randomSpawn.position.z + randomSpawn.scale.z * (Math.random()-0.5) * 2
+    playerModel.position.set(randomPositionX, randomSpawn.position.y + 1.95, randomPositionZ)
+}
 function onMouseMove( event ){
     const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
 	const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;

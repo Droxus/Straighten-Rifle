@@ -110,7 +110,7 @@ let model, sniperRifle, famasRifle, rifle, pistol
                     bbox.name = "bbox"
                     scene.add(bbox);
                 } else {
-                    child.visible = false
+                    // child.visible = false
                     if (child.name.slice(0, 4) == 'Path' || child.name.slice(0, 10) == 'SpawnEnemy'){
                         spawnEnemyAndPath.push(child)
                     } else {
@@ -412,8 +412,8 @@ function playerMove(){
     clearInterval( smoothlyMove )
     smoothlyMove = setInterval(() => {
         if (Math.abs(player.speed.x) + Math.abs(player.speed.z) > player.maxSpeed.horizontal){
-            player.speed.x = Math.abs(player.speed.x) > player.maxSpeed.horizontal / 2 ? player.speed.x / 2 : player.speed.x
-            player.speed.z = Math.abs(player.speed.z) > player.maxSpeed.horizontal / 2 ? player.speed.z / 2 : player.speed.z
+            player.speed.x = Math.abs(player.speed.x) > player.maxSpeed.horizontal / 1.5 ? player.speed.x / 1.5 : player.speed.x
+            player.speed.z = Math.abs(player.speed.z) > player.maxSpeed.horizontal / 1.5 ? player.speed.z / 1.5 : player.speed.z
         } else {
             player.speed.x = Math.abs(player.speed.x) > 0 ? player.maxSpeed.horizontal * (player.speed.x / Math.abs(player.speed.x)) : player.speed.x
             player.speed.z = Math.abs(player.speed.z) > 0 ? player.maxSpeed.horizontal * (player.speed.z / Math.abs(player.speed.z)) : player.speed.z
@@ -589,7 +589,7 @@ function makeDuck(front){
         smoothDucking = setInterval(() => {
             if (playerModel.scale.y < 1){
                 playerModel.scale.y += 1/50
-                playerModel.position.y += playerModel.geometry.parameters.depth / 50
+                    playerModel.position.y += playerModel.geometry.parameters.depth / 50
             } else {
                 playerModel.scale.y = 1
                 clearInterval(smoothDucking)
@@ -957,6 +957,7 @@ function onPlay(){
     document.getElementById('amountAmmo').innerText = weapons[randomWeapon].ammo
     document.getElementById('totalAmmo').innerText = weapons[randomWeapon].characteristics.ammo
     spawnModels()
+    botLifeCycle()
 }
 function onMenu(){
     document.getElementById('onPlay').removeEventListener('click', onPlay)
@@ -985,12 +986,21 @@ function spawnModels(){
     let randomSpawn = spawnEnemyAndPath.filter(e => e.name.slice(0, 10) == 'SpawnEnemy')[randomSpawnIndex]
     let randomPositionX = randomSpawn.position.x + randomSpawn.scale.x * (Math.random()-0.5) * 2
     let randomPositionZ = randomSpawn.position.z + randomSpawn.scale.z * (Math.random()-0.5) * 2
-    enemyModel.position.set(randomPositionX, randomSpawn.position.y + 1.95, randomPositionZ)
+    enemyModel.position.set(randomPositionX, randomSpawn.position.y + 2, randomPositionZ)
     randomSpawnIndex = Math.floor(Math.random() * 4)
     randomSpawn = spawnArea[randomSpawnIndex]
     randomPositionX = randomSpawn.position.x + randomSpawn.scale.x * (Math.random()-0.5) * 2
     randomPositionZ = randomSpawn.position.z + randomSpawn.scale.z * (Math.random()-0.5) * 2
-    playerModel.position.set(randomPositionX, randomSpawn.position.y + 1.95, randomPositionZ)
+    playerModel.position.set(randomPositionX, randomSpawn.position.y + 2, randomPositionZ)
+}
+function botLifeCycle(){
+    const raycaster = new THREE.Raycaster();
+    raycaster.far = 400
+    let yDirection = Math.atan(Math.tan(enemyModel.position.x - playerModel.position.x) / (enemyModel.position.z - playerModel.position.z))
+    console.log(yDirection)
+    raycaster.set( enemyModel.position, new THREE.Vector3() );
+    const intersects = raycaster.intersectObjects( scene.children );
+    console.log(intersects)
 }
 function onMouseMove( event ){
     const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;

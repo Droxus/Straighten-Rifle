@@ -353,9 +353,8 @@ function isGrounded(){
         raycaster.set(ray, downDirection)
         intersects.push(raycaster.intersectObjects( scene.children ))
     })
-    // child.name.slice(0, 4) !== 'Path' && child.name.slice(0, 10) !== 'SpawnEnemy'
     intersects = intersects.flat(1)
-    intersects = intersects.filter(e => e.distance > raycaster.far * 0.9)
+    intersects = intersects.filter(e => e.distance > raycaster.far * 0.85)
     intersects = intersects.filter(e => e.object.name.slice(0, 4) !== 'Path' && e.object.name.slice(0, 10) !== 'SpawnEnemy' && e.object.name.slice(0, 5) !== 'Spawn')
     if (intersects[0]){
         intersects.sort((a, b) => {
@@ -957,7 +956,7 @@ function onPlay(){
     document.getElementById('amountAmmo').innerText = weapons[randomWeapon].ammo
     document.getElementById('totalAmmo').innerText = weapons[randomWeapon].characteristics.ammo
     spawnModels()
-    botLifeCycle()
+    // botLifeCycle()
 }
 function onMenu(){
     document.getElementById('onPlay').removeEventListener('click', onPlay)
@@ -993,15 +992,18 @@ function spawnModels(){
     randomPositionZ = randomSpawn.position.z + randomSpawn.scale.z * (Math.random()-0.5) * 2
     playerModel.position.set(randomPositionX, randomSpawn.position.y + 2, randomPositionZ)
 }
-function botLifeCycle(){
-    const raycaster = new THREE.Raycaster();
-    raycaster.far = 400
-    let yDirection = Math.atan(Math.tan(enemyModel.position.x - playerModel.position.x) / (enemyModel.position.z - playerModel.position.z))
-    console.log(yDirection)
-    raycaster.set( enemyModel.position, new THREE.Vector3() );
-    const intersects = raycaster.intersectObjects( scene.children );
-    console.log(intersects)
-}
+// function botLifeCycle(){
+//     const raycaster = new THREE.Raycaster();
+//     raycaster.far = 400
+//     let yDirection = Math.tan(enemyModel.position.x - playerModel.position.x) / (enemyModel.position.z - playerModel.position.z)
+//     console.log(yDirection)
+//     raycaster.set( enemyModel.position, new THREE.Vector3() );
+//     const intersects = raycaster.intersectObjects( scene.children );
+//     console.log(intersects)
+//     const line3 = new THREE.Line3( playerModel.position, enemyModel.position )
+//     const line = new THREE.Line( new THREE.BufferGeometry().setFromPoints( [playerModel.position, enemyModel.position] ), new THREE.LineBasicMaterial( { color: 0x0000ff } ) );
+//     scene.add( line );
+// }
 function onMouseMove( event ){
     const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
 	const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;

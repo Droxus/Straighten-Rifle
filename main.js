@@ -26,7 +26,7 @@ function initSky() {
 
 	sky.material.uniforms[ 'sunPosition' ].value.copy( sun );
 }
-const playerModel = new THREE.Mesh(  new THREE.BoxGeometry( 2, 4, 2 ), new THREE.MeshBasicMaterial( {color: 0x00ff00, visible: false} ) );
+const playerModel = new THREE.Mesh(  new THREE.BoxGeometry( 2, 4, 2 ), new THREE.MeshBasicMaterial( {color: 0x00ff00, visible: true} ) );
 playerModel.position.set(0, 2, 0)
 playerModel.name = "playermodel"
 playerModel.geometry.computeBoundingBox()
@@ -38,7 +38,7 @@ scene.add(playerModel)
 console.log(playerModel)
 const enemyModel = new THREE.Mesh(  new THREE.BoxGeometry( 2, 4, 2 ), new THREE.MeshBasicMaterial( {color: 0x00ff00, visible: true, wireframe: true} ) );
 enemyModel.position.set(0, 2, 0)
-enemyModel.name = "enemyModel"
+enemyModel.name = "enemymodel"
 enemyModel.geometry.computeBoundingBox()
 enemyModel.geometry.userData.obb = new THREE.OBB().fromBox3(
     enemyModel.geometry.boundingBox
@@ -956,7 +956,7 @@ function onPlay(){
     document.getElementById('amountAmmo').innerText = weapons[randomWeapon].ammo
     document.getElementById('totalAmmo').innerText = weapons[randomWeapon].characteristics.ammo
     spawnModels()
-    // botLifeCycle()
+    botLifeCycle()
 }
 function onMenu(){
     document.getElementById('onPlay').removeEventListener('click', onPlay)
@@ -991,19 +991,37 @@ function spawnModels(){
     randomPositionX = randomSpawn.position.x + randomSpawn.scale.x * (Math.random()-0.5) * 2
     randomPositionZ = randomSpawn.position.z + randomSpawn.scale.z * (Math.random()-0.5) * 2
     playerModel.position.set(randomPositionX, randomSpawn.position.y + 2, randomPositionZ)
+    playerModel.updateMatrixWorld()
+    enemyModel.updateMatrixWorld()
 }
-// function botLifeCycle(){
-//     const raycaster = new THREE.Raycaster();
-//     raycaster.far = 400
-//     let yDirection = Math.tan(enemyModel.position.x - playerModel.position.x) / (enemyModel.position.z - playerModel.position.z)
-//     console.log(yDirection)
-//     raycaster.set( enemyModel.position, new THREE.Vector3() );
-//     const intersects = raycaster.intersectObjects( scene.children );
-//     console.log(intersects)
-//     const line3 = new THREE.Line3( playerModel.position, enemyModel.position )
-//     const line = new THREE.Line( new THREE.BufferGeometry().setFromPoints( [playerModel.position, enemyModel.position] ), new THREE.LineBasicMaterial( { color: 0x0000ff } ) );
-//     scene.add( line );
+function checkBotVisionContact(){
+    const raycaster = new THREE.Raycaster();
+    raycaster.far = 400
+    let direction = new THREE.Vector3(playerModel.position.x - enemyModel.position.x, playerModel.position.y - enemyModel.position.y, playerModel.position.z - enemyModel.position.z)
+    direction.normalize()
+    raycaster.set( new THREE.Vector3(enemyModel.position.x, enemyModel.position.y+2, enemyModel.position.z), direction );
+    let intersects = raycaster.intersectObjects( scene.children )
+    intersects = intersects.filter(e => e.object.name !== 'enemymodel')
+    intersects = intersects[0].object.name == 'playermodel' ? [intersects[0]] : []
+    if (intersects[0]) return true
+    return false
+}
+// let botTargetPosition, pathToAnyBotZone = ['SpawnEnemy.002', 'SpawnEnemy.001', 'Path.003', 'SpawnEnemy', 'Path.002', 'Path.001', 'Path', 'Path.004', 'SpawnEnemy.006']
+// function makeBotMove(){
+//     let randomSpawnIndex = Math.floor(Math.random() * 9)
+//     let randomSpawn = spawnEnemyAndPath[randomSpawnIndex]
+//     let randomPositionX = randomSpawn.position.x + randomSpawn.scale.x * (Math.random()-0.5) * 2
+//     let randomPositionZ = randomSpawn.position.z + randomSpawn.scale.z * (Math.random()-0.5) * 2
+//     botTargetPosition = new THREE.Vector3(randomPositionX, randomSpawn.position.y + 2, randomPositionZ)
+//     console.log(botTargetPosition)
 // }
+function botLifeCycle(){
+    if (checkBotVisionContact()){
+        console.log('SHOOOT')
+    } else {
+        // makeBotMove()
+    }
+}
 function onMouseMove( event ){
     const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
 	const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;

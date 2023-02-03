@@ -335,20 +335,20 @@ function animate() {
 };
 window.addEventListener('resize', onResize)
 document.oncontextmenu = document.body.oncontextmenu = function() {return false;}
-function isGrounded(){
+function isGrounded(model){
     let downDirection = new THREE.Vector3(0, -1, 0);
     let raycasterPositions = [], intersects = []
-    raycasterPositions.push(new THREE.Vector3( playerModel.position.x + playerModel.geometry.parameters.depth/2, playerModel.position.y, playerModel.position.z + playerModel.geometry.parameters.width/2 ))
-    raycasterPositions.push(new THREE.Vector3( playerModel.position.x - playerModel.geometry.parameters.depth/2, playerModel.position.y, playerModel.position.z - playerModel.geometry.parameters.width/2 ))
-    raycasterPositions.push(new THREE.Vector3( playerModel.position.x + playerModel.geometry.parameters.depth/2, playerModel.position.y, playerModel.position.z - playerModel.geometry.parameters.width/2 ))
-    raycasterPositions.push(new THREE.Vector3( playerModel.position.x - playerModel.geometry.parameters.depth/2, playerModel.position.y, playerModel.position.z + playerModel.geometry.parameters.width/2 ))
-    raycasterPositions.push(new THREE.Vector3( playerModel.position.x + playerModel.geometry.parameters.depth/2, playerModel.position.y, playerModel.position.z ))
-    raycasterPositions.push(new THREE.Vector3( playerModel.position.x - playerModel.geometry.parameters.depth/2, playerModel.position.y, playerModel.position.z ))
-    raycasterPositions.push(new THREE.Vector3( playerModel.position.x, playerModel.position.y, playerModel.position.z + playerModel.geometry.parameters.width/2 ))
-    raycasterPositions.push(new THREE.Vector3( playerModel.position.x, playerModel.position.y, playerModel.position.z - playerModel.geometry.parameters.width/2 ))
-    raycasterPositions.push(new THREE.Vector3( playerModel.position.x, playerModel.position.y, playerModel.position.z ))
+    raycasterPositions.push(new THREE.Vector3( model.position.x + model.geometry.parameters.depth/2, model.position.y, model.position.z + model.geometry.parameters.width/2 ))
+    raycasterPositions.push(new THREE.Vector3( model.position.x - model.geometry.parameters.depth/2, model.position.y, model.position.z - model.geometry.parameters.width/2 ))
+    raycasterPositions.push(new THREE.Vector3( model.position.x + model.geometry.parameters.depth/2, model.position.y, model.position.z - model.geometry.parameters.width/2 ))
+    raycasterPositions.push(new THREE.Vector3( model.position.x - model.geometry.parameters.depth/2, model.position.y, model.position.z + model.geometry.parameters.width/2 ))
+    raycasterPositions.push(new THREE.Vector3( model.position.x + model.geometry.parameters.depth/2, model.position.y, model.position.z ))
+    raycasterPositions.push(new THREE.Vector3( model.position.x - model.geometry.parameters.depth/2, model.position.y, model.position.z ))
+    raycasterPositions.push(new THREE.Vector3( model.position.x, model.position.y, model.position.z + model.geometry.parameters.width/2 ))
+    raycasterPositions.push(new THREE.Vector3( model.position.x, model.position.y, model.position.z - model.geometry.parameters.width/2 ))
+    raycasterPositions.push(new THREE.Vector3( model.position.x, model.position.y, model.position.z ))
     const raycaster = new THREE.Raycaster();
-    raycaster.far = playerModel.geometry.parameters.height/2 * playerModel.scale.y + 0.1
+    raycaster.far = model.geometry.parameters.height/2 * model.scale.y + 0.1
     raycasterPositions.forEach(ray => {
         raycaster.set(ray, downDirection)
         intersects.push(raycaster.intersectObjects( scene.children ))
@@ -362,7 +362,7 @@ function isGrounded(){
             if (a.distance < b.distance) return -1
             return 0
         })
-        playerModel.position.y += (raycaster.far-0.05) - intersects[0].distance
+        model.position.y += (raycaster.far-0.05) - intersects[0].distance
         return true 
     }
     return false
@@ -390,12 +390,12 @@ let keys = {
 }
 let smoothGravityAttraction, velOfGravityAttractionIndex, isGravityAttractioning
 function gravityAttraction(){
-    if (!isGrounded() && !isFuseSpamSpace && !isGravityAttractioning){
+    if (!isGrounded(playerModel) && !isFuseSpamSpace && !isGravityAttractioning){
         clearInterval(smoothGravityAttraction)
         isGravityAttractioning = true
         velOfGravityAttractionIndex = 0
         smoothGravityAttraction = setInterval(() => {
-            if (!isGrounded()){
+            if (!isGrounded(playerModel)){
                 ++velOfGravityAttractionIndex
                 playerModel.position.y -= 0.002 * velOfGravityAttractionIndex
             } else {
@@ -422,7 +422,7 @@ function playerMove(){
                 camera.translateZ( -player.speed.z * 20 )
                 camera.translateX( player.speed.x * 20 )
             } else {
-                if (isGrounded()){
+                if (isGrounded(playerModel)){
                     checkCollision()
                     isOnLanding = false
                     player.flyHorizontalSpeed.x = player.realSpeed.x || 0
@@ -476,7 +476,7 @@ function inertiaMove(){
     inertiaSpeed.z = player.maxSpeed.horizontal * player.realSpeed.z / Math.abs(player.realSpeed.z)
     clearInterval(inertiaSmothlyMove)
         inertiaSmothlyMove = setInterval(() => {
-            if (isGrounded()){
+            if (isGrounded(playerModel)){
                 checkCollision()
                 isOnLanding = false
                 player.flyHorizontalSpeed.x = player.realSpeed.x || 0
@@ -554,7 +554,7 @@ function checkCollision(){
 }
 let isFuseSpamSpace, jumpHorizontalMoving, velOfJumpIndex
 function makeJump(){
-    if (isGrounded() && !isFuseSpamSpace){
+    if (isGrounded(playerModel) && !isFuseSpamSpace){
         isFuseSpamSpace = true
         onLanding()
         velOfJumpIndex = 60
@@ -606,7 +606,7 @@ function onLanding(){
                 player.flyHorizontalSpeed.z = player.flyHorizontalSpeed.z /2
                 player.flyHorizontalSpeed.x = player.flyHorizontalSpeed.x /2
             }
-            if (!isGrounded()){
+            if (!isGrounded(playerModel)){
                 checkCollision()
                 playerModel.prevPosition = {
                     x: playerModel.position.x,
@@ -858,7 +858,7 @@ function makeShoot(){
             }
         }, 5)
         let recoil = ((weapons[randomWeapon].characteristics.timeToRestore*1000 - timeToRestore) * weapons[randomWeapon].characteristics.recoil) / 250
-        if (!isGrounded()){
+        if (!isGrounded(playerModel)){
             recoil += 10
         }
         recoil += ((Math.abs(player.realSpeed.x) + Math.abs(player.realSpeed.z)) / defaultSpeed) * 10
@@ -986,6 +986,7 @@ function spawnModels(){
     let randomPositionX = randomSpawn.position.x + randomSpawn.scale.x * (Math.random()-0.5) * 2
     let randomPositionZ = randomSpawn.position.z + randomSpawn.scale.z * (Math.random()-0.5) * 2
     enemyModel.position.set(randomPositionX, randomSpawn.position.y + 2, randomPositionZ)
+    enemyModel.zoneName = randomSpawn.name
     randomSpawnIndex = Math.floor(Math.random() * 4)
     randomSpawn = spawnArea[randomSpawnIndex]
     randomPositionX = randomSpawn.position.x + randomSpawn.scale.x * (Math.random()-0.5) * 2
@@ -1006,20 +1007,51 @@ function checkBotVisionContact(){
     if (intersects[0]) return true
     return false
 }
-// let botTargetPosition, pathToAnyBotZone = ['SpawnEnemy.002', 'SpawnEnemy.001', 'Path.003', 'SpawnEnemy', 'Path.002', 'Path.001', 'Path', 'Path.004', 'SpawnEnemy.006']
-// function makeBotMove(){
-//     let randomSpawnIndex = Math.floor(Math.random() * 9)
-//     let randomSpawn = spawnEnemyAndPath[randomSpawnIndex]
-//     let randomPositionX = randomSpawn.position.x + randomSpawn.scale.x * (Math.random()-0.5) * 2
-//     let randomPositionZ = randomSpawn.position.z + randomSpawn.scale.z * (Math.random()-0.5) * 2
-//     botTargetPosition = new THREE.Vector3(randomPositionX, randomSpawn.position.y + 2, randomPositionZ)
-//     console.log(botTargetPosition)
-// }
+let botTargetPosition, pathToAnyBotZone = ['SpawnEnemy002', 'SpawnEnemy001', 'Path003', 'SpawnEnemy', 'Path002', 'Path001', 'Path', 'Path004', 'SpawnEnemy006']
+function generateBotTargetPosition(){
+    let currentZonePositionIndex = pathToAnyBotZone.findIndex(e => e == enemyModel.zoneName)
+    let randomTargetPositionIndex = Math.round(Math.random()-0.5) * 3 + currentZonePositionIndex
+    let randomTargetPosition = pathToAnyBotZone[Math.max(Math.min(randomTargetPositionIndex, pathToAnyBotZone.length-1), 0)]
+    randomTargetPosition = spawnEnemyAndPath.find(e => e.name == randomTargetPosition) 
+    let randomPositionX = randomTargetPosition.position.x + randomTargetPosition.scale.x * (Math.random()-0.5) * 2
+    let randomPositionZ = randomTargetPosition.position.z + randomTargetPosition.scale.z * (Math.random()-0.5) * 2
+    return botTargetPosition = new THREE.Vector3(randomPositionX, randomTargetPosition.position.y + 2, randomPositionZ)
+}
+function checkZoneOfBotPosition(){
+    for (let i = 0; i < spawnEnemyAndPath.length; i++){
+        if (spawnEnemyAndPath[i].position.x + spawnEnemyAndPath[i].scale.x > enemyModel.position.x && spawnEnemyAndPath[i].position.x - spawnEnemyAndPath[i].scale.x < enemyModel.position.x
+        && spawnEnemyAndPath[i].position.z + spawnEnemyAndPath[i].scale.z > enemyModel.position.z && spawnEnemyAndPath[i].position.z - spawnEnemyAndPath[i].scale.z < enemyModel.position.z){
+            enemyModel.zoneName = spawnEnemyAndPath[i].name
+            break
+        }
+    }
+}
+let botMakeSmoothlyMove
+function botMakeMove(targetPosition){
+    console.log(targetPosition)
+    let distance = Math.sqrt(Math.pow(targetPosition.x - enemyModel.position.x, 2) + Math.pow(targetPosition.z - enemyModel.position.z, 2))
+    let time = distance / defaultSpeed
+    let botSpeedX = (targetPosition.x - enemyModel.position.x) / time
+    let botSpeedZ = (targetPosition.z - enemyModel.position.z) / time
+    console.log('speedX ' + botSpeedX, 'speedZ ' + botSpeedZ)
+    console.log('distanceX ' + (targetPosition.x - enemyModel.position.x), 'distanceZ ' + (targetPosition.z - enemyModel.position.z))
+    clearInterval(botMakeSmoothlyMove)
+    botMakeSmoothlyMove = setInterval(() => {
+        isGrounded(enemyModel)
+        if (Math.floor(enemyModel.position.x) !== Math.floor(targetPosition.x) && Math.floor(enemyModel.position.z) !== Math.floor(targetPosition.z)){
+            enemyModel.position.x += botSpeedX
+            enemyModel.position.z += botSpeedZ
+        } else {
+            checkZoneOfBotPosition()
+            clearInterval(botMakeSmoothlyMove)
+        }
+    }, 5)
+}
 function botLifeCycle(){
     if (checkBotVisionContact()){
         console.log('SHOOOT')
     } else {
-        // makeBotMove()
+        botMakeMove(generateBotTargetPosition())
     }
 }
 function onMouseMove( event ){

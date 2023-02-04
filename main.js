@@ -6,6 +6,7 @@ const camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.inner
 const euler = new THREE.Euler( 0, 0, 0, 'YXZ' );
 const vector = new THREE.Vector3();
 
+let botDifficult = 1
 const defaultSpeed = 0.11
 let sky, sun;
 function initSky() {
@@ -26,7 +27,7 @@ function initSky() {
 
 	sky.material.uniforms[ 'sunPosition' ].value.copy( sun );
 }
-const playerModel = new THREE.Mesh(  new THREE.BoxGeometry( 2, 4, 2 ), new THREE.MeshBasicMaterial( {color: 0x00ff00, visible: true} ) );
+const playerModel = new THREE.Mesh(  new THREE.BoxGeometry( 2, 4, 2 ), new THREE.MeshBasicMaterial( {color: 0x00ff00, visible: false} ) );
 playerModel.position.set(0, 2, 0)
 playerModel.name = "playermodel"
 playerModel.geometry.computeBoundingBox()
@@ -35,8 +36,11 @@ playerModel.geometry.userData.obb = new THREE.OBB().fromBox3(
 )
 playerModel.userData.obb = new THREE.OBB()
 scene.add(playerModel)
-console.log(playerModel)
-const enemyModel = new THREE.Mesh(  new THREE.BoxGeometry( 2, 4, 2 ), new THREE.MeshBasicMaterial( {color: 0x00ff00, visible: true, wireframe: true} ) );
+// console.log(playerModel)
+const modelForBotTarget = new THREE.Mesh(  new THREE.BoxGeometry( 2, 2, 2 ), new THREE.MeshBasicMaterial( {color: 0x00ff00, visible: false} ) );
+modelForBotTarget.name = 'modelForBotTarget'
+scene.add(modelForBotTarget)
+const enemyModel = new THREE.Mesh(  new THREE.BoxGeometry( 2, 4, 2 ), new THREE.MeshBasicMaterial( {color: 'aqua', visible: true, wireframe: true} ) );
 enemyModel.position.set(0, 2, 0)
 enemyModel.name = "enemymodel"
 enemyModel.geometry.computeBoundingBox()
@@ -46,7 +50,7 @@ enemyModel.geometry.userData.obb = new THREE.OBB().fromBox3(
 enemyModel.userData.obb = new THREE.OBB()
 enemyModel.health = 100
 scene.add(enemyModel)
-console.log(enemyModel)
+// console.log(enemyModel)
 let player = {
     speed: {
         x: 0,
@@ -77,12 +81,12 @@ let player = {
 let modelHeight = 3
 let loadedAssets = 0, loadedTime = 0
 let sensitivity = 1
-let boxes = [], helpers = [], bullets = [], weapons = [], collisionResponsiveObjects = [], spawnEnemyAndPath = [], spawnArea = []
+let boxes = [], helpers = [], bullets = [], weapons = [], enemyWeapons = [], collisionResponsiveObjects = [], spawnEnemyAndPath = [], spawnArea = []
 const loader = new THREE.GLTFLoader();
 let model, sniperRifle, famasRifle, rifle, pistol
    loader.load('aimmap.glb', (glb) =>  {
         if (glb){
-            console.log(glb.scene)
+            // console.log(glb.scene)
             model = glb.scene
             model.scale.set(1, 1, 1)
             model.position.set(0, 0, 0)
@@ -110,7 +114,7 @@ let model, sniperRifle, famasRifle, rifle, pistol
                     bbox.name = "bbox"
                     scene.add(bbox);
                 } else {
-                    // child.visible = false
+                    child.visible = false
                     if (child.name.slice(0, 4) == 'Path' || child.name.slice(0, 10) == 'SpawnEnemy'){
                         spawnEnemyAndPath.push(child)
                     } else {
@@ -319,6 +323,8 @@ function animate() {
         camera.position.x = playerModel.position.x
         camera.position.y = playerModel.position.y + playerModel.geometry.parameters.height/2 * playerModel.scale.y
         camera.position.z = playerModel.position.z
+        modelForBotTarget.position.copy(playerModel.position)
+        modelForBotTarget.position.y += playerModel.geometry.parameters.height
     }
     if (loadedAssets > 4){
         weapons[randomWeapon].position.x = camera.position.x - Math.sin(camera.rotation.y - weapons[randomWeapon].rotationCameraX) * weapons[randomWeapon].rotationCameraKefX
@@ -881,7 +887,7 @@ function makeShoot(){
         pointer.y = - ( ((window.innerHeight)/2  - recoilY) / window.innerHeight ) * 2 + 1;
         raycaster.setFromCamera( pointer, camera );
         const intersects = raycaster.intersectObjects( scene.children );
-        let intersetsFiltered = intersects.filter(e => e.object.name !== 'bullet' && e.object.name !== 'playermodel' && e.object.name !== 'hitbox' && e.object.name !== 'bbox')
+        let intersetsFiltered = intersects.filter(e => e.object.name !== 'bullet' && e.object.name !== 'playermodel' && e.object.name !== 'hitbox' && e.object.name !== 'bbox' && e.object.name !== 'modelForBotTarget' && e.object.name !== 'enemymodel')
         if (intersetsFiltered[0]){
             let distanceToEndPosition = intersetsFiltered[0].distance
             bullet.endPosition = {
@@ -893,17 +899,26 @@ function makeShoot(){
                 x: camera.rotation.x,
                 y: camera.rotation.y
             }
-            bullet.position.set(weapons[randomWeapon].position.x + Math.sin(camera.rotation.y) * -2, weapons[randomWeapon].position.y + Math.tan(camera.rotation.x) * 1, weapons[randomWeapon].position.z + Math.cos(Math.PI - camera.rotation.y) * 2)
             let velocity = 500 / 200
-            let timeToEndPosition = (distanceToEndPosition / velocity) * 5
-            setTimeout(() => {
-                clearInterval(smoothBulletShooting)
-                bullet.position.set(bullet.endPosition.x, bullet.endPosition.y, bullet.endPosition.z)
-            }, timeToEndPosition)
+            let time = distanceToEndPosition / velocity
+            let bulletSpeedX = (bullet.endPosition.x - weapons[randomWeapon].position.x + Math.sin(camera.rotation.y) * -2) / time
+            let bulletSpeedY = (bullet.endPosition.y - weapons[randomWeapon].position.y + Math.tan(camera.rotation.x) * 1) / time
+            let bulletSpeedZ = (bullet.endPosition.z - weapons[randomWeapon].position.z + Math.cos(Math.PI - camera.rotation.y) * 2) / time
+            bullet.position.set(weapons[randomWeapon].position.x + Math.sin(camera.rotation.y) * -2, weapons[randomWeapon].position.y + Math.tan(camera.rotation.x) * 1, weapons[randomWeapon].position.z + Math.cos(Math.PI - camera.rotation.y) * 2)
             let smoothBulletShooting = setInterval(() => {
-                bullet.position.x += Math.sin(bullet.cameraPosition.y + 0.01 - recoilX * 0.001) * -velocity
-                bullet.position.y += Math.tan(bullet.cameraPosition.x + 0.00495 + recoilY * 0.000495) * velocity
-                bullet.position.z += Math.cos(Math.PI - bullet.cameraPosition.y - 0.01 + recoilX * 0.001) * velocity
+            let distanceBtwBulletAndPlayer = Math.sqrt(Math.pow(bullet.position.x - enemyModel.position.x, 2) + Math.pow(bullet.position.z - enemyModel.position.z, 2) + Math.pow(bullet.position.y - enemyModel.position.y, 2))
+            let distanceBtwBulletAndEndPos = Math.sqrt(Math.pow(bullet.position.x - bullet.endPosition.x, 2) + Math.pow(bullet.position.z - bullet.endPosition.z, 2) + Math.pow(bullet.position.y - bullet.endPosition.y, 2))
+            if (distanceBtwBulletAndPlayer > velocity/Math.sqrt(2) && distanceBtwBulletAndEndPos > velocity/Math.sqrt(2) && Math.abs(bullet.position.x) < 300 && Math.abs(bullet.position.z) < 300 && Math.abs(bullet.position.y) < 20) {
+                    bullet.position.x += bulletSpeedX
+                    bullet.position.y += bulletSpeedY
+                    bullet.position.z += bulletSpeedZ
+                } else {
+                    if (distanceBtwBulletAndPlayer < velocity/Math.sqrt(2)){
+                        console.log('ENEMY HIT')
+                    }
+                    bullet.position.set(bullet.endPosition.x, bullet.endPosition.y, bullet.endPosition.z)
+                    clearInterval(smoothBulletShooting)
+                }
             }, 5)
         }
         weapons[randomWeapon].canShoot = false
@@ -916,6 +931,9 @@ function makeShoot(){
     } else {
         makeReload()
     }
+}
+function isIntersectTwoObjects(a, b){
+    
 }
 document.getElementById('onPlay').addEventListener('click', onPlay)
 let randomWeapon = 0
@@ -996,21 +1014,40 @@ function spawnModels(){
     enemyModel.updateMatrixWorld()
 }
 function checkBotVisionContact(){
+    let intersects = [], direction
     const raycaster = new THREE.Raycaster();
     raycaster.far = 400
-    let direction = new THREE.Vector3(playerModel.position.x - enemyModel.position.x, playerModel.position.y - enemyModel.position.y, playerModel.position.z - enemyModel.position.z)
+    direction = new THREE.Vector3((playerModel.position.x + playerModel.geometry.parameters.width/2) - enemyModel.position.x, playerModel.position.y - enemyModel.position.y, (playerModel.position.z + playerModel.geometry.parameters.depth/2) - enemyModel.position.z)
     direction.normalize()
-    raycaster.set( new THREE.Vector3(enemyModel.position.x, enemyModel.position.y+2, enemyModel.position.z), direction );
-    let intersects = raycaster.intersectObjects( scene.children )
+    raycaster.set( new THREE.Vector3(enemyModel.position.x, enemyModel.position.y+3, enemyModel.position.z), direction );
+    intersects.push(raycaster.intersectObjects( scene.children ))
+    direction = new THREE.Vector3((playerModel.position.x + playerModel.geometry.parameters.width/2) - enemyModel.position.x, playerModel.position.y - enemyModel.position.y, (playerModel.position.z - playerModel.geometry.parameters.depth/2) - enemyModel.position.z)
+    direction.normalize()
+    raycaster.set( new THREE.Vector3(enemyModel.position.x, enemyModel.position.y+3, enemyModel.position.z), direction );
+    intersects.push(raycaster.intersectObjects( scene.children ))
+    direction = new THREE.Vector3((playerModel.position.x - playerModel.geometry.parameters.width/2) - enemyModel.position.x, playerModel.position.y - enemyModel.position.y, (playerModel.position.z + playerModel.geometry.parameters.depth/2) - enemyModel.position.z)
+    direction.normalize()
+    raycaster.set( new THREE.Vector3(enemyModel.position.x, enemyModel.position.y+3, enemyModel.position.z), direction );
+    intersects.push(raycaster.intersectObjects( scene.children ))
+    direction = new THREE.Vector3((playerModel.position.x - playerModel.geometry.parameters.width/2) - enemyModel.position.x, playerModel.position.y - enemyModel.position.y, (playerModel.position.z - playerModel.geometry.parameters.depth/2) - enemyModel.position.z)
+    direction.normalize()
+    raycaster.set( new THREE.Vector3(enemyModel.position.x, enemyModel.position.y+3, enemyModel.position.z), direction );
+    intersects.push(raycaster.intersectObjects( scene.children ))
+    intersects = intersects.flat(1)
+    intersects.sort((a, b) => {
+        if (a.distance > b.distance) return 1
+        if (a.distance < b.distance) return -1
+        return 0
+    })
     intersects = intersects.filter(e => e.object.name !== 'enemymodel')
-    intersects = intersects[0].object.name == 'playermodel' ? [intersects[0]] : []
+    intersects = intersects[0].object.name == 'playermodel' || intersects[0].object.name == 'modelForBotTarget' ? [intersects[0]] : []
     if (intersects[0]) return true
     return false
 }
 let botTargetPosition, pathToAnyBotZone = ['SpawnEnemy002', 'SpawnEnemy001', 'Path003', 'SpawnEnemy', 'Path002', 'Path001', 'Path', 'Path004', 'SpawnEnemy006']
 function generateBotTargetPosition(){
     let currentZonePositionIndex = pathToAnyBotZone.findIndex(e => e == enemyModel.zoneName)
-    let randomTargetPositionIndex = Math.round(Math.random()-0.5) * 3 + currentZonePositionIndex
+    let randomTargetPositionIndex = Math.round((Math.random()-0.5) * 3) + currentZonePositionIndex
     let randomTargetPosition = pathToAnyBotZone[Math.max(Math.min(randomTargetPositionIndex, pathToAnyBotZone.length-1), 0)]
     randomTargetPosition = spawnEnemyAndPath.find(e => e.name == randomTargetPosition) 
     let randomPositionX = randomTargetPosition.position.x + randomTargetPosition.scale.x * (Math.random()-0.5) * 2
@@ -1026,33 +1063,90 @@ function checkZoneOfBotPosition(){
         }
     }
 }
-let botMakeSmoothlyMove
+let botMakeSmoothlyMove, smoothBotGravityAttraction, BotGravityAttraction
 function botMakeMove(targetPosition){
-    console.log(targetPosition)
     let distance = Math.sqrt(Math.pow(targetPosition.x - enemyModel.position.x, 2) + Math.pow(targetPosition.z - enemyModel.position.z, 2))
-    let time = distance / defaultSpeed
+    let time = distance / (defaultSpeed/1.5)
     let botSpeedX = (targetPosition.x - enemyModel.position.x) / time
     let botSpeedZ = (targetPosition.z - enemyModel.position.z) / time
-    console.log('speedX ' + botSpeedX, 'speedZ ' + botSpeedZ)
-    console.log('distanceX ' + (targetPosition.x - enemyModel.position.x), 'distanceZ ' + (targetPosition.z - enemyModel.position.z))
     clearInterval(botMakeSmoothlyMove)
     botMakeSmoothlyMove = setInterval(() => {
-        isGrounded(enemyModel)
-        if (Math.floor(enemyModel.position.x) !== Math.floor(targetPosition.x) && Math.floor(enemyModel.position.z) !== Math.floor(targetPosition.z)){
+        if (!isGrounded(enemyModel) && !BotGravityAttraction){
+            BotGravityAttraction = true
+            let velOfBotGravityAttractionIndex = 0
+            smoothBotGravityAttraction = setInterval(() => {
+                if (!isGrounded(enemyModel)){
+                    ++velOfBotGravityAttractionIndex
+                    enemyModel.position.y -= 0.002 * velOfBotGravityAttractionIndex
+                } else {
+                    BotGravityAttraction = false
+                    clearInterval(smoothBotGravityAttraction)
+                }
+            }, 5)
+        }
+        if (!checkBotVisionContact() && Math.floor(enemyModel.position.x) !== Math.floor(targetPosition.x) && Math.floor(enemyModel.position.z) !== Math.floor(targetPosition.z)){
             enemyModel.position.x += botSpeedX
             enemyModel.position.z += botSpeedZ
         } else {
-            checkZoneOfBotPosition()
+            botLifeCycle()
             clearInterval(botMakeSmoothlyMove)
         }
     }, 5)
 }
+function makeBotShoot(){
+    console.log('SHOOT')
+        if (bullets.length > 50){
+            scene.remove(bullets[0])
+            bullets.splice(0, 1)
+        }
+        let bullet = new THREE.Mesh( new THREE.BoxGeometry( 0.1, 0.1, 0.2 ), new THREE.MeshBasicMaterial( {color: '#ff5900'} ) );
+        bullet.position.copy(enemyModel.position)
+        bullet.name = "bullet"
+        bullets.push(bullet)
+        scene.add( bullet )
+        bullet.position.set(enemyModel.position.x, enemyModel.position.y+2, enemyModel.position.z)
+        let velocity = 500 / 200
+        let distance = Math.sqrt(Math.pow(playerModel.position.x - enemyModel.position.x, 2) + Math.pow(playerModel.position.z - enemyModel.position.z, 2) + Math.pow(playerModel.position.y - enemyModel.position.y, 2))
+        let time = distance / velocity
+        bullet.endPosition = {
+            x: playerModel.position.x,
+            y: playerModel.position.y,
+            z: playerModel.position.z
+        }
+        bullet.startPosition = {
+            x: enemyModel.position.x,
+            y: enemyModel.position.y+2,
+            z: enemyModel.position.z
+        }
+        let bulletSpeedX = (playerModel.position.x - enemyModel.position.x) / time
+        let bulletSpeedZ = (playerModel.position.z - enemyModel.position.z) / time
+        let bulletSpeedY = (playerModel.position.y - enemyModel.position.y) / time
+        let bulletMakeSmoothlyMove = setInterval(() => {
+            let distanceBtwBulletAndPlayer = Math.sqrt(Math.pow(bullet.position.x - playerModel.position.x, 2) + Math.pow(bullet.position.z - playerModel.position.z, 2) + Math.pow(bullet.position.y - playerModel.position.y, 2))
+            if (distanceBtwBulletAndPlayer > velocity && Math.abs(bullet.position.x) < 300 && Math.abs(bullet.position.z) < 300 && Math.abs(bullet.position.y) < 20) {
+                bullet.position.x += bulletSpeedX
+                bullet.position.y += bulletSpeedY
+                bullet.position.z += bulletSpeedZ
+            } else {
+                if (distanceBtwBulletAndPlayer < velocity){
+                    console.log('PLAYERMODEL HIT')
+                }
+                scene.remove(bullet)
+                clearInterval(bulletMakeSmoothlyMove)
+            }
+        }, 5)
+        botLifeCycle()
+}
 function botLifeCycle(){
-    if (checkBotVisionContact()){
-        console.log('SHOOOT')
-    } else {
-        botMakeMove(generateBotTargetPosition())
-    }
+    setTimeout(() => {
+        checkZoneOfBotPosition()
+        if (checkBotVisionContact()){
+            let direction = new THREE.Vector3(playerModel.position.x - enemyModel.position.x, playerModel.position.y - enemyModel.position.y, playerModel.position.z - enemyModel.position.z)
+            makeBotShoot(direction)
+        } else {
+            botMakeMove(generateBotTargetPosition())
+        }
+    }, 2100 / botDifficult)
 }
 function onMouseMove( event ){
     const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;

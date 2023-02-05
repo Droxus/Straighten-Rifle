@@ -84,7 +84,7 @@ let sensitivity = 1
 let boxes = [], helpers = [], bullets = [], weapons = [], enemyWeapons = [], collisionResponsiveObjects = [], spawnEnemyAndPath = [], spawnArea = []
 const loader = new THREE.GLTFLoader();
 let model, sniperRifle, famasRifle, rifle, pistol
-   loader.load('aimmap.glb', (glb) =>  {
+   loader.load('models/aimmap.glb', (glb) =>  {
         if (glb){
             // console.log(glb.scene)
             model = glb.scene
@@ -124,7 +124,7 @@ let model, sniperRifle, famasRifle, rifle, pistol
             })
             hideLoader()
         }})        
-        loader.load('bobs_sniper-rifle.glb', (glb) =>  {
+        loader.load('models/bobs_sniper-rifle.glb', (glb) =>  {
             if (glb){
                 sniperRifle = glb.scene
                 scene.add(sniperRifle)
@@ -152,7 +152,7 @@ let model, sniperRifle, famasRifle, rifle, pistol
                 hideLoader()
             }
         })
-        loader.load('famas/scene.glb', (glb) =>  {
+        loader.load('models/famas/scene.glb', (glb) =>  {
             if (glb){
                 famasRifle = glb.scene
                 scene.add(famasRifle)
@@ -181,7 +181,7 @@ let model, sniperRifle, famasRifle, rifle, pistol
                 hideLoader()
             }
         })
-        loader.load('m4/scene.glb', (glb) =>  {
+        loader.load('models/m4/scene.glb', (glb) =>  {
             if (glb){
                 rifle = glb.scene
                 scene.add(rifle)
@@ -210,7 +210,7 @@ let model, sniperRifle, famasRifle, rifle, pistol
                 hideLoader()
             }
         })
-        loader.load('pistol/scene.glb', (glb) =>  {
+        loader.load('models/pistol/scene.glb', (glb) =>  {
             if (glb){
                 pistol = glb.scene
                 scene.add(pistol)
@@ -403,7 +403,11 @@ function gravityAttraction(){
         smoothGravityAttraction = setInterval(() => {
             if (!isGrounded(playerModel)){
                 ++velOfGravityAttractionIndex
-                playerModel.position.y -= 0.002 * velOfGravityAttractionIndex
+                if (playerModel.scale.y > 0.5 && playerModel.scale.y < 1){
+                    playerModel.position.y -= 0.002 * velOfGravityAttractionIndex - playerModel.geometry.parameters.depth / 75 
+                } else {
+                    playerModel.position.y -= 0.002 * velOfGravityAttractionIndex
+                }
             } else {
                 isGravityAttractioning = false
                 clearInterval(smoothGravityAttraction)
@@ -571,12 +575,17 @@ function makeJump(){
         }, 240)
         smoothlyJump = setInterval(() => {
             --velOfJumpIndex
-            playerModel.position.y += 0.002 * velOfJumpIndex
+            // if (playerModel.scale.y > 0.5 && playerModel.scale.y < 1){
+                // playerModel.position.y += 0.002 * velOfJumpIndex + playerModel.geometry.parameters.depth / 50
+            // } else {
+                playerModel.position.y += 0.002 * velOfJumpIndex
+            // }
         }, 5)
     }
 }
 let smoothDucking
 function makeDuck(front){
+    console.log(isFuseSpamCtrl)
     if (front){
         clearInterval(smoothDucking)
         smoothDucking = setInterval(() => {
@@ -594,7 +603,7 @@ function makeDuck(front){
         smoothDucking = setInterval(() => {
             if (playerModel.scale.y < 1){
                 playerModel.scale.y += 1/50
-                    playerModel.position.y += playerModel.geometry.parameters.depth / 50
+                playerModel.position.y += playerModel.geometry.parameters.depth / 50
             } else {
                 playerModel.scale.y = 1
                 clearInterval(smoothDucking)
@@ -963,7 +972,6 @@ function onPlay(){
     } else if (document.documentElement.webkitRequestFullscreen) {
         document.documentElement.webkitRequestFullscreen();
     }
-    gravityAttraction()
     randomWeapon = Math.floor(Math.random() * 4)
     // console.log(randomWeapon)
     weapons[randomWeapon].visible = true
@@ -973,6 +981,7 @@ function onPlay(){
     camera.updateProjectionMatrix();
     document.getElementById('amountAmmo').innerText = weapons[randomWeapon].ammo
     document.getElementById('totalAmmo').innerText = weapons[randomWeapon].characteristics.ammo
+    timeToRestore = weapons[randomWeapon].characteristics.timeToRestore*1000
     spawnModels()
     botLifeCycle()
 }
@@ -1010,6 +1019,8 @@ function spawnModels(){
     randomPositionX = randomSpawn.position.x + randomSpawn.scale.x * (Math.random()-0.5) * 2
     randomPositionZ = randomSpawn.position.z + randomSpawn.scale.z * (Math.random()-0.5) * 2
     playerModel.position.set(randomPositionX, randomSpawn.position.y + 2, randomPositionZ)
+    gravityAttraction(playerModel)
+    gravityAttraction(enemyModel)
     playerModel.updateMatrixWorld()
     enemyModel.updateMatrixWorld()
 }

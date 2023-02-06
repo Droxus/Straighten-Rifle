@@ -12,9 +12,11 @@
         <div id="menu">
             <div>
                 <label>Your Code</label>
-                <input type="text" id="yourCode"><br>
+                <input type="text" id="yourCode">
+                <button id="ShowCodeBtn">Copy</button><br>
                 <label>Enemy Code</label>
                 <input type="text" id="enemyCode">
+                <button id="ConnectBtn">Connect</button>
             </div>
             <button id="onPlay" draggable="false">click to play</button>
             <div id="gameOrDevChooseBlock">
@@ -32,6 +34,7 @@
             </div>
         </div>
     </div>
+    <div id="nextRoundTransitionBlock"></div>
     <div id="advancedInfoBlock">
         <label>x</label>
         <label id="xCords">0</label>
@@ -78,5 +81,6 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/UnrealBloomPass.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stats.js/16/Stats.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <script type="module" src="main.js"></script>
 </body>

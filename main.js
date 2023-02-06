@@ -1,10 +1,12 @@
-// import * as Bot from './bot.js'
-
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.1, 1000 );
 
 const euler = new THREE.Euler( 0, 0, 0, 'YXZ' );
 const vector = new THREE.Vector3();
+
+const peer = new Peer();
+
+let onlineMode, scoreboard = {player: 0, enemy: 0}
 
 let botDifficult = 1
 const defaultSpeed = 0.11
@@ -35,6 +37,7 @@ playerModel.geometry.userData.obb = new THREE.OBB().fromBox3(
     playerModel.geometry.boundingBox
 )
 playerModel.userData.obb = new THREE.OBB()
+playerModel.healthPoints = 100
 scene.add(playerModel)
 // console.log(playerModel)
 const modelForBotTarget = new THREE.Mesh(  new THREE.BoxGeometry( 2, 2, 2 ), new THREE.MeshBasicMaterial( {color: 0x00ff00, visible: false} ) );
@@ -48,7 +51,7 @@ enemyModel.geometry.userData.obb = new THREE.OBB().fromBox3(
     enemyModel.geometry.boundingBox
 )
 enemyModel.userData.obb = new THREE.OBB()
-enemyModel.health = 100
+enemyModel.healthPoints = 100
 scene.add(enemyModel)
 // console.log(enemyModel)
 let player = {
@@ -369,6 +372,9 @@ function isGrounded(model){
             return 0
         })
         model.position.y += (raycaster.far-0.05) - intersects[0].distance
+        if (onlineMode && model.name == 'playermodel'){
+            connection.send({position: {y: playerModel.position.y,  x: playerModel.position.x, z: playerModel.position.z}});
+        }
         return true 
     }
     return false
@@ -411,6 +417,9 @@ function gravityAttraction(){
             } else {
                 isGravityAttractioning = false
                 clearInterval(smoothGravityAttraction)
+            }
+            if (onlineMode){
+                connection.send({position: {y: playerModel.position.y,  x: playerModel.position.x, z: playerModel.position.z}});
             }
         }, 5)
     }
@@ -574,18 +583,16 @@ function makeJump(){
             gravityAttraction()
         }, 240)
         smoothlyJump = setInterval(() => {
+            if (onlineMode){
+                connection.send({position: {y: playerModel.position.y,  x: playerModel.position.x, z: playerModel.position.z}});
+            }
             --velOfJumpIndex
-            // if (playerModel.scale.y > 0.5 && playerModel.scale.y < 1){
-                // playerModel.position.y += 0.002 * velOfJumpIndex + playerModel.geometry.parameters.depth / 50
-            // } else {
-                playerModel.position.y += 0.002 * velOfJumpIndex
-            // }
+            playerModel.position.y += 0.002 * velOfJumpIndex
         }, 5)
     }
 }
 let smoothDucking
 function makeDuck(front){
-    console.log(isFuseSpamCtrl)
     if (front){
         clearInterval(smoothDucking)
         smoothDucking = setInterval(() => {
@@ -595,6 +602,9 @@ function makeDuck(front){
             } else {
                 playerModel.scale.y = 0.5
                 clearInterval(smoothDucking)
+            }
+            if (onlineMode){
+                connection.send({position: {y: playerModel.position.y,  x: playerModel.position.x, z: playerModel.position.z}, scale: {y: playerModel.scale.y}});
             }
         }, 5)
 
@@ -607,6 +617,9 @@ function makeDuck(front){
             } else {
                 playerModel.scale.y = 1
                 clearInterval(smoothDucking)
+            }
+            if (onlineMode){
+                connection.send({position: {y: playerModel.position.y,  x: playerModel.position.x, z: playerModel.position.z}, scale: {y: playerModel.scale.y}});
             }
         }, 5)
     }
@@ -908,6 +921,10 @@ function makeShoot(){
                 x: camera.rotation.x,
                 y: camera.rotation.y
             }
+            if (onlineMode){
+                connection.send({bullet: {startPosition: {x: weapons[randomWeapon].position.x + Math.sin(camera.rotation.y) * -2, y: weapons[randomWeapon].position.y + Math.tan(camera.rotation.x) * 1,
+                    z: weapons[randomWeapon].position.z + Math.cos(Math.PI - camera.rotation.y) * 2}, endPosition: { x: intersetsFiltered[0].point.x, y: intersetsFiltered[0].point.y, z: intersetsFiltered[0].point.z }}});
+            }
             let velocity = 500 / 200
             let time = distanceToEndPosition / velocity
             let bulletSpeedX = (bullet.endPosition.x - weapons[randomWeapon].position.x + Math.sin(camera.rotation.y) * -2) / time
@@ -923,7 +940,11 @@ function makeShoot(){
                     bullet.position.z += bulletSpeedZ
                 } else {
                     if (distanceBtwBulletAndPlayer < velocity/Math.sqrt(2)){
-                        console.log('ENEMY HIT')
+                        if (onlineMode){
+                            connection.send({hit: true});
+                        }
+                        enemyModel.healthPoints -= weapons[randomWeapon].characteristics.damage
+                        checkIfNextRound()
                     }
                     bullet.position.set(bullet.endPosition.x, bullet.endPosition.y, bullet.endPosition.z)
                     clearInterval(smoothBulletShooting)
@@ -940,9 +961,6 @@ function makeShoot(){
     } else {
         makeReload()
     }
-}
-function isIntersectTwoObjects(a, b){
-    
 }
 document.getElementById('onPlay').addEventListener('click', onPlay)
 let randomWeapon = 0
@@ -973,19 +991,69 @@ function onPlay(){
         document.documentElement.webkitRequestFullscreen();
     }
     randomWeapon = Math.floor(Math.random() * 4)
-    // console.log(randomWeapon)
-    weapons[randomWeapon].visible = true
-    document.getElementById('awpScope').style.display = 'none'
-    sensitivity *= camera.zoom
-    camera.zoom = 1
-    camera.updateProjectionMatrix();
-    document.getElementById('amountAmmo').innerText = weapons[randomWeapon].ammo
-    document.getElementById('totalAmmo').innerText = weapons[randomWeapon].characteristics.ammo
-    timeToRestore = weapons[randomWeapon].characteristics.timeToRestore*1000
-    spawnModels()
-    botLifeCycle()
+    onNextRound()
+}
+function checkIfNextRound(){
+    if (enemyModel.healthPoints < 1){
+        scoreboard.player++
+        randomWeapon = Math.floor(Math.random() * 4)
+        if (onlineMode){
+            connection.send({weapon: weapons[randomWeapon].name, score: scoreboard});
+        }
+        onNextRound()
+    }
+    if (playerModel.healthPoints < 1){
+        scoreboard.enemy++
+        randomWeapon = Math.floor(Math.random() * 4)
+        if (onlineMode){
+            connection.send({weapon: weapons[randomWeapon].name, score: scoreboard});
+        }
+        onNextRound()
+    }
+}
+let onNextRoundTimeOut
+function onNextRound(){
+    nextRoundTransition()
+    clearTimeout(onNextRoundTimeOut)
+    onNextRoundTimeOut = setTimeout(() => {
+        nextRoundTransitionHide()
+        weapons.forEach(e => e.visible = false)
+        weapons[randomWeapon].visible = true
+        document.getElementById('awpScope').style.display = 'none'
+        sensitivity *= camera.zoom
+        camera.zoom = 1
+        camera.updateProjectionMatrix();
+        document.getElementById('amountAmmo').innerText = weapons[randomWeapon].ammo
+        document.getElementById('totalAmmo').innerText = weapons[randomWeapon].characteristics.ammo
+        timeToRestore = weapons[randomWeapon].characteristics.timeToRestore*1000
+        playerModel.healthPoints = 100
+        enemyModel.healthPoints = 100
+        spawnModels()
+        if (!onlineMode){
+            botLifeCycle()
+        }
+    }, 3000)
+}
+function nextRoundTransition(){
+    document.getElementById('nextRoundTransitionBlock').style.display = 'block'
+    window.removeEventListener('mousemove', onMouseMove)
+    window.removeEventListener('keydown', onKeyboard)
+    window.removeEventListener('keyup', offKeyboard)
+    window.removeEventListener('mousedown', onMouseClick)
+    window.removeEventListener('mouseup', onMouseUp)
+    clearInterval(inertiaSmothlyMove)
+    clearInterval( smoothlyMove )
+}
+function nextRoundTransitionHide(){
+    document.getElementById('nextRoundTransitionBlock').style.display = 'none'
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('keydown', onKeyboard)
+    window.addEventListener('keyup', offKeyboard)
+    window.addEventListener('mousedown', onMouseClick)
+    window.addEventListener('mouseup', onMouseUp)
 }
 function onMenu(){
+    clearTimeout(onNextRoundTimeOut)
     document.getElementById('onPlay').removeEventListener('click', onPlay)
     document.getElementById('menuBg').style.display = 'grid'
     window.removeEventListener('mousemove', onMouseMove)
@@ -1006,21 +1074,26 @@ function onMenu(){
         Space: false
     }
     weapons.forEach(e => {e.visible = false; e.position.set(0, 40, 0)})
+    enemyModel.visible = false
+    playerModel.healthPoints = 100
+    enemyModel.healthPoints = 100
 }
 function spawnModels(){
     let randomSpawnIndex = Math.floor(Math.random() * 4)
-    let randomSpawn = spawnEnemyAndPath.filter(e => e.name.slice(0, 10) == 'SpawnEnemy')[randomSpawnIndex]
+    let randomSpawn = spawnArea[randomSpawnIndex]
     let randomPositionX = randomSpawn.position.x + randomSpawn.scale.x * (Math.random()-0.5) * 2
     let randomPositionZ = randomSpawn.position.z + randomSpawn.scale.z * (Math.random()-0.5) * 2
-    enemyModel.position.set(randomPositionX, randomSpawn.position.y + 2, randomPositionZ)
-    enemyModel.zoneName = randomSpawn.name
-    randomSpawnIndex = Math.floor(Math.random() * 4)
-    randomSpawn = spawnArea[randomSpawnIndex]
-    randomPositionX = randomSpawn.position.x + randomSpawn.scale.x * (Math.random()-0.5) * 2
-    randomPositionZ = randomSpawn.position.z + randomSpawn.scale.z * (Math.random()-0.5) * 2
     playerModel.position.set(randomPositionX, randomSpawn.position.y + 2, randomPositionZ)
-    gravityAttraction(playerModel)
-    gravityAttraction(enemyModel)
+    if (!onlineMode){
+        randomSpawnIndex = Math.floor(Math.random() * 4)
+        randomSpawn = spawnEnemyAndPath.filter(e => e.name.slice(0, 10) == 'SpawnEnemy')[randomSpawnIndex]
+        randomPositionX = randomSpawn.position.x + randomSpawn.scale.x * (Math.random()-0.5) * 2
+        randomPositionZ = randomSpawn.position.z + randomSpawn.scale.z * (Math.random()-0.5) * 2
+        enemyModel.position.set(randomPositionX, randomSpawn.position.y + 2, randomPositionZ)
+        enemyModel.zoneName = randomSpawn.name
+        enemyModel.visible = true
+    }
+    gravityAttraction()
     playerModel.updateMatrixWorld()
     enemyModel.updateMatrixWorld()
 }
@@ -1082,6 +1155,7 @@ function botMakeMove(targetPosition){
     let botSpeedZ = (targetPosition.z - enemyModel.position.z) / time
     clearInterval(botMakeSmoothlyMove)
     botMakeSmoothlyMove = setInterval(() => {
+        if (!onlineMode){
         if (!isGrounded(enemyModel) && !BotGravityAttraction){
             BotGravityAttraction = true
             let velOfBotGravityAttractionIndex = 0
@@ -1102,10 +1176,10 @@ function botMakeMove(targetPosition){
             botLifeCycle()
             clearInterval(botMakeSmoothlyMove)
         }
+    }
     }, 5)
 }
 function makeBotShoot(){
-    console.log('SHOOT')
         if (bullets.length > 50){
             scene.remove(bullets[0])
             bullets.splice(0, 1)
@@ -1140,24 +1214,66 @@ function makeBotShoot(){
                 bullet.position.z += bulletSpeedZ
             } else {
                 if (distanceBtwBulletAndPlayer < velocity){
-                    console.log('PLAYERMODEL HIT')
+                    if (!onlineMode){
+                        playerModel.healthPoints -= weapons[randomWeapon].characteristics.damage
+                        checkIfNextRound()
+                    }
+                    scene.remove(bullet)
+                } else {
+                    bullet.position.set(bullet.endPosition.x, bullet.endPosition.y, bullet.endPosition.z)
                 }
-                scene.remove(bullet)
                 clearInterval(bulletMakeSmoothlyMove)
             }
         }, 5)
         botLifeCycle()
 }
-function botLifeCycle(){
-    setTimeout(() => {
-        checkZoneOfBotPosition()
-        if (checkBotVisionContact()){
-            let direction = new THREE.Vector3(playerModel.position.x - enemyModel.position.x, playerModel.position.y - enemyModel.position.y, playerModel.position.z - enemyModel.position.z)
-            makeBotShoot(direction)
-        } else {
-            botMakeMove(generateBotTargetPosition())
+function makeEnemyShoot(startPosition, endPosition){
+        if (bullets.length > 50){
+            scene.remove(bullets[0])
+            bullets.splice(0, 1)
         }
-    }, 2100 / botDifficult)
+        let bullet = new THREE.Mesh( new THREE.BoxGeometry( 0.1, 0.1, 0.2 ), new THREE.MeshBasicMaterial( {color: '#ff5900'} ) );
+        bullet.position.set(startPosition.x, startPosition.y, startPosition.z)
+        bullet.name = "bullet"
+        bullets.push(bullet)
+        scene.add( bullet )
+        bullet.position.set(enemyModel.position.x, enemyModel.position.y+2, enemyModel.position.z)
+        let velocity = 500 / 200
+        let distance = Math.sqrt(Math.pow(startPosition.x - endPosition.x, 2) + Math.pow(startPosition.z - endPosition.z, 2) + Math.pow(startPosition.y - endPosition.y, 2))
+        let time = distance / velocity
+        bullet.endPosition = endPosition
+        bullet.startPosition = startPosition
+        let bulletSpeedX = (endPosition.x - startPosition.x) / time
+        let bulletSpeedZ = (endPosition.z - startPosition.z) / time
+        let bulletSpeedY = (endPosition.y - startPosition.y) / time
+        let bulletMakeSmoothlyMove = setInterval(() => {
+            let distanceBtwBulletAndPlayer = Math.sqrt(Math.pow(bullet.position.x - playerModel.position.x, 2) + Math.pow(bullet.position.z - playerModel.position.z, 2) + Math.pow(bullet.position.y - playerModel.position.y, 2))
+            if (distanceBtwBulletAndPlayer > velocity && Math.abs(bullet.position.x) < 300 && Math.abs(bullet.position.z) < 300 && Math.abs(bullet.position.y) < 20) {
+                bullet.position.x += bulletSpeedX
+                bullet.position.y += bulletSpeedY
+                bullet.position.z += bulletSpeedZ
+            } else {
+                if (distanceBtwBulletAndPlayer < velocity){
+                    scene.remove(bullet)
+                } else {
+                    bullet.position.set(bullet.endPosition.x, bullet.endPosition.y, bullet.endPosition.z)
+                }
+                clearInterval(bulletMakeSmoothlyMove)
+            }
+        }, 5)
+}
+function botLifeCycle(){
+    if (!onlineMode){
+        setTimeout(() => {
+            checkZoneOfBotPosition()
+            if (checkBotVisionContact()){
+                let direction = new THREE.Vector3(playerModel.position.x - enemyModel.position.x, playerModel.position.y - enemyModel.position.y, playerModel.position.z - enemyModel.position.z)
+                makeBotShoot(direction)
+            } else {
+                botMakeMove(generateBotTargetPosition())
+            }
+        }, 2100 / botDifficult)
+    }
 }
 function onMouseMove( event ){
     const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
@@ -1238,10 +1354,64 @@ function getAdvancedData(){
         document.getElementById('speedZ').innerText = player.realSpeed.z
     }
 }
-
-
-
-
-
-
-
+peer.on('open', function(id) {
+    document.getElementById('yourCode').value = id
+    console.log(id)
+});
+document.getElementById('ConnectBtn').addEventListener('click', onConnectBtn)
+let connection
+function onConnectBtn(){
+    connection = peer.connect(document.getElementById('enemyCode').value);
+    onConnectionOpen()
+}
+peer.on('connection', function(conn) {
+    connection = conn
+    onConnectionOpen()
+});
+function onConnectionOpen(){
+    onlineMode = true
+    enemyModel.visible = true
+    // connection.send({nickName: nick});
+    connection.on('data', function(data){
+        // console.log(data);
+        if (data.position){
+            enemyModel.position.x = -data.position.x || enemyModel.position.x
+            enemyModel.position.y = data.position.y || enemyModel.position.y
+            enemyModel.position.z = -data.position.z || enemyModel.position.z
+        }
+        if (data.scale){
+            enemyModel.scale.y = data.scale.y
+        }
+        if (data.bullet){
+            makeEnemyShoot({ x: -data.bullet.startPosition.x, y: data.bullet.startPosition.y, z: -data.bullet.startPosition.z,}, 
+                {x: -data.bullet.endPosition.x, y: data.bullet.endPosition.y, z: -data.bullet.endPosition.z })
+        }
+        if (data.hit){
+            playerModel.healthPoints -= weapons[randomWeapon].characteristics.damage
+            checkIfNextRound()
+        }
+        if (data.weapon){
+            randomWeapon = Math.max(Math.min(weapons.findIndex(weapon => weapon.name == data.weapon), weapons.length-1), 0)
+        }
+        if (data.score){
+            scoreboard.enemy = data.score.player
+            scoreboard.player = data.score.enemy
+            onNextRound()
+        }
+        if (data.nickName){
+            console.log(data.nickName)
+        }
+    });
+}
+// onLeave
+// peer.destroy()
+function onConnectionClose(){
+    onlineMode = false
+    onMenu()
+}
+peer.on('disconnected', function() { 
+    onConnectionClose()
+ });
+peer.on('close', function() { 
+    onConnectionClose()
+ });

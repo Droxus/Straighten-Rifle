@@ -62,8 +62,31 @@
     </div>
     <div id="ammoNumber">
         <label id="amountAmmo"></label>
-        <label>/</label>
+        <label id="ammoSlash"> / </label>
         <label id="totalAmmo"></label>
+    </div>
+    <div id="healthPointsBlock">
+        <svg id="healthIcon" height="70%" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+            <rect width="96" height="100%" fill="url(#pattern0)"/>
+            <defs>
+            <pattern id="pattern0" patternContentUnits="objectBoundingBox" width="1" height="1">
+            <use xlink:href="#image0_121_7" transform="scale(0.0104167)"/>
+            </pattern>
+            <image id="image0_121_7" height="100%" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAACXBIWXMAAAsTAAALEwEAmpwYAAABo0lEQVR4nO2dQW6DMBREveoNK8GJmt6ztMeYKqSp1G6QJcPwmfckb4Px86BITJzWAPTaXjS3d03tU3PTzmPR1G73a7LyP6wLsv/C/x1Tuz2vH4+O2fn/x1f8wj8xLP46fieQjhCAgGi08yOCRxACzo1IAAKiEQlAQDQiAQiIRiQAAdGIBCAgGpEABEQjEoCAaEQCEBCNSAACohEJQEByV1OuBBw0+ruolq7mfFkB/V1U987XFQX0dFFPMFlpbh8DBSylNpR7orqPqb0NE1DtkWqe6DL6BxTrl4qHhKW0gFELcnWEAC8IMIMAMwgwgwAzCDCDADMIMIMAMwgwgwAzCDCDADMIMIMAMwgwgwAzvJKs3nMyvxPW6DPdeClvPtNN1XpO7vaAeie8fT+1ek7lIruB+z66e07lejQbmBf//AfFyiRg1OeXRwhAQDQiAQiIRiQAAdGIBCAgGpEABEQjEoCAaEQCEBCNSAACohEJQEA0IgEIiEYk4JwCVKT2Uh4hAAHRyNPAG3YmXXnk+UvzYWfSlUfHdlHP39UEAAAAAACAthvfEpBz+uj8NWAAAAAASUVORK5CYII="/>
+            </defs>
+            </svg>
+        <label id="healthPointsLbl">100</label>
+        <div id="healthBarBlock">
+            <div id="underHealthBar"></div>
+            <div id="healthBar"></div>
+        </div>
+    </div>
+    <div id="scoreBoard">
+        <label id="playerNick">Player</label>
+        <label id="playerScore">0</label>
+        <label id="minusScore">-</label>
+        <label id="enemyScore">0</label>
+        <label id="enemyNick">Enemy</label>
     </div>
     <div id="loader">
         <label>Loading...</label>

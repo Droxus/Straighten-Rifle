@@ -6,7 +6,7 @@ const vector = new THREE.Vector3();
 
 const peer = new Peer();
 
-let onlineMode, scoreboard = {player: 0, enemy: 0}
+let onlineMode, scoreboard = {player: 0, enemy: 0}, inMenu
 
 let botDifficult = 1
 const defaultSpeed = 0.11
@@ -990,10 +990,19 @@ function onPlay(){
     } else if (document.documentElement.webkitRequestFullscreen) {
         document.documentElement.webkitRequestFullscreen();
     }
+    scoreboard.player = 0
+    scoreboard.enemy = 0
+    document.getElementById('playerScore').innerText = scoreboard.player
+    document.getElementById('enemyScore').innerText = scoreboard.enemy
+    playerModel.healthPoints = 100
+    document.getElementById('healthPointsLbl').innerText = playerModel.healthPoints
+    document.getElementById('healthBar').style.width = `${playerModel.healthPoints}%`
     randomWeapon = Math.floor(Math.random() * 4)
     onNextRound()
 }
 function checkIfNextRound(){
+    document.getElementById('healthPointsLbl').innerText = playerModel.healthPoints
+    document.getElementById('healthBar').style.width = `${playerModel.healthPoints}%`
     if (enemyModel.healthPoints < 1){
         scoreboard.player++
         randomWeapon = Math.floor(Math.random() * 4)
@@ -1013,10 +1022,13 @@ function checkIfNextRound(){
 }
 let onNextRoundTimeOut
 function onNextRound(){
+    document.getElementById('playerScore').innerText = scoreboard.player
+    document.getElementById('enemyScore').innerText = scoreboard.enemy
     nextRoundTransition()
     clearTimeout(onNextRoundTimeOut)
     onNextRoundTimeOut = setTimeout(() => {
         nextRoundTransitionHide()
+        inMenu = false
         weapons.forEach(e => e.visible = false)
         weapons[randomWeapon].visible = true
         document.getElementById('awpScope').style.display = 'none'
@@ -1028,6 +1040,8 @@ function onNextRound(){
         timeToRestore = weapons[randomWeapon].characteristics.timeToRestore*1000
         playerModel.healthPoints = 100
         enemyModel.healthPoints = 100
+        document.getElementById('healthPointsLbl').innerText = playerModel.healthPoints
+        document.getElementById('healthBar').style.width = `${playerModel.healthPoints}%`
         spawnModels()
         if (!onlineMode){
             botLifeCycle()
@@ -1035,7 +1049,7 @@ function onNextRound(){
     }, 3000)
 }
 function nextRoundTransition(){
-    document.getElementById('nextRoundTransitionBlock').style.display = 'block'
+    document.getElementById('nextRoundTransitionBlock').style.animation = 'blackout 3s'
     window.removeEventListener('mousemove', onMouseMove)
     window.removeEventListener('keydown', onKeyboard)
     window.removeEventListener('keyup', offKeyboard)
@@ -1045,7 +1059,7 @@ function nextRoundTransition(){
     clearInterval( smoothlyMove )
 }
 function nextRoundTransitionHide(){
-    document.getElementById('nextRoundTransitionBlock').style.display = 'none'
+    document.getElementById('nextRoundTransitionBlock').style.animation = 'whiteout 0.5s'
     window.addEventListener('mousemove', onMouseMove)
     window.addEventListener('keydown', onKeyboard)
     window.addEventListener('keyup', offKeyboard)
@@ -1053,6 +1067,7 @@ function nextRoundTransitionHide(){
     window.addEventListener('mouseup', onMouseUp)
 }
 function onMenu(){
+    inMenu = true
     clearTimeout(onNextRoundTimeOut)
     document.getElementById('onPlay').removeEventListener('click', onPlay)
     document.getElementById('menuBg').style.display = 'grid'
@@ -1263,7 +1278,7 @@ function makeEnemyShoot(startPosition, endPosition){
         }, 5)
 }
 function botLifeCycle(){
-    if (!onlineMode){
+    if (!onlineMode && !inMenu){
         setTimeout(() => {
             checkZoneOfBotPosition()
             if (checkBotVisionContact()){

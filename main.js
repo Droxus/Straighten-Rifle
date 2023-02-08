@@ -6,7 +6,7 @@ const vector = new THREE.Vector3();
 
 const peer = new Peer();
 
-let onlineMode, scoreboard = {player: 0, enemy: 0}, inMenu
+let onlineMode, scoreboard = {player: 0, enemy: 0}, inGame
 
 let botDifficult = 1
 const defaultSpeed = 0.11
@@ -1001,34 +1001,43 @@ function onPlay(){
     onNextRound()
 }
 function checkIfNextRound(){
-    document.getElementById('healthPointsLbl').innerText = playerModel.healthPoints
-    document.getElementById('healthBar').style.width = `${playerModel.healthPoints}%`
-    if (enemyModel.healthPoints < 1){
-        scoreboard.player++
-        randomWeapon = Math.floor(Math.random() * 4)
-        if (onlineMode){
-            connection.send({weapon: weapons[randomWeapon].name, score: scoreboard});
+    if (inGame){
+        document.getElementById('healthPointsLbl').innerText = playerModel.healthPoints
+        document.getElementById('healthBar').style.width = `${playerModel.healthPoints}%`
+        if (enemyModel.healthPoints < 1){
+            scoreboard.player++
+            randomWeapon = Math.floor(Math.random() * 4)
+            if (onlineMode){
+                connection.send({weapon: weapons[randomWeapon].name, score: scoreboard});
+            }
+            onNextRound()
         }
-        onNextRound()
-    }
-    if (playerModel.healthPoints < 1){
-        scoreboard.enemy++
-        randomWeapon = Math.floor(Math.random() * 4)
-        if (onlineMode){
-            connection.send({weapon: weapons[randomWeapon].name, score: scoreboard});
+        if (playerModel.healthPoints < 1){
+            scoreboard.enemy++
+            randomWeapon = Math.floor(Math.random() * 4)
+            if (onlineMode){
+                connection.send({weapon: weapons[randomWeapon].name, score: scoreboard});
+            }
+            onNextRound()
         }
-        onNextRound()
     }
 }
 let onNextRoundTimeOut
 function onNextRound(){
     document.getElementById('playerScore').innerText = scoreboard.player
     document.getElementById('enemyScore').innerText = scoreboard.enemy
+    bullets.forEach(e => scene.remove(e))
+    bullets = []
+    player.speed.z = 0
+    player.speed.x = 0
+    clearInterval(fireShootInterval)
+    clearInterval(timeToRestoreInterval)
+    weapons[randomWeapon].ammo = weapons[randomWeapon].characteristics.ammo
+    weapons[randomWeapon].canShoot = true
     nextRoundTransition()
     clearTimeout(onNextRoundTimeOut)
     onNextRoundTimeOut = setTimeout(() => {
         nextRoundTransitionHide()
-        inMenu = false
         weapons.forEach(e => e.visible = false)
         weapons[randomWeapon].visible = true
         document.getElementById('awpScope').style.display = 'none'
@@ -1049,7 +1058,8 @@ function onNextRound(){
     }, 3000)
 }
 function nextRoundTransition(){
-    document.getElementById('nextRoundTransitionBlock').style.animation = 'blackout 3s'
+    document.getElementById('nextRoundTransitionBlock').classList.add('nextRoundBlackout')
+    setTimeout(() => { document.getElementById('nextRoundTransitionBlock').classList.remove('nextRoundBlackout') }, 3000)
     window.removeEventListener('mousemove', onMouseMove)
     window.removeEventListener('keydown', onKeyboard)
     window.removeEventListener('keyup', offKeyboard)
@@ -1057,17 +1067,24 @@ function nextRoundTransition(){
     window.removeEventListener('mouseup', onMouseUp)
     clearInterval(inertiaSmothlyMove)
     clearInterval( smoothlyMove )
+    inGame = false
 }
 function nextRoundTransitionHide(){
-    document.getElementById('nextRoundTransitionBlock').style.animation = 'whiteout 0.5s'
+    document.getElementById('nextRoundAnnounceBlock').classList.add('nextRoundAnnounce')
+    setTimeout(() => { document.getElementById('nextRoundAnnounceBlock').classList.remove('nextRoundAnnounce') }, 5000)
     window.addEventListener('mousemove', onMouseMove)
     window.addEventListener('keydown', onKeyboard)
     window.addEventListener('keyup', offKeyboard)
     window.addEventListener('mousedown', onMouseClick)
     window.addEventListener('mouseup', onMouseUp)
+    inGame = true
 }
 function onMenu(){
-    inMenu = true
+    inGame = false
+    bullets.forEach(e => scene.remove(e))
+    bullets = []
+    player.speed.z = 0
+    player.speed.x = 0
     clearTimeout(onNextRoundTimeOut)
     document.getElementById('onPlay').removeEventListener('click', onPlay)
     document.getElementById('menuBg').style.display = 'grid'
@@ -1222,6 +1239,11 @@ function makeBotShoot(){
         let bulletSpeedZ = (playerModel.position.z - enemyModel.position.z) / time
         let bulletSpeedY = (playerModel.position.y - enemyModel.position.y) / time
         let bulletMakeSmoothlyMove = setInterval(() => {
+            if (!inGame){
+                scene.remove(bullet)
+                bullets.splice(bullets.length-1, 1)
+                clearInterval(bulletMakeSmoothlyMove)
+            }
             let distanceBtwBulletAndPlayer = Math.sqrt(Math.pow(bullet.position.x - playerModel.position.x, 2) + Math.pow(bullet.position.z - playerModel.position.z, 2) + Math.pow(bullet.position.y - playerModel.position.y, 2))
             if (distanceBtwBulletAndPlayer > velocity && Math.abs(bullet.position.x) < 300 && Math.abs(bullet.position.z) < 300 && Math.abs(bullet.position.y) < 20) {
                 bullet.position.x += bulletSpeedX
@@ -1231,12 +1253,15 @@ function makeBotShoot(){
                 if (distanceBtwBulletAndPlayer < velocity){
                     if (!onlineMode){
                         playerModel.healthPoints -= weapons[randomWeapon].characteristics.damage
+                        document.getElementById('hitEventShow').classList.add('hitEventShow')
+                        setTimeout(() => {
+                            document.getElementById('hitEventShow').classList.remove('hitEventShow')
+                        }, 500)
                         checkIfNextRound()
                     }
-                    scene.remove(bullet)
-                } else {
-                    bullet.position.set(bullet.endPosition.x, bullet.endPosition.y, bullet.endPosition.z)
                 }
+                scene.remove(bullet)
+                bullets.splice(bullets.length-1, 1)
                 clearInterval(bulletMakeSmoothlyMove)
             }
         }, 5)
@@ -1270,6 +1295,7 @@ function makeEnemyShoot(startPosition, endPosition){
             } else {
                 if (distanceBtwBulletAndPlayer < velocity){
                     scene.remove(bullet)
+                    bullets.splice(bullets.length-1, 1)
                 } else {
                     bullet.position.set(bullet.endPosition.x, bullet.endPosition.y, bullet.endPosition.z)
                 }
@@ -1278,7 +1304,7 @@ function makeEnemyShoot(startPosition, endPosition){
         }, 5)
 }
 function botLifeCycle(){
-    if (!onlineMode && !inMenu){
+    if (!onlineMode && inGame){
         setTimeout(() => {
             checkZoneOfBotPosition()
             if (checkBotVisionContact()){
@@ -1403,6 +1429,9 @@ function onConnectionOpen(){
         }
         if (data.hit){
             playerModel.healthPoints -= weapons[randomWeapon].characteristics.damage
+            document.getElementById('hitEventShow').classList.remove('hitEventShow')
+            document.getElementById('hitEventShow').classList.add('hitEventShow')
+            hitEventShow
             checkIfNextRound()
         }
         if (data.weapon){

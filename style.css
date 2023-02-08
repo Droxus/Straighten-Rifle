@@ -327,5 +327,51 @@ body * {
     place-self: center;
     text-align: center;
 }
-@keyframes blackout { 0% { opacity: 1; } 100% { opacity: 0; } }
-@keyframes whiteout { 0% { opacity: 0; } 100% { opacity: 1; } }
+#nextRoundAnnounceBlock{
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 15vw;
+    height: 60px;
+    border-radius: 4px;
+    z-index: 3;
+    background: #191919;
+    margin-left: -7.5vw;
+    opacity: 0;
+}
+#nextRoundAnnounceBlock > *{
+    font-size: 32px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: normal;
+    color: #FF5900;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+#hitEventShow{
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2;
+    box-shadow: inset 5vh 5vh 5vh, inset -5vh -5vh 5vh;
+    width: 100vw;
+    height: 100vh;
+    opacity: 0;
+}
+.hitEventShow{
+    animation: whiteAndBlackout .5s;
+}
+.nextRoundBlackout{
+    animation: nextRoundBlackout 3s;
+}
+.nextRoundAnnounce{
+    animation: nextRoundAnnounce 5s;
+    opacity: 1 !important;
+}
+@keyframes nextRoundBlackout { 0% { opacity: 0; } 75% { opacity: 1; } 100% { opacity: 0; } }
+
+@keyframes whiteAndBlackout { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+
+@keyframes nextRoundAnnounce { 0% { transform: translateY(-100%); } 30% { transform: translateY(0%); } 70% { transform: translateY(0%); } 100% { transform: translateY(-100%); } }

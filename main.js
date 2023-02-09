@@ -8,6 +8,7 @@ const peer = new Peer();
 
 let onlineMode, scoreboard = {player: 0, enemy: 0}, inGame
 
+let soundVolume = 0.5
 let botDifficult = 1
 const defaultSpeed = 0.11
 let sky, sun;
@@ -260,7 +261,6 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild( renderer.domElement );
 renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
-renderer.shadowMap.enabled = true;
 
 let floor = new THREE.Mesh( new THREE.BoxGeometry(500, 3, 500), new THREE.MeshBasicMaterial( { color: '#2b2b2b' } ) );
 floor.name = 'floor'
@@ -277,23 +277,15 @@ document.body.appendChild( stats.dom );
     const directionalLight1 = new THREE.DirectionalLight( '#ffffff', 0.2 );
     directionalLight1.position.set(0, 200, 200)
     scene.add( directionalLight1 );
-    directionalLight1.castShadow = true;
-    directionalLight1.receiveShadow = true;
     const directionalLight2 = new THREE.DirectionalLight( '#ffffff', 0.2 );
     directionalLight2.position.set(0, 200, -200)
     scene.add( directionalLight2 );
-    directionalLight2.castShadow = true;
-    directionalLight2.receiveShadow = true;
     const directionalLight3 = new THREE.DirectionalLight( '#ffffff', 0.2 );
     directionalLight3.position.set(200, 200, 0)
     scene.add( directionalLight3 );
-    directionalLight3.castShadow = true;
-    directionalLight3.receiveShadow = true;
     const directionalLight4 = new THREE.DirectionalLight( '#ffffff', 0.2 );
     directionalLight4.position.set(-200, 200, 0)
     scene.add( directionalLight4 );
-    directionalLight4.castShadow = true;
-    directionalLight4.receiveShadow = true;
 renderer.toneMapping = THREE.LinearToneMapping
 renderer.toneMappingExposure = 1
 renderer.shadowMap.enabled = true
@@ -890,7 +882,7 @@ function makeShoot(){
             recoil += 10
         }
         recoil += ((Math.abs(player.realSpeed.x) + Math.abs(player.realSpeed.z)) / defaultSpeed) * 10
-        let recoilY = (recoil*8) * (Math.random() + 0.5) * 2
+        let recoilY = (recoil*4) * (Math.random() + 0.5) * 2
         let recoilX = recoil * (Math.random() - 0.5) * 5
         if (bullets.length > 50){
             scene.remove(bullets[0])
@@ -944,6 +936,15 @@ function makeShoot(){
                             connection.send({hit: true});
                         }
                         enemyModel.healthPoints -= weapons[randomWeapon].characteristics.damage
+                        if (sounds.enemyHit){
+                            if (sound.isPlaying){
+                                sound.stop();
+                            }
+                            sound.setBuffer( sounds.enemyHit );
+                            sound.setLoop( false );
+                            sound.setVolume( soundVolume/4 );
+                            sound.play();
+                        }
                         checkIfNextRound()
                     }
                     bullet.position.set(bullet.endPosition.x, bullet.endPosition.y, bullet.endPosition.z)
@@ -1030,10 +1031,31 @@ function onNextRound(){
     bullets = []
     player.speed.z = 0
     player.speed.x = 0
+    player.realSpeed.z = 0
+    player.realSpeed.x = 0
+    playerModel.scale.y = 1
+    isCtrlStamina = false
+    isFuseSpamCtrl = false
+    player.maxSpeed.horizontal = defaultSpeed
+    if (onlineMode){
+        connection.send({position: {y: playerModel.position.y,  x: playerModel.position.x, z: playerModel.position.z}, scale: {y: playerModel.scale.y}});
+    }
+    keys = {
+        KeyW: false,
+        KeyA: false,
+        KeyS: false,
+        KeyD: false,
+        KeyQ: false,
+        KeyE: false,
+        ShiftLeft: false,
+        ControlLeft: false,
+        Space: false
+    }
     clearInterval(fireShootInterval)
     clearInterval(timeToRestoreInterval)
     weapons[randomWeapon].ammo = weapons[randomWeapon].characteristics.ammo
     weapons[randomWeapon].canShoot = true
+    enemyModel.visible = true
     nextRoundTransition()
     clearTimeout(onNextRoundTimeOut)
     onNextRoundTimeOut = setTimeout(() => {
@@ -1253,6 +1275,15 @@ function makeBotShoot(){
                 if (distanceBtwBulletAndPlayer < velocity){
                     if (!onlineMode){
                         playerModel.healthPoints -= weapons[randomWeapon].characteristics.damage
+                        if (sounds.playerHit){
+                            if (sound.isPlaying){
+                                sound.stop();
+                            }
+                            sound.setBuffer( sounds.playerHit );
+                            sound.setLoop( false );
+                            sound.setVolume( soundVolume/4 );
+                            sound.play();
+                        }
                         document.getElementById('hitEventShow').classList.add('hitEventShow')
                         setTimeout(() => {
                             document.getElementById('hitEventShow').classList.remove('hitEventShow')
@@ -1429,6 +1460,15 @@ function onConnectionOpen(){
         }
         if (data.hit){
             playerModel.healthPoints -= weapons[randomWeapon].characteristics.damage
+            if (sounds.playerHit){
+                if (sound.isPlaying){
+                    sound.stop();
+                }
+                sound.setBuffer( sounds.playerHit );
+                sound.setLoop( false );
+                sound.setVolume( soundVolume/4 );
+                sound.play();
+            }
             document.getElementById('hitEventShow').classList.remove('hitEventShow')
             document.getElementById('hitEventShow').classList.add('hitEventShow')
             hitEventShow
@@ -1459,3 +1499,37 @@ peer.on('disconnected', function() {
 peer.on('close', function() { 
     onConnectionClose()
  });
+document.getElementById('copyCodeBtn').addEventListener('click', () => {navigator.clipboard.writeText(document.getElementById('yourCode').value)})
+
+const listener = new THREE.AudioListener();
+camera.add( listener );
+
+const sound = new THREE.Audio( listener );
+
+const audioLoader = new THREE.AudioLoader();
+
+let sounds = {}
+audioLoader.load( 'sounds/step.mp3', function( buffer ) {
+    sounds.step = buffer
+});
+audioLoader.load( 'sounds/sniperShoot.mp3', function( buffer ) {
+    sounds.sniperShoot = buffer
+});
+audioLoader.load( 'sounds/famasShoot.mp3', function( buffer ) {
+    sounds.famasShoot = buffer
+});
+audioLoader.load( 'sounds/pistolShoot.mp3', function( buffer ) {
+    sounds.pistolShoot = buffer
+});
+audioLoader.load( 'sounds/rifleReload.mp3', function( buffer ) {
+    sounds.rifleReload = buffer
+});
+audioLoader.load( 'sounds/playerHit.mp3', function( buffer ) {
+    sounds.playerHit = buffer
+});
+audioLoader.load( 'sounds/enemyHit.mp3', function( buffer ) {
+    sounds.enemyHit = buffer
+});
+audioLoader.load( 'sounds/jump.mp3', function( buffer ) {
+    sounds.jump = buffer
+});

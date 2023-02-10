@@ -14,6 +14,9 @@ canvas{
     overflow: hidden;
     z-index: 1;
 }
+img{
+    pointer-events: none;
+}
 body * {
     -webkit-touch-callout: none;
       -webkit-user-select: none; 
@@ -23,40 +26,245 @@ body * {
               user-select: none; 
 }
 #menuBg{
-    background: rgba(1, 1, 1, 0.4);
+    background: #1F1F1F;
     position: sticky;
     display: grid;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    backdrop-filter: blur(4px);
     z-index: 9999;
 }
 #menu{
-    background: transparent;
     display: grid;
+    width: 100%;
+    height: 100%;
+    grid-template-columns: 100%;
+    grid-template-rows: 20% 80%;
+}
+#menuHeader{
+    display: grid;
+    width: 100%;
+    height: 100%;
+    grid-template-rows: 100%;
+    grid-template-columns: 30% 40% 30%;
+}
+.menuBtns{
+    background: transparent;
+    width: 45%;
+    height: 35%;
+    border: 4px solid #FF5900;
+    color: #ff5900;
     place-self: center;
-    width: 40%;
-    height: 60%;
+    font-size: 36px;
+    cursor: pointer;
+}
+.gameName{
+    place-self: center;
+    font-size: 54px !important;
+    font-weight: bold;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #ff5900 !important;
 }
 #menu > *{
-    width: 100%;
-    height: 20%;
-    place-self: center;
-    align-self: end;
     font-size: 42px;
     font-weight: bold;
     font-family: Arial, Helvetica, sans-serif;
-    cursor: pointer;
-    background: rgb(255, 49, 193, 0.1);
-    background: transparent;
-    border: none;
     transition: .4s;
     color: #ff5900;
 }
-#menu > *:hover{
-    background: rgba(255, 49, 193, 0.05);
+#menuBody{
+    display: grid;
+    width: 100%;
+    height: 100%;
+    grid-template-rows: 100%;
+    grid-template-columns: 30% 40% 30%;
+}
+#leftBodyBlock{
+    display: grid;
+    width: 45%;
+    height: 90%;
+    justify-self: center;
+    grid-template-columns: 100%;
+    grid-template-rows: 65% 35%;
+}
+#centrBodyBlock{
+    background: #191919;
+    display: grid;
+    width: 80%;
+    height: 90%;
+    justify-self: center;
+    grid-template-columns: 100%;
+    grid-template-rows: 70% 30%;
+}
+#rightBodyBlock{
+    display: grid;
+    width: 45%;
+    height: 90%;
+    justify-self: center;
+    grid-template-columns: 100%;
+    grid-template-rows: 60% 40%;
+}
+#weaponsChoose{
+    display: flex;
+    width: 100%;
+    justify-self: center;
+    flex-wrap: wrap;
+}
+#iconOfBot > img{
+    width: 100%;
+}
+#nickNameBlock{
+    background: #191919;
+    display: grid;
+    align-self: flex-end;
+    height: 70%;
+    width: 100%;
+    grid-template-rows: 40% 60%;
+}
+#nickNameBlock > label{
+    width: 100%;
+    height: 100%;
+    font-size: 32px;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 5%;
+}
+#nickNameBlock > input{
+    width: 90%;
+    height: 50%;
+    margin-left: 5%;
+    margin-top: 15%;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #1F1F1F;
+    border: none;
+    color: #FF5900;
+    font-size: 28px;
+    font-weight: bold;
+    outline: none;
+}
+#enemyShowBlock{
+    display: grid;
+    grid-template-columns: 100%;
+    grid-template-rows: 30% 40% 30%;
+    color: #0A0A0A;
+}
+#enemyShowBlock > img{
+    height: 70%;
+}
+#enemyShowBlock > *{
+    place-self: center;
+}
+#onlineBlock{
+    border-top: 10px solid #1F1F1F;
+    width: 90%;
+    height: 100%;
+    justify-self: center;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+#onlineBlock > input{
+    background: #1F1F1F;
+    border: none;
+    width: 70%;
+    height: 20%;
+    font-weight: bold;
+    color: #0C0C0C;
+    font-size: 24px;
+    outline: none;
+}
+#enemyCode::placeholder, #yourCode::placeholder{
+    text-align: center;
+    color: #0C0C0C;
+    font-weight: bold;
+    font-family: Arial, Helvetica, sans-serif;
+}
+#onlineBlock > button{
+    width: 20%;
+    height: 20%;
+    margin-left: 9%;
+    background: transparent;
+    border: 4px solid #FF5900;
+    color: #ff5900;
+    place-self: center;
+    font-weight: normal;
+    font-size: 28px;
+}
+#botDifficultSwitch{
+    display: flex;
+    width: 100%;
+    justify-self: center;
+    flex-wrap: wrap;
+}
+#weaponsChoose > button, #botDifficultSwitch > button {
+    background: transparent;
+    border: none;
+    color: rgb(255, 89, 0);
+    width: 100%;
+    height: 20%;
+    cursor: pointer;
+    font-size: 28px;
+    font-weight: bold;
+    transition: .5s;
+}
+#weaponsChoose > label, #botDifficultSwitch > label {
+    background: #191919;
+    border: none;
+    color: #FF5900;
+    width: 100%;
+    height: 7vh;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 32px;
+}
+#gameMenu{
+    background: #1F1F1F;
+    position: sticky;
+    display: none;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    grid-template-rows: 20% 45% 20% 15%;
+}
+#gameMenu > img{
+    height: 80%;
+}
+#gameMenu > label{
+    font-size: 28px;
+    color: #0C0C0C;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: bold;
+}
+#gameMenu > *{
+    place-self: center;
+}
+#gameMenu > div{
+    width: 40%;
+    height: 100%;
+    display: flex;
+    justify-content: space-between;
+}
+#gameMenu > div > button{
+    width: 30%;
+    height: 35%;
+    background: transparent;
+    border: 4px solid #FF5900;
+    color: #ff5900;
+    place-self: center;
+    font-weight: normal;
+    font-size: 32px;
+    cursor: pointer;
 }
 #advancedInfoBlock{
     position: absolute;
@@ -171,7 +379,7 @@ body * {
     font-size: 24px;
 }
 #loader{
-    background-color: black;
+    background-color: #1F1F1F;
     position: absolute;
     top: 0;
     left: 0;
@@ -179,9 +387,42 @@ body * {
     height: 100vh;
     z-index: 99999999;
     display: grid;
+    grid-template-columns: 100%;
+    grid-template-rows: 30% 40% 30%;
 }
-#loader > label{
-    color: #ff5900;
+#loader > *{
+    width: 90%;
+    justify-self: center;
+}
+#loader > div:nth-child(1){
+    border-bottom: 10px solid #191919;
+}
+#loader > div:nth-child(2){
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+#loader > div:nth-child(2) > img{
+    height: 80%;
+}
+#loader > div:nth-child(2) > label{
+    height: 80%;
+    margin-left: 5%;
+}
+#loader > div:nth-child(3){
+    display: grid;
+    grid-template-columns: 100%;
+    grid-template-rows: 40% 60%;
+}
+#loader > div:nth-child(3) > img{
+    justify-self: center;
+    align-self: flex-start;
+}
+#loader > div:nth-child(3) > label{
+    justify-self: center;
+}
+#loader > div > label{
+    color: #0C0C0C;
     font-weight: bold;
     display: flex;
     font-family: Arial, Helvetica, sans-serif;

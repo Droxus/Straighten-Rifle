@@ -85,7 +85,7 @@ let player = {
 let modelHeight = 3
 let loadedAssets = 0, loadedTime = 0
 let sensitivity = 1
-let boxes = [], helpers = [], bullets = [], weapons = [], enemyWeapons = [], collisionResponsiveObjects = [], spawnEnemyAndPath = [], spawnArea = []
+let boxes = [], helpers = [], bullets = [], weapons = [], enemyWeapons = [], collisionResponsiveObjects = [], spawnEnemyAndPath = [], spawnArea = [], allWeapons = []
 const loader = new THREE.GLTFLoader();
 let model, sniperRifle, famasRifle, rifle, pistol
    loader.load('models/aimmap.glb', (glb) =>  {
@@ -152,7 +152,7 @@ let model, sniperRifle, famasRifle, rifle, pistol
                 sniperRifle.name = "sniperRifle"
                 sniperRifle.canShoot = true
                 sniperRifle.ammo = sniperRifle.characteristics.ammo
-                weapons.push(sniperRifle)
+                allWeapons.push(sniperRifle)
                 hideLoader()
             }
         })
@@ -181,7 +181,7 @@ let model, sniperRifle, famasRifle, rifle, pistol
                 }
                 famasRifle.canShoot = true
                 famasRifle.ammo = famasRifle.characteristics.ammo
-                weapons.push(famasRifle)
+                allWeapons.push(famasRifle)
                 hideLoader()
             }
         })
@@ -210,7 +210,7 @@ let model, sniperRifle, famasRifle, rifle, pistol
                 }
                 rifle.canShoot = true
                 rifle.ammo = rifle.characteristics.ammo
-                weapons.push(rifle)
+                allWeapons.push(rifle)
                 hideLoader()
             }
         })
@@ -239,7 +239,7 @@ let model, sniperRifle, famasRifle, rifle, pistol
                 }
                 pistol.canShoot = true
                 pistol.ammo = pistol.characteristics.ammo
-                weapons.push(pistol)
+                allWeapons.push(pistol)
                 hideLoader()
             }
         })
@@ -272,7 +272,7 @@ roof.visible = false
 roof.position.set(0, 31.5, 0)
 scene.add( roof );
 const stats = Stats()
-stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
+stats.showPanel( 4 ); // 0: fps, 1: ms, 2: mb, 3+: custom
 document.body.appendChild( stats.dom );
     const directionalLight1 = new THREE.DirectionalLight( '#ffffff', 0.2 );
     directionalLight1.position.set(0, 200, 200)
@@ -321,7 +321,7 @@ function animate() {
         modelForBotTarget.position.copy(playerModel.position)
         modelForBotTarget.position.y += playerModel.geometry.parameters.height
     }
-    if (loadedAssets > 4){
+    if (loadedAssets > 4 && weapons.length > 0){
         weapons[randomWeapon].position.x = camera.position.x - Math.sin(camera.rotation.y - weapons[randomWeapon].rotationCameraX) * weapons[randomWeapon].rotationCameraKefX
         weapons[randomWeapon].position.z = camera.position.z + Math.cos(Math.PI - camera.rotation.y + weapons[randomWeapon].rotationCameraZ) * weapons[randomWeapon].rotationCameraKefZ
         weapons[randomWeapon].position.y = camera.position.y + Math.min(Math.max((Math.tan(camera.rotation.x + weapons[randomWeapon].rotationCameraY) - weapons[randomWeapon].rotationCameraKefY), -2), 2)
@@ -334,6 +334,7 @@ function animate() {
     renderer.render( scene, camera );
     stats.end()
 };
+document.getElementById('playerNickname').value = localStorage.getItem('nick') || 'Player'
 window.addEventListener('resize', onResize)
 document.oncontextmenu = document.body.oncontextmenu = function() {return false;}
 function isGrounded(model){
@@ -877,13 +878,13 @@ function onFireAttack(){
 function onScope(){
     if (weapons[randomWeapon].name == 'sniperRifle'){
         if (sounds.sniperZoom){
-            if (soundPlayerShoot.isPlaying){
-                soundPlayerShoot.stop();
+            if (soundPlayerScope.isPlaying){
+                soundPlayerScope.stop();
             }
-            soundPlayerShoot.setBuffer( sounds.sniperZoom );
-            soundPlayerShoot.setLoop( false );
-            soundPlayerShoot.setVolume( soundVolume/4 );
-            soundPlayerShoot.play();
+            soundPlayerScope.setBuffer( sounds.sniperZoom );
+            soundPlayerScope.setLoop( false );
+            soundPlayerScope.setVolume( soundVolume/4 );
+            soundPlayerScope.play();
         }
         if (document.getElementById('awpScope').style.display !== 'none'){
             if (camera.zoom == 2){
@@ -955,7 +956,6 @@ function makeShoot(){
                 connection.send({bullet: {startPosition: {x: weapons[randomWeapon].position.x + Math.sin(camera.rotation.y) * -2, y: weapons[randomWeapon].position.y + Math.tan(camera.rotation.x) * 1,
                     z: weapons[randomWeapon].position.z + Math.cos(Math.PI - camera.rotation.y) * 2}, endPosition: { x: intersetsFiltered[0].point.x, y: intersetsFiltered[0].point.y, z: intersetsFiltered[0].point.z }}});
             }
-            console.log(weapons[randomWeapon].name)
             if (sounds[weapons[randomWeapon].name]){
                 if (soundPlayerShoot.isPlaying){
                     soundPlayerShoot.stop();
@@ -1059,8 +1059,19 @@ function onPlay(){
     playerModel.healthPoints = 100
     document.getElementById('healthPointsLbl').innerText = playerModel.healthPoints
     document.getElementById('healthBar').style.width = `${playerModel.healthPoints}%`
-    randomWeapon = Math.floor(Math.random() * 4)
+    let btnWeapons = Array.from(document.getElementsByClassName('weapons')).filter(e => e.style.color == 'rgb(255, 89, 0)').map(e => e.id)
+    if (btnWeapons.length > 0){
+        weapons = allWeapons.filter(e => btnWeapons.includes(e.name))
+    } else {
+        weapons = allWeapons
+    }
+    if (document.getElementById('easyDiff').style.color == 'rgb(255, 89, 0)') {botDifficult = 1}
+    if (document.getElementById('mediumDiff').style.color == 'rgb(255, 89, 0)') {botDifficult = 4}
+    if (document.getElementById('hardDiff').style.color == 'rgb(255, 89, 0)') {botDifficult = 10}
+    randomWeapon = Math.floor(Math.random() * weapons.length)
     onNextRound()
+    document.getElementById('playerNick').innerText = document.getElementById('playerNickname').value.slice(0, 12) || 'Player'
+    document.getElementById('enemyNick').innerText = document.getElementById('enemyShowNick').innerText.slice(0, 12) || 'Enemy'
 }
 function checkIfNextRound(){
     if (inGame){
@@ -1068,7 +1079,7 @@ function checkIfNextRound(){
         document.getElementById('healthBar').style.width = `${playerModel.healthPoints}%`
         if (enemyModel.healthPoints < 1){
             scoreboard.player++
-            randomWeapon = Math.floor(Math.random() * 4)
+            randomWeapon = Math.floor(Math.random() * weapons.length)
             if (onlineMode){
                 connection.send({weapon: weapons[randomWeapon].name, score: scoreboard});
             }
@@ -1076,7 +1087,7 @@ function checkIfNextRound(){
         }
         if (playerModel.healthPoints < 1){
             scoreboard.enemy++
-            randomWeapon = Math.floor(Math.random() * 4)
+            randomWeapon = Math.floor(Math.random() * weapons.length)
             if (onlineMode){
                 connection.send({weapon: weapons[randomWeapon].name, score: scoreboard});
             }
@@ -1169,14 +1180,12 @@ function onMenu(){
     player.speed.z = 0
     player.speed.x = 0
     clearTimeout(onNextRoundTimeOut)
-    document.getElementById('onPlay').removeEventListener('click', onPlay)
     document.getElementById('menuBg').style.display = 'grid'
     window.removeEventListener('mousemove', onMouseMove)
     window.removeEventListener('keydown', onKeyboard)
     window.removeEventListener('keyup', offKeyboard)
     window.removeEventListener('mousedown', onMouseClick)
     window.removeEventListener('mouseup', onMouseUp)
-    setTimeout(() => {document.getElementById('onPlay').addEventListener('click', onPlay)}, 2500)
     keys = {
         KeyW: false,
         KeyA: false,
@@ -1192,6 +1201,60 @@ function onMenu(){
     enemyModel.visible = false
     playerModel.healthPoints = 100
     enemyModel.healthPoints = 100
+    document.getElementById('playerNickname').value = localStorage.getItem('nick') || 'Player'
+    document.getElementById('enemyAvatar').setAttribute('src', 'img/robot.png')
+    document.getElementById('enemyNick').innerText = 'Robot'
+}
+function onGameMenu(){
+    document.getElementById('gameMenu').style.display = 'grid'
+    inGame = false
+    window.removeEventListener('mousemove', onMouseMove)
+    window.removeEventListener('keydown', onKeyboard)
+    window.removeEventListener('keyup', offKeyboard)
+    window.removeEventListener('mousedown', onMouseClick)
+    window.removeEventListener('mouseup', onMouseUp)
+    player.speed.z = 0
+    player.speed.x = 0
+    keys = {
+        KeyW: false,
+        KeyA: false,
+        KeyS: false,
+        KeyD: false,
+        KeyQ: false,
+        KeyE: false,
+        ShiftLeft: false,
+        ControlLeft: false,
+        Space: false
+    }
+}
+function onLeaveGameBtn(){
+    document.getElementById('gameMenu').style.display = 'none'
+    if (onlineMode){
+        peer.destroy()
+    }
+    onMenu()
+}
+function onResumeGameBtn(){
+    document.getElementById('gameMenu').style.display = 'none'
+    inGame = true
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('keydown', onKeyboard)
+    window.addEventListener('keyup', offKeyboard)
+    window.addEventListener('mousedown', onMouseClick)
+    window.addEventListener('mouseup', onMouseUp)
+    document.querySelector('canvas').requestPointerLock = document.querySelector('canvas').requestPointerLock ||
+    document.querySelector('canvas').mozRequestPointerLock ||
+    document.querySelector('canvas').webkitRequestPointerLock;
+    document.querySelector('canvas').requestPointerLock()
+    if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen();
+    } else if (document.documentElement.msRequestFullscreen) {
+        document.documentElement.msRequestFullscreen();
+    } else if (document.documentElement.mozRequestFullScreen) {
+        document.documentElement.mozRequestFullScreen();
+    } else if (document.documentElement.webkitRequestFullscreen) {
+        document.documentElement.webkitRequestFullscreen();
+    }
 }
 function spawnModels(){
     let randomSpawnIndex = Math.floor(Math.random() * 4)
@@ -1457,7 +1520,7 @@ if ("onpointerlockchange" in document) {
     document.webkitPointerLockElement === document.querySelector('canvas')) {
 
     } else {
-        onMenu()
+        onGameMenu()
     }
   }
   function onAdvancedInfo(){
@@ -1520,9 +1583,13 @@ peer.on('connection', function(conn) {
 function onConnectionOpen(){
     onlineMode = true
     enemyModel.visible = true
-    // connection.send({nickName: nick});
+    document.getElementById('enemyAvatar').setAttribute('src', 'img/human.png')
+    connection.on('open', () => {connection.send({nickname: document.getElementById('playerNickname').value})})
     connection.on('data', function(data){
-        // console.log(data);
+        if (data.nickname){
+            console.log(data.nickname)
+            document.getElementById('enemyShowNick').innerText = data.nickname
+        }
         if (data.position){
             enemyModel.position.x = -data.position.x || enemyModel.position.x
             enemyModel.position.y = data.position.y || enemyModel.position.y
@@ -1559,24 +1626,21 @@ function onConnectionOpen(){
             scoreboard.player = data.score.enemy
             onNextRound()
         }
-        if (data.nickName){
-            console.log(data.nickName)
-        }
     });
 }
-// onLeave
-// peer.destroy()
 function onConnectionClose(){
     onlineMode = false
     onMenu()
 }
 peer.on('disconnected', function() { 
     onConnectionClose()
+    onMenu()
  });
 peer.on('close', function() { 
     onConnectionClose()
+    onMenu()
  });
-document.getElementById('copyCodeBtn').addEventListener('click', () => {navigator.clipboard.writeText(document.getElementById('yourCode').value)})
+document.getElementById('copyCodeBtn').addEventListener('click', (e) => {navigator.clipboard.writeText(document.getElementById('yourCode').value); e.target.innerText = 'Copied'; setTimeout(() => {e.target.innerText = 'Copy'}, 2000)})
 
 const listener = new THREE.AudioListener();
 camera.add( listener );
@@ -1588,6 +1652,8 @@ const soundEnemyHit = new THREE.Audio( listener );
 const soundPlayerSteps = new THREE.Audio( listener );
 
 const soundPlayerShoot = new THREE.Audio( listener );
+
+const soundPlayerScope = new THREE.Audio( listener );
 
 const sondEnemyShoot = new THREE.PositionalAudio( listener );
 enemyModel.add(sondEnemyShoot)
@@ -1606,3 +1672,14 @@ audioLoader.load( 'sounds/jump.mp3', function( buffer ) { sounds.jump = buffer }
 audioLoader.load( 'sounds/sniperZoom.mp3', function( buffer ) { sounds.sniperZoom = buffer });
 audioLoader.load( 'sounds/fullReload.mp3', function( buffer ) { sounds.fullReload = buffer });
 audioLoader.load( 'sounds/miniReload.mp3', function( buffer ) { sounds.miniReload = buffer });
+
+Array.from(document.getElementsByClassName('weapons')).forEach(e => e.addEventListener('click', (event) => event.target.style.color = event.target.style.color == 'rgb(12, 12, 12)' ? 'rgb(255, 89, 0)' : 'rgb(12, 12, 12)'))
+Array.from(document.getElementsByClassName('weapons')).forEach(e => e.style.color = 'rgb(255, 89, 0)')
+Array.from(document.getElementsByClassName('botDiffs')).forEach(e => e.addEventListener('click', (event) => { Array.from(document.getElementsByClassName('botDiffs')).forEach(e => e.style.color = 'rgb(12, 12, 12)'); event.target.style.color = 'rgb(255, 89, 0)' }))
+Array.from(document.getElementsByClassName('botDiffs')).forEach(e => e.style.color = 'rgb(12, 12, 12)')
+Array.from(document.getElementsByClassName('botDiffs'))[0].style.color = 'rgb(255, 89, 0)'
+
+document.getElementById('leaveGameBtn').addEventListener('click', onLeaveGameBtn)
+document.getElementById('resumeGameBtn').addEventListener('click', onResumeGameBtn)
+
+document.getElementById('playerNickname').addEventListener('change', (e) => {localStorage.setItem('nick', e.target.value)})

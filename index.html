@@ -5,20 +5,57 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <link rel="stylesheet" href="style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" sizes="16x16" type="image/x-icon" href="favicon.ico">
     <title>Straighten Rifle</title>
 </head>
 <body>
     <div id="menuBg">
         <div id="menu">
-            <div>
-                <label>Your Code</label>
-                <input type="text" id="yourCode">
-                <button id="copyCodeBtn">Copy</button><br>
-                <label>Enemy Code</label>
-                <input type="text" id="enemyCode">
-                <button id="ConnectBtn">Connect</button>
+            <div id="menuHeader">
+                <button class="menuBtns" id="onPlay" draggable="false">PLAY</button>
+                <label class="gameName">STRAIGHTEN RIFLE</label>
+                <button class="menuBtns">SETTINGS</button>
             </div>
-            <button id="onPlay" draggable="false">click to play</button>
+            <div id="menuBody">
+                <div id="leftBodyBlock">
+                    <div id="weaponsChoose">
+                        <label>Weapons</label>
+                        <button id="pistol" class="weapons">Pistol</button>
+                        <button id="rifle" class="weapons">Rifle</button>
+                        <button id="famasRifle" class="weapons">Burst Rifle</button>
+                        <button id="sniperRifle" class="weapons">Sniper Rifle</button>
+                    </div>
+                    <div id="nickNameBlock">
+                        <label>Your Nickname</label>
+                        <input id="playerNickname" type="text">
+                    </div>
+                </div>
+                <div id="centrBodyBlock">
+                    <div id="enemyShowBlock">
+                        <label>YOUR ENEMY IS</label>
+                        <img id="enemyAvatar" src="img/robot.png">
+                        <label id="enemyShowNick">Robot</label>
+                    </div>
+                    <div id="onlineBlock">
+                        <input type="text" id="yourCode" placeholder="Your code">
+                        <button id="copyCodeBtn">Copy</button>
+                        <input type="text" id="enemyCode" placeholder="Paste code Here">
+                        <button id="ConnectBtn">Join</button>
+                    </div>
+                </div>
+                <div id="rightBodyBlock">
+                    <div id="iconOfBot">
+                        <img src="img/icon.png">
+                    </div>
+                    <div id="botDifficultSwitch">
+                        <label>Bot Difficult</label>
+                        <button id="easyDiff" style="color: rgb(255, 89, 0);" class="botDiffs">Easy</button>
+                        <button id="mediumDiff" class="botDiffs">Medium</button>
+                        <button id="hardDiff" class="botDiffs">Hard</button>
+                    </div>
+                </div>
+            </div>
+            
             <div id="gameOrDevChooseBlock">
                 <label>noFly</label>
                 <label class="switch">
@@ -33,6 +70,15 @@
                 <input type="range" min="0" max="100" id="sensSilder" value="10">
             </div>
         </div>
+    </div>
+    <div id="gameMenu">
+        <label class="gameName">STRAIGHTEN RIFLE</label>
+        <img src="img/icon.png">
+        <div>
+            <button id="leaveGameBtn">LEAVE</button>
+            <button id="resumeGameBtn">RESUME</button>
+        </div>
+        <label>You are on pause now</label>
     </div>
     <div id="nextRoundTransitionBlock"></div>
     <div id="advancedInfoBlock">
@@ -93,7 +139,15 @@
         <label>Round Started</label>
     </div>
     <div id="loader">
-        <label>Loading...</label>
+        <div></div>
+        <div>
+            <label class="gameName">STRAIGHTEN RIFLE</label>
+            <img src="img/icon.png">
+        </div>
+        <div>
+            <img src="img/loader.gif">
+            <label>Loading...</label>
+        </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/math/OBB.min.js"></script>

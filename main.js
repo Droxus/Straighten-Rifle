@@ -407,6 +407,15 @@ function gravityAttraction(){
                     playerModel.position.y -= 0.002 * velOfGravityAttractionIndex
                 }
             } else {
+                if (sounds.jump){
+                    if (soundPlayerSteps.isPlaying){
+                        soundPlayerSteps.stop();
+                    }
+                    soundPlayerSteps.setBuffer( sounds.jump );
+                    soundPlayerSteps.setLoop( false );
+                    soundPlayerSteps.setVolume( soundVolume/8 );
+                    soundPlayerSteps.play();
+                }
                 isGravityAttractioning = false
                 clearInterval(smoothGravityAttraction)
             }
@@ -468,6 +477,14 @@ function playerMove(){
                     }
                     if (player.speed.z !== 0 && player.speed.x == 0){
                         player.realSpeed.x = 0
+                    }
+                    if (sounds.step){
+                        if (!soundPlayerSteps.isPlaying){
+                            soundPlayerSteps.setBuffer( sounds.step );
+                            soundPlayerSteps.setLoop( false );
+                            soundPlayerSteps.setVolume( soundVolume/4 );
+                            soundPlayerSteps.play();
+                        }
                     }
                 }
                 else {
@@ -756,6 +773,17 @@ function makeReload(){
     if (weapons[randomWeapon].ammo < weapons[randomWeapon].characteristics.ammo && !isReloading){
         isReloading = true
         clearInterval(reloadingTime)
+        setTimeout(() => {
+            if (sounds.fullReload){
+                if (soundPlayerShoot.isPlaying){
+                    soundPlayerShoot.stop();
+                }
+                soundPlayerShoot.setBuffer( sounds.fullReload );
+                soundPlayerShoot.setLoop( false );
+                soundPlayerShoot.setVolume( soundVolume/2 );
+                soundPlayerShoot.play();
+            }
+        }, 400)
         let rotateToReload = setInterval(() => {
             if (weapons[randomWeapon].rotationZ > -Math.PI/4){
                 weapons[randomWeapon].rotationZ += -0.05
@@ -768,6 +796,7 @@ function makeReload(){
                 if (weapons[randomWeapon].rotationZ < 0){
                     weapons[randomWeapon].rotationZ += 0.05
                 } else {
+                    soundPlayerShoot.stop();
                     clearInterval(rotateBack)
                 }
             }, 5)
@@ -805,7 +834,7 @@ function onFireAttack(){
             case 'sniperRifle':
                 makeShoot()
                 fireRate = setTimeout(() => {
-                    sniperRifle.canShoot = true
+                    sniperRifle.canShoot = true  
                 }, sniperRifle.characteristics.fireRate * 1000)
                 break;
             case 'famasRifle':
@@ -847,6 +876,15 @@ function onFireAttack(){
 }
 function onScope(){
     if (weapons[randomWeapon].name == 'sniperRifle'){
+        if (sounds.sniperZoom){
+            if (soundPlayerShoot.isPlaying){
+                soundPlayerShoot.stop();
+            }
+            soundPlayerShoot.setBuffer( sounds.sniperZoom );
+            soundPlayerShoot.setLoop( false );
+            soundPlayerShoot.setVolume( soundVolume/4 );
+            soundPlayerShoot.play();
+        }
         if (document.getElementById('awpScope').style.display !== 'none'){
             if (camera.zoom == 2){
                 camera.zoom = 5
@@ -917,6 +955,29 @@ function makeShoot(){
                 connection.send({bullet: {startPosition: {x: weapons[randomWeapon].position.x + Math.sin(camera.rotation.y) * -2, y: weapons[randomWeapon].position.y + Math.tan(camera.rotation.x) * 1,
                     z: weapons[randomWeapon].position.z + Math.cos(Math.PI - camera.rotation.y) * 2}, endPosition: { x: intersetsFiltered[0].point.x, y: intersetsFiltered[0].point.y, z: intersetsFiltered[0].point.z }}});
             }
+            console.log(weapons[randomWeapon].name)
+            if (sounds[weapons[randomWeapon].name]){
+                if (soundPlayerShoot.isPlaying){
+                    soundPlayerShoot.stop();
+                }
+                soundPlayerShoot.setBuffer( sounds[weapons[randomWeapon].name] );
+                soundPlayerShoot.setLoop( false );
+                soundPlayerShoot.setVolume( soundVolume/8 );
+                soundPlayerShoot.play();
+            }
+            if (weapons[randomWeapon].name == 'sniperRifle'){
+                setTimeout(() => {
+                    if (sounds.miniReload){
+                        if (soundPlayerShoot.isPlaying){
+                            soundPlayerShoot.stop();
+                        }
+                        soundPlayerShoot.setBuffer( sounds.miniReload );
+                        soundPlayerShoot.setLoop( false );
+                        soundPlayerShoot.setVolume( soundVolume/4 );
+                        soundPlayerShoot.play();
+                    }
+                }, 750)
+            }
             let velocity = 500 / 200
             let time = distanceToEndPosition / velocity
             let bulletSpeedX = (bullet.endPosition.x - weapons[randomWeapon].position.x + Math.sin(camera.rotation.y) * -2) / time
@@ -937,13 +998,13 @@ function makeShoot(){
                         }
                         enemyModel.healthPoints -= weapons[randomWeapon].characteristics.damage
                         if (sounds.enemyHit){
-                            if (sound.isPlaying){
-                                sound.stop();
+                            if (soundEnemyHit.isPlaying){
+                                soundEnemyHit.stop();
                             }
-                            sound.setBuffer( sounds.enemyHit );
-                            sound.setLoop( false );
-                            sound.setVolume( soundVolume/4 );
-                            sound.play();
+                            soundEnemyHit.setBuffer( sounds.enemyHit );
+                            soundEnemyHit.setLoop( false );
+                            soundEnemyHit.setVolume( soundVolume/4 );
+                            soundEnemyHit.play();
                         }
                         checkIfNextRound()
                     }
@@ -1244,6 +1305,14 @@ function makeBotShoot(){
         bullets.push(bullet)
         scene.add( bullet )
         bullet.position.set(enemyModel.position.x, enemyModel.position.y+2, enemyModel.position.z)
+        if (sondEnemyShoot.isPlaying){
+            sondEnemyShoot.stop();
+        }
+        sondEnemyShoot.setBuffer( sounds[weapons[randomWeapon].name] );
+        sondEnemyShoot.setLoop( false );
+        sondEnemyShoot.setVolume( soundVolume/4 );
+        sondEnemyShoot.setRefDistance( 40 );
+        sondEnemyShoot.play();
         let velocity = 500 / 200
         let distance = Math.sqrt(Math.pow(playerModel.position.x - enemyModel.position.x, 2) + Math.pow(playerModel.position.z - enemyModel.position.z, 2) + Math.pow(playerModel.position.y - enemyModel.position.y, 2))
         let time = distance / velocity
@@ -1276,13 +1345,13 @@ function makeBotShoot(){
                     if (!onlineMode){
                         playerModel.healthPoints -= weapons[randomWeapon].characteristics.damage
                         if (sounds.playerHit){
-                            if (sound.isPlaying){
-                                sound.stop();
+                            if (soundPlayerHit.isPlaying){
+                                soundPlayerHit.stop();
                             }
-                            sound.setBuffer( sounds.playerHit );
-                            sound.setLoop( false );
-                            sound.setVolume( soundVolume/4 );
-                            sound.play();
+                            soundPlayerHit.setBuffer( sounds.playerHit );
+                            soundPlayerHit.setLoop( false );
+                            soundPlayerHit.setVolume( soundVolume/4 );
+                            soundPlayerHit.play();
                         }
                         document.getElementById('hitEventShow').classList.add('hitEventShow')
                         setTimeout(() => {
@@ -1309,6 +1378,14 @@ function makeEnemyShoot(startPosition, endPosition){
         bullets.push(bullet)
         scene.add( bullet )
         bullet.position.set(enemyModel.position.x, enemyModel.position.y+2, enemyModel.position.z)
+        if (sondEnemyShoot.isPlaying){
+            sondEnemyShoot.stop();
+        }
+        sondEnemyShoot.setBuffer( sounds[weapons[randomWeapon].name] );
+        sondEnemyShoot.setLoop( false );
+        sondEnemyShoot.setVolume( soundVolume/4 );
+        sondEnemyShoot.setRefDistance( 40 );
+        sondEnemyShoot.play();
         let velocity = 500 / 200
         let distance = Math.sqrt(Math.pow(startPosition.x - endPosition.x, 2) + Math.pow(startPosition.z - endPosition.z, 2) + Math.pow(startPosition.y - endPosition.y, 2))
         let time = distance / velocity
@@ -1461,13 +1538,13 @@ function onConnectionOpen(){
         if (data.hit){
             playerModel.healthPoints -= weapons[randomWeapon].characteristics.damage
             if (sounds.playerHit){
-                if (sound.isPlaying){
-                    sound.stop();
+                if (soundPlayerHit.isPlaying){
+                    soundPlayerHit.stop();
                 }
-                sound.setBuffer( sounds.playerHit );
-                sound.setLoop( false );
-                sound.setVolume( soundVolume/4 );
-                sound.play();
+                soundPlayerHit.setBuffer( sounds.playerHit );
+                soundPlayerHit.setLoop( false );
+                soundPlayerHit.setVolume( soundVolume/4 );
+                soundPlayerHit.play();
             }
             document.getElementById('hitEventShow').classList.remove('hitEventShow')
             document.getElementById('hitEventShow').classList.add('hitEventShow')
@@ -1504,32 +1581,28 @@ document.getElementById('copyCodeBtn').addEventListener('click', () => {navigato
 const listener = new THREE.AudioListener();
 camera.add( listener );
 
-const sound = new THREE.Audio( listener );
+const soundPlayerHit = new THREE.Audio( listener );
+
+const soundEnemyHit = new THREE.Audio( listener );
+
+const soundPlayerSteps = new THREE.Audio( listener );
+
+const soundPlayerShoot = new THREE.Audio( listener );
+
+const sondEnemyShoot = new THREE.PositionalAudio( listener );
+enemyModel.add(sondEnemyShoot)
 
 const audioLoader = new THREE.AudioLoader();
 
 let sounds = {}
-audioLoader.load( 'sounds/step.mp3', function( buffer ) {
-    sounds.step = buffer
-});
-audioLoader.load( 'sounds/sniperShoot.mp3', function( buffer ) {
-    sounds.sniperShoot = buffer
-});
-audioLoader.load( 'sounds/famasShoot.mp3', function( buffer ) {
-    sounds.famasShoot = buffer
-});
-audioLoader.load( 'sounds/pistolShoot.mp3', function( buffer ) {
-    sounds.pistolShoot = buffer
-});
-audioLoader.load( 'sounds/rifleReload.mp3', function( buffer ) {
-    sounds.rifleReload = buffer
-});
-audioLoader.load( 'sounds/playerHit.mp3', function( buffer ) {
-    sounds.playerHit = buffer
-});
-audioLoader.load( 'sounds/enemyHit.mp3', function( buffer ) {
-    sounds.enemyHit = buffer
-});
-audioLoader.load( 'sounds/jump.mp3', function( buffer ) {
-    sounds.jump = buffer
-});
+audioLoader.load( 'sounds/step.mp3', function( buffer ) { sounds.step = buffer });
+audioLoader.load( 'sounds/sniperShoot.mp3', function( buffer ) { sounds.sniperRifle = buffer });
+audioLoader.load( 'sounds/famasShoot.mp3', function( buffer ) { sounds.famasRifle = buffer });
+audioLoader.load( 'sounds/pistolShoot.mp3', function( buffer ) { sounds.pistol = buffer });
+audioLoader.load( 'sounds/rifleReload.mp3', function( buffer ) { sounds.rifle = buffer });
+audioLoader.load( 'sounds/playerHit.mp3', function( buffer ) { sounds.playerHit = buffer });
+audioLoader.load( 'sounds/enemyHit.mp3', function( buffer ) { sounds.enemyHit = buffer });
+audioLoader.load( 'sounds/jump.mp3', function( buffer ) { sounds.jump = buffer });
+audioLoader.load( 'sounds/sniperZoom.mp3', function( buffer ) { sounds.sniperZoom = buffer });
+audioLoader.load( 'sounds/fullReload.mp3', function( buffer ) { sounds.fullReload = buffer });
+audioLoader.load( 'sounds/miniReload.mp3', function( buffer ) { sounds.miniReload = buffer });

@@ -135,8 +135,7 @@ body * {
 #nickNameBlock > input{
     width: 90%;
     height: 50%;
-    margin-left: 5%;
-    margin-top: 15%;
+    margin: 15% 4%;
     text-align: center;
     display: flex;
     justify-content: center;
@@ -196,6 +195,7 @@ body * {
     place-self: center;
     font-weight: normal;
     font-size: 28px;
+    cursor: pointer;
 }
 #botDifficultSwitch{
     display: flex;
@@ -310,73 +310,227 @@ body * {
     text-align: center;
     border: none;
 }
-#gameOrDevChooseBlock{
-    display: grid;
-    justify-content: center;
-    align-items: center;
-    grid-template-rows: 100%;
-    grid-template-columns: 1fr 1fr 1fr;
-    width: 450px;
-}
-/* tumbler */
-
-.switch {
-    position: relative;
-    display: inline-block;
-    width: 60px;
-    height: 34px;
-  }
-  
-  .switch input {display:none;}
-  
-  .slider {
-    position: absolute;
-    cursor: pointer;
+#settingsBlock{
+    background: #1F1F1F;
+    position: sticky;
+    display: none;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #ccc;
-    -webkit-transition: .4s;
-    transition: .4s;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    grid-template-rows: 20% 80%;
+    grid-template-columns: 100%;
+}
+#settingsHeaderBlock{
+    border-bottom: 10px solid #191919;
+    width: 90%;
+    justify-self: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+#settingsBlockLbl{
+    color: #ff5900;
+    font-weight: bold;
+    font-size: 46px;
+    font-family: Arial, Helvetica, sans-serif;
+    margin-bottom: 2%;
+}
+#onMenu{
+    background: transparent;
+    width: 15%;
+    height: 35%;
+    border: 4px solid #FF5900;
+    color: #ff5900;
+    font-size: 36px;
+    cursor: pointer;
+    margin-bottom: 2%;
+}
+#settingsBodyBlock{
+    display: grid;
+    width: 90%;
+    justify-self: center;
+    grid-auto-rows: max-content;
+    grid-gap: 10%;
+    overflow-y: scroll;
+    scroll-behavior: smooth !important;
+}
+.settingsBlocks{
+    width: 100%;
+    justify-self: center;
+}
+.settingsSliderBlocks > label{
+    display: flex;
+    width: 100%;
+    font-size: 28px;
+    font-weight: bold;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #0C0C0C;
+}
+.settingsKeyAssignmentBlocks{
+    margin-top: 2%;
+    display: flex;
+}
+.settingsKeyAssignmentBlocks  > button{
+    background: transparent;
+    width: 10%;
+    padding: 0.5% 0;
+    border: 4px solid #FF5900;
+    color: #ff5900;
+    font-size: 24px;
+    cursor: pointer;
+    margin-bottom: 2%;
+    outline: none;
+}
+.settingsKeyAssignmentBlocks  > label{
+    display: flex;
+    width: 50%;
+    font-size: 28px;
+    font-weight: bold;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #0C0C0C;
+    padding-top: 0.5%;
+    text-align: center;
+    margin-left: 5%;
+}
+.headerSettingBlocks > label{
+    color: #ff5900;
+    font-weight: bold;
+    font-size: 46px;
+    font-family: Arial, Helvetica, sans-serif;
+    margin-bottom: 2%;
+}
+.headerSettingBlocks{
+    width: 100%;
+    border-bottom: 10px solid #191919;
+    justify-self: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+#settingsBodyBlock::-webkit-scrollbar {
+    display: none;
   }
-  
-  .slider:before {
-    position: absolute;
-    content: "";
-    height: 26px;
-    width: 26px;
-    left: 4px;
-    bottom: 4px;
-    background-color: white;
-    -webkit-transition: .4s;
-    transition: .4s;
-  }
-  
-  input:checked + .slider {
-    background-color: #2196F3;
-  }
-  
-  input:focus + .slider {
-    box-shadow: 0 0 1px #2196F3;
-  }
-  
-  input:checked + .slider:before {
-    -webkit-transform: translateX(26px);
-    -ms-transform: translateX(26px);
-    transform: translateX(26px);
-  }
+.settingsSliderBlocks > input[type=range]{
+    width: 45%;
+    background: #FF5900;
+}
+.settingsSliderBlocks > input[type=range]::-webkit-slider-runnable-track{
+    background: #191919;
+}
+.settingsSliderBlocks > input[type=range]::-ms-track{
+    background: #FF5900;
+}
+.settingsSliderBlocks > input[type=range]::-ms-track{
+    background: #FF5900;
+}
+.settingsSliderBlocks > input[type=number]{
+    width: 10%;
+    height: 10px;
+    font-size: 24px;
+    font-weight: bold;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #FF5900;
+    text-align: center;
+    background: transparent;
+    border: 4px solid #FF5900;
+    margin-left: 5%;
+    padding-top: 30px;
+    padding-bottom: 10px;
+    outline: none;
+}
+.settingsSliderBlocks{
+    margin-top: 3%;
+}
+input[type="range"] { 
+    margin: auto;
+    -webkit-appearance: none;
+    position: relative;
+    overflow: hidden;
+    height: 40px;
+    width: 45%;
+    cursor: pointer;
+    border-radius: 0;
+}
+::-webkit-slider-runnable-track {
+    background: #191919;
+}
+::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 0px; /* 1 */
+    height: 40px;
+    background: #FF5900;
+    box-shadow: -50vw 0 0 50vw #FF5900; /* 2 */
+    border: 0px solid #FF5900; /* 1 */
+}
+
+::-moz-range-track {
+    height: 40px;
+    background: #FF5900;
+}
+
+::-moz-range-thumb {
+    background: #FF5900;
+    height: 40px;
+    width: 0px;
+    border: 3px solid #FF5900;
+    border-radius: 0 !important;
+    box-shadow: -50vw 0 0 50vw #FF5900;
+    box-sizing: border-box;
+}
+
+::-ms-fill-lower { 
+    background: #FF5900;
+}
+
+::-ms-thumb { 
+    background: #FF5900;
+    border: 0px solid #FF5900;
+    height: 40px;
+    width: 0px;
+    box-sizing: border-box;
+}
+
+::-ms-ticks-after { 
+    display: none; 
+}
+
+::-ms-ticks-before { 
+    display: none; 
+}
+
+::-ms-track { 
+    background: #FF5900;
+    color: transparent;
+    height: 40px;
+    border: none;
+}
+
+::-ms-tooltip { 
+    display: none;
+}
 #crosshair{
     z-index: 2;
     position: absolute;
+    top: 0;
+    left: 0;
     left: 50%;
     top: 50%;
-    transform: translate(-25%, -55%);
-    width: 24px;
-    height: 24px;
+    /* transform: translate(-25%, -55%); */
+    transform: translate(-50%, -50%);
+    width: 30vw;
+    height: 40vh;
     color: aqua;
-    opacity: 0.2;
-    font-size: 24px;
+    opacity: 1;
+}
+#settingsCrosshair{
+    width: 30vw;
+    height: 40vh;
+    position: relative;
+    margin-left: 65%;
+    margin-top: -40%;
+    border: 4px solid #FF5900;
 }
 #loader{
     background-color: #1F1F1F;

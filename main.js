@@ -9,6 +9,7 @@ const peer = new Peer();
 let onlineMode, scoreboard = {player: 0, enemy: 0}, inGame
 
 let soundVolume = 0.5
+let musicVolume = 0.5
 let botDifficult = 1
 const defaultSpeed = 0.11
 let sky, sun;
@@ -40,7 +41,6 @@ playerModel.geometry.userData.obb = new THREE.OBB().fromBox3(
 playerModel.userData.obb = new THREE.OBB()
 playerModel.healthPoints = 100
 scene.add(playerModel)
-// console.log(playerModel)
 const modelForBotTarget = new THREE.Mesh(  new THREE.BoxGeometry( 2, 2, 2 ), new THREE.MeshBasicMaterial( {color: 0x00ff00, visible: false} ) );
 modelForBotTarget.name = 'modelForBotTarget'
 scene.add(modelForBotTarget)
@@ -54,7 +54,6 @@ enemyModel.geometry.userData.obb = new THREE.OBB().fromBox3(
 enemyModel.userData.obb = new THREE.OBB()
 enemyModel.healthPoints = 100
 scene.add(enemyModel)
-// console.log(enemyModel)
 let player = {
     speed: {
         x: 0,
@@ -79,18 +78,16 @@ let player = {
         x: 0,
         z: 0
     },
-    isFlying: false,
-    flyMode: false
+    isFlying: false
 }
 let modelHeight = 3
 let loadedAssets = 0, loadedTime = 0
-let sensitivity = 1
+let sensitivity = 1, sensitivityX = 1, sensitivityY = 1
 let boxes = [], helpers = [], bullets = [], weapons = [], enemyWeapons = [], collisionResponsiveObjects = [], spawnEnemyAndPath = [], spawnArea = [], allWeapons = []
 const loader = new THREE.GLTFLoader();
 let model, sniperRifle, famasRifle, rifle, pistol
    loader.load('models/aimmap.glb', (glb) =>  {
         if (glb){
-            // console.log(glb.scene)
             model = glb.scene
             model.scale.set(1, 1, 1)
             model.position.set(0, 0, 0)
@@ -251,7 +248,6 @@ function hideLoader(){
     if (loadedAssets > 4){
         document.getElementById('loader').style.display = 'none'
         clearInterval(loadedInterval)
-        console.log('Loading time takes ' + loadedTime/1000 + ' sec')
     }
 }
 const renderer = new THREE.WebGLRenderer();
@@ -314,13 +310,12 @@ function animate() {
     requestAnimationFrame(animate)
     stats.update()
 
-    if (!player.flyMode){
-        camera.position.x = playerModel.position.x
-        camera.position.y = playerModel.position.y + playerModel.geometry.parameters.height/2 * playerModel.scale.y
-        camera.position.z = playerModel.position.z
-        modelForBotTarget.position.copy(playerModel.position)
-        modelForBotTarget.position.y += playerModel.geometry.parameters.height
-    }
+    camera.position.x = playerModel.position.x
+    camera.position.y = playerModel.position.y + playerModel.geometry.parameters.height/2 * playerModel.scale.y
+    camera.position.z = playerModel.position.z
+    modelForBotTarget.position.copy(playerModel.position)
+    modelForBotTarget.position.y += playerModel.geometry.parameters.height
+
     if (loadedAssets > 4 && weapons.length > 0){
         weapons[randomWeapon].position.x = camera.position.x - Math.sin(camera.rotation.y - weapons[randomWeapon].rotationCameraX) * weapons[randomWeapon].rotationCameraKefX
         weapons[randomWeapon].position.z = camera.position.z + Math.cos(Math.PI - camera.rotation.y + weapons[randomWeapon].rotationCameraZ) * weapons[randomWeapon].rotationCameraKefZ
@@ -382,17 +377,7 @@ function onResize(){
 window.addEventListener('beforeunload', function(e){
         e.stopPropagation();e.preventDefault();return false;
     },true);
-let keys = {
-    KeyW: false,
-    KeyA: false,
-    KeyS: false,
-    KeyD: false,
-    KeyQ: false,
-    KeyE: false,
-    ShiftLeft: false,
-    ControlLeft: false,
-    Space: false
-}
+let keys
 let smoothGravityAttraction, velOfGravityAttractionIndex, isGravityAttractioning
 function gravityAttraction(){
     if (!isGrounded(playerModel) && !isFuseSpamSpace && !isGravityAttractioning){
@@ -439,10 +424,6 @@ function playerMove(){
             player.speed.z = Math.abs(player.speed.z) > 0 ? player.maxSpeed.horizontal * (player.speed.z / Math.abs(player.speed.z)) : player.speed.z
         }
         if (player.speed.x !== 0 || player.speed.y !== 0 || player.speed.z !== 0){
-            if (player.flyMode){
-                camera.translateZ( -player.speed.z * 20 )
-                camera.translateX( player.speed.x * 20 )
-            } else {
                 if (isGrounded(playerModel)){
                     checkCollision()
                     isOnLanding = false
@@ -492,7 +473,6 @@ function playerMove(){
                     onLanding()
                     gravityAttraction()
                 }
-            }
         } else {
             inertiaMove()
             clearInterval( smoothlyMove )
@@ -677,43 +657,43 @@ function onLanding(){
 function offKeyboard(event){
     event.preventDefault();
         switch (event.code) {
-        case 'KeyW':
-                if (keys.KeyS){
+        case localStorage.getItem('runningFoward'):
+                if (keys[localStorage.getItem('runningBack')]){
                     player.speed.z = -player.maxSpeed.horizontal
                 } else {
                     player.speed.z = 0
                 }
             break;
-        case 'KeyA':
-                if (keys.KeyD){
+        case localStorage.getItem('runningLeft'):
+                if (keys[localStorage.getItem('runningRight')]){
                     player.speed.x = player.maxSpeed.horizontal
                 } else {
                     player.speed.x = 0
                 }
             break;
-        case 'KeyS':
-                if (keys.KeyW){
+        case localStorage.getItem('runningBack'):
+                if (keys[localStorage.getItem('runningFoward')]){
                     player.speed.z = player.maxSpeed.horizontal
                 } else {
                     player.speed.z = 0
                 }
             break;
-        case 'KeyD':
-                if (keys.KeyA){
+        case localStorage.getItem('runningRight'):
+                if (keys[localStorage.getItem('runningLeft')]){
                     player.speed.x = -player.maxSpeed.horizontal
                 } else {
                     player.speed.x = 0
                 }
             break;
-        case 'ControlLeft':
-            if (!isFuseSpamCtrl && keys.ControlLeft){
+        case localStorage.getItem('ducking'):
+            if (!isFuseSpamCtrl && keys[localStorage.getItem('ducking')]){
                 isFuseSpamCtrl = true
                 player.maxSpeed.horizontal = defaultSpeed
                 makeDuck(false)
                 isFuseSpamCtrl = false
             }
             break;
-        case 'ShiftLeft':
+        case localStorage.getItem('creeping'):
             player.maxSpeed.horizontal = defaultSpeed
             break;
         case 'F2':
@@ -729,23 +709,23 @@ function onKeyboard(event){
     if (!keys[event.code]){
         keys[event.code] = true
         switch (event.code) {
-        case 'KeyW':
+        case localStorage.getItem('runningFoward'):
                 player.speed.z = player.maxSpeed.horizontal
                 playerMove()
             break;
-        case 'KeyA':
+        case localStorage.getItem('runningLeft'):
                 player.speed.x = -player.maxSpeed.horizontal
                 playerMove()
             break;
-        case 'KeyS':
+        case localStorage.getItem('runningBack'):
                 player.speed.z = -player.maxSpeed.horizontal
                 playerMove()
             break;
-        case 'KeyD':
+        case localStorage.getItem('runningRight'):
                 player.speed.x = player.maxSpeed.horizontal
                 playerMove()
             break;
-        case 'ControlLeft':
+        case localStorage.getItem('ducking'):
             if (!isCtrlStamina && Math.round(playerModel.geometry.parameters.height) == 4){
                 isCtrlStamina = true
                 player.maxSpeed.horizontal = 0.06
@@ -757,13 +737,13 @@ function onKeyboard(event){
                 keys[event.code] = false
             }
             break;
-        case 'ShiftLeft':
+        case localStorage.getItem('creeping'):
             player.maxSpeed.horizontal = 0.08
             break;
-        case 'Space':
+        case localStorage.getItem('space'):
             makeJump()
             break;
-        case 'KeyR':
+        case localStorage.getItem('reloading'):
             makeReload()
             break;
         }
@@ -987,12 +967,12 @@ function makeShoot(){
             let smoothBulletShooting = setInterval(() => {
             let distanceBtwBulletAndPlayer = Math.sqrt(Math.pow(bullet.position.x - enemyModel.position.x, 2) + Math.pow(bullet.position.z - enemyModel.position.z, 2) + Math.pow(bullet.position.y - enemyModel.position.y, 2))
             let distanceBtwBulletAndEndPos = Math.sqrt(Math.pow(bullet.position.x - bullet.endPosition.x, 2) + Math.pow(bullet.position.z - bullet.endPosition.z, 2) + Math.pow(bullet.position.y - bullet.endPosition.y, 2))
-            if (distanceBtwBulletAndPlayer > velocity/Math.sqrt(2) && distanceBtwBulletAndEndPos > velocity/Math.sqrt(2) && Math.abs(bullet.position.x) < 300 && Math.abs(bullet.position.z) < 300 && Math.abs(bullet.position.y) < 20) {
+            if (distanceBtwBulletAndPlayer > velocity/1.25 && distanceBtwBulletAndEndPos > velocity/1.25 && Math.abs(bullet.position.x) < 300 && Math.abs(bullet.position.z) < 300 && Math.abs(bullet.position.y) < 20) {
                     bullet.position.x += bulletSpeedX
                     bullet.position.y += bulletSpeedY
                     bullet.position.z += bulletSpeedZ
                 } else {
-                    if (distanceBtwBulletAndPlayer < velocity/Math.sqrt(2)){
+                    if (distanceBtwBulletAndPlayer < velocity/1.25){
                         if (onlineMode){
                             connection.send({hit: true});
                         }
@@ -1028,12 +1008,7 @@ document.getElementById('onPlay').addEventListener('click', onPlay)
 let randomWeapon = 0
 function onPlay(){
     document.getElementById('menuBg').style.display = 'none'
-    player.flyMode = document.getElementById('playOrDevChoose').checked
-    if (player.flyMode){
-        player.maxSpeed.horizontal = 0.2
-    } else {
-        player.maxSpeed.horizontal = 0.12
-    }
+    player.maxSpeed.horizontal = defaultSpeed
     document.querySelector('canvas').requestPointerLock = document.querySelector('canvas').requestPointerLock ||
     document.querySelector('canvas').mozRequestPointerLock ||
     document.querySelector('canvas').webkitRequestPointerLock;
@@ -1072,6 +1047,10 @@ function onPlay(){
     onNextRound()
     document.getElementById('playerNick').innerText = document.getElementById('playerNickname').value.slice(0, 12) || 'Player'
     document.getElementById('enemyNick').innerText = document.getElementById('enemyShowNick').innerText.slice(0, 12) || 'Enemy'
+    audio.pause()
+    audio = new Audio(`sounds/music${2+Math.round(Math.random())}.mp3`)
+    audio.volume = musicVolume
+    audio.play()
 }
 function checkIfNextRound(){
     if (inGame){
@@ -1097,6 +1076,11 @@ function checkIfNextRound(){
 }
 let onNextRoundTimeOut
 function onNextRound(){
+    if (weapons[randomWeapon].name == 'sniperRifle') {
+        document.getElementById('crosshair').style.display = 'none'
+    } else {
+        document.getElementById('crosshair').style.display = 'initial'
+    }
     document.getElementById('playerScore').innerText = scoreboard.player
     document.getElementById('enemyScore').innerText = scoreboard.enemy
     bullets.forEach(e => scene.remove(e))
@@ -1112,17 +1096,7 @@ function onNextRound(){
     if (onlineMode){
         connection.send({position: {y: playerModel.position.y,  x: playerModel.position.x, z: playerModel.position.z}, scale: {y: playerModel.scale.y}});
     }
-    keys = {
-        KeyW: false,
-        KeyA: false,
-        KeyS: false,
-        KeyD: false,
-        KeyQ: false,
-        KeyE: false,
-        ShiftLeft: false,
-        ControlLeft: false,
-        Space: false
-    }
+    keyAssignmentsUp()
     clearInterval(fireShootInterval)
     clearInterval(timeToRestoreInterval)
     weapons[randomWeapon].ammo = weapons[randomWeapon].characteristics.ammo
@@ -1186,17 +1160,7 @@ function onMenu(){
     window.removeEventListener('keyup', offKeyboard)
     window.removeEventListener('mousedown', onMouseClick)
     window.removeEventListener('mouseup', onMouseUp)
-    keys = {
-        KeyW: false,
-        KeyA: false,
-        KeyS: false,
-        KeyD: false,
-        KeyQ: false,
-        KeyE: false,
-        ShiftLeft: false,
-        ControlLeft: false,
-        Space: false
-    }
+    keyAssignmentsUp()
     weapons.forEach(e => {e.visible = false; e.position.set(0, 40, 0)})
     enemyModel.visible = false
     playerModel.healthPoints = 100
@@ -1204,6 +1168,10 @@ function onMenu(){
     document.getElementById('playerNickname').value = localStorage.getItem('nick') || 'Player'
     document.getElementById('enemyAvatar').setAttribute('src', 'img/robot.png')
     document.getElementById('enemyNick').innerText = 'Robot'
+    audio.pause()
+    audio = new Audio('sounds/music1.mp3')
+    audio.volume = musicVolume
+    audio.play()
 }
 function onGameMenu(){
     document.getElementById('gameMenu').style.display = 'grid'
@@ -1215,17 +1183,7 @@ function onGameMenu(){
     window.removeEventListener('mouseup', onMouseUp)
     player.speed.z = 0
     player.speed.x = 0
-    keys = {
-        KeyW: false,
-        KeyA: false,
-        KeyS: false,
-        KeyD: false,
-        KeyQ: false,
-        KeyE: false,
-        ShiftLeft: false,
-        ControlLeft: false,
-        Space: false
-    }
+    keyAssignmentsUp()
 }
 function onLeaveGameBtn(){
     document.getElementById('gameMenu').style.display = 'none'
@@ -1491,8 +1449,8 @@ function onMouseMove( event ){
     const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
 	const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
 
-    euler.x -= movementY / (1 / sensitivity * 1000)
-    euler.y -= movementX / (1 / sensitivity * 1000)
+    euler.x -= movementY / (1 / sensitivity * 1000) * (1/sensitivityX)
+    euler.y -= movementX / (1 / sensitivity * 1000) * (1/sensitivityY)
 
     euler.x = Math.max(Math.min(Math.PI/2, euler.x), -Math.PI/2)
     camera.quaternion.setFromEuler( euler );
@@ -1568,7 +1526,6 @@ function getAdvancedData(){
 }
 peer.on('open', function(id) {
     document.getElementById('yourCode').value = id
-    console.log(id)
 });
 document.getElementById('ConnectBtn').addEventListener('click', onConnectBtn)
 let connection
@@ -1587,7 +1544,6 @@ function onConnectionOpen(){
     connection.on('open', () => {connection.send({nickname: document.getElementById('playerNickname').value})})
     connection.on('data', function(data){
         if (data.nickname){
-            console.log(data.nickname)
             document.getElementById('enemyShowNick').innerText = data.nickname
         }
         if (data.position){
@@ -1620,6 +1576,7 @@ function onConnectionOpen(){
         }
         if (data.weapon){
             randomWeapon = Math.max(Math.min(weapons.findIndex(weapon => weapon.name == data.weapon), weapons.length-1), 0)
+            weapons = allWeapons
         }
         if (data.score){
             scoreboard.enemy = data.score.player
@@ -1683,3 +1640,142 @@ document.getElementById('leaveGameBtn').addEventListener('click', onLeaveGameBtn
 document.getElementById('resumeGameBtn').addEventListener('click', onResumeGameBtn)
 
 document.getElementById('playerNickname').addEventListener('change', (e) => {localStorage.setItem('nick', e.target.value)})
+
+document.getElementById('onSettings').addEventListener('click', onSettings)
+document.getElementById('onMenu').addEventListener('click', onMainMenu)
+
+function onSettings(){
+    document.getElementById('menuBg').style.display = 'none'
+    document.getElementById('settingsBlock').style.display = 'grid'
+}
+function onMainMenu(){
+    document.getElementById('menuBg').style.display = 'grid'
+    document.getElementById('settingsBlock').style.display = 'none'
+}
+
+function drawCrosshair(){
+    let lineWidth = Number(localStorage.getItem('crosshairLineWidth'))
+    let length = Number(localStorage.getItem('crosshairLength'))
+    let gap = Number(localStorage.getItem('crosshairGap')) + length
+    let r = Number(localStorage.getItem('red')), g = Number(localStorage.getItem('green')), b = Number(localStorage.getItem('blue')), a = Number(localStorage.getItem('alpha'))
+    let lines1 = Array.from(document.getElementsByClassName('linesCrosshair'))
+    let lines2 = Array.from(document.getElementsByClassName('settingsLinesCrosshair'))
+    lines2[0].setAttribute('x1', 100/2+gap/2)
+    lines2[0].setAttribute('x2', 100/2+gap/2)
+    lines2[0].setAttribute('y1', 100/2-lineWidth/2)
+    lines2[0].setAttribute('y2', 100/2+lineWidth/2)
+    lines2[1].setAttribute('x1', 100/2-gap/2)
+    lines2[1].setAttribute('x2', 100/2-gap/2)
+    lines2[1].setAttribute('y1', 100/2+lineWidth/2)
+    lines2[1].setAttribute('y2', 100/2-lineWidth/2)
+    lines2[2].setAttribute('x1', 100/2-lineWidth/2)
+    lines2[2].setAttribute('x2', 100/2+lineWidth/2)
+    lines2[2].setAttribute('y1', 100/2+gap/2)
+    lines2[2].setAttribute('y2', 100/2+gap/2)
+    lines2[3].setAttribute('x1', 100/2+lineWidth/2)
+    lines2[3].setAttribute('x2', 100/2-lineWidth/2)
+    lines2[3].setAttribute('y1', 100/2-gap/2)
+    lines2[3].setAttribute('y2', 100/2-gap/2)
+    lines2.forEach(e => {
+        e.setAttribute('stroke', `rgba(${r}, ${g}, ${b}, ${a})`)
+        e.setAttribute('stroke-width', length)
+    })
+    lines1[0].setAttribute('x1', 100/2+gap/2)
+    lines1[0].setAttribute('x2', 100/2+gap/2)
+    lines1[0].setAttribute('y1', 100/2-lineWidth/2)
+    lines1[0].setAttribute('y2', 100/2+lineWidth/2)
+    lines1[1].setAttribute('x1', 100/2-gap/2)
+    lines1[1].setAttribute('x2', 100/2-gap/2)
+    lines1[1].setAttribute('y1', 100/2+lineWidth/2)
+    lines1[1].setAttribute('y2', 100/2-lineWidth/2)
+    lines1[2].setAttribute('x1', 100/2-lineWidth/2)
+    lines1[2].setAttribute('x2', 100/2+lineWidth/2)
+    lines1[2].setAttribute('y1', 100/2+gap/2)
+    lines1[2].setAttribute('y2', 100/2+gap/2)
+    lines1[3].setAttribute('x1', 100/2+lineWidth/2)
+    lines1[3].setAttribute('x2', 100/2-lineWidth/2)
+    lines1[3].setAttribute('y1', 100/2-gap/2)
+    lines1[3].setAttribute('y2', 100/2-gap/2)
+    lines1.forEach(e => {
+        e.setAttribute('stroke', `rgba(${r}, ${g}, ${b}, ${a})`)
+        e.setAttribute('stroke-width', length)
+    })
+}
+
+let audio = new Audio('sounds/music1.mp3')
+audio.volume = musicVolume
+window.addEventListener('click', function onMusic() { 
+    if (document.getElementById('menuBg').style.display !== 'none'){
+        audio.scr = 'sounds/music1.mp3'
+        audio.play()
+    }
+        window.removeEventListener('click', onMusic)
+})
+
+Array.from(document.getElementsByClassName('settingsSliderBlocks')).forEach(e => {
+    if (localStorage.getItem(e.getAttribute('settingname'))){
+        e.getElementsByClassName('settingSlider')[0].value = Number(localStorage.getItem(e.getAttribute('settingname')))
+        e.getElementsByClassName('settingInputs')[0].value = Number(localStorage.getItem(e.getAttribute('settingname')))
+    } else {
+        localStorage.setItem(String(e.getAttribute('settingname')), Number(e.getElementsByClassName('settingSlider')[0].value))
+    }
+})
+
+Array.from(document.getElementsByClassName('settingSlider')).forEach(e => e.addEventListener('input', (event) => {event.target.parentElement.getElementsByClassName('settingInputs')[0].value = event.target.value;
+ localStorage.setItem(String(event.target.parentElement.getAttribute('settingname')), Number(event.target.value)); settingsUp()}))
+
+Array.from(document.getElementsByClassName('settingInputs')).forEach(e => e.addEventListener('input', (event) => {event.target.parentElement.getElementsByClassName('settingSlider')[0].value = event.target.value;
+localStorage.setItem(String(event.target.parentElement.getAttribute('settingname')), Number(event.target.value)); settingsUp()}))
+
+Array.from(document.getElementsByClassName('crosshairInput')).forEach(e => e.addEventListener('input', drawCrosshair))
+
+Array.from(document.getElementsByClassName('keyAssignmentsBtn')).forEach(e => {
+    if (!localStorage.getItem(e.getAttribute('settingName'))){
+        localStorage.setItem(e.getAttribute('settingName'), e.getAttribute('defaultValue'))
+    }
+        e.innerText = localStorage.getItem(e.getAttribute('settingName'))
+    })
+
+let settingedButton
+Array.from(document.getElementsByClassName('keyAssignmentsBtn')).forEach(e => e.addEventListener('click', (event) => {
+    event.target.innerText = ''
+    settingedButton = event.target
+    window.addEventListener('keydown', onSettingsKeyboard, false)
+}))
+function onSettingsKeyboard(event){
+    event.preventDefault()
+    localStorage.setItem(settingedButton.getAttribute('settingName'), event.code)
+    settingedButton.innerText = event.code
+    keyAssignmentsUp()
+    window.removeEventListener('keydown', onSettingsKeyboard, false)
+}
+settingsUp()
+function settingsUp(){
+    soundVolume = localStorage.getItem('soundsVolume') / 100
+    musicVolume = localStorage.getItem('musicVolume') / 100
+    audio.volume = musicVolume
+    sensitivity = localStorage.getItem('mouseSensitivity')
+    sensitivityX = localStorage.getItem('mouseAxlerationX')
+    sensitivityY = localStorage.getItem('mouseAxlerationY')
+}
+keyAssignmentsUp()
+function keyAssignmentsUp(){
+    keys = {
+        [localStorage.getItem('runningFoward')]: false,
+        [localStorage.getItem('runningLeft')]: false,
+        [localStorage.getItem('runningRight')]: false,
+        [localStorage.getItem('runningBack')]: false,
+        [localStorage.getItem('space')]: false,
+        [localStorage.getItem('ducking')]: false,
+        [localStorage.getItem('creeping')]: false,
+        [localStorage.getItem('reloading')]: false,
+        [localStorage.getItem('runningFoward')]: false
+    }
+}
+document.getElementById('settingsBodyBlock').addEventListener('scroll', () => {
+    let element = document.elementFromPoint(document.getElementById('settingsBodyBlock').offsetLeft, document.getElementById('settingsBodyBlock').offsetTop)
+    if (element.getAttribute('settingBlockName')){
+        document.getElementById('settingsBlockLbl').innerText = element.getAttribute('settingBlockName')
+    }
+})
+drawCrosshair()

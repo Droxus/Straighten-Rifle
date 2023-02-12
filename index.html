@@ -14,7 +14,7 @@
             <div id="menuHeader">
                 <button class="menuBtns" id="onPlay" draggable="false">PLAY</button>
                 <label class="gameName">STRAIGHTEN RIFLE</label>
-                <button class="menuBtns">SETTINGS</button>
+                <button class="menuBtns" id="onSettings">SETTINGS</button>
             </div>
             <div id="menuBody">
                 <div id="leftBodyBlock">
@@ -55,19 +55,133 @@
                     </div>
                 </div>
             </div>
-            
-            <div id="gameOrDevChooseBlock">
-                <label>noFly</label>
-                <label class="switch">
-                    <input type="checkbox" id="playOrDevChoose">
-                    <span class="slider"></span>
-                  </label>
-                  <label>Fly</label>
-            </div>
             <div id="sensBlock">
                 <label>Sensitivity</label>
                 <input type="number" id="sensInp" value="1">
-                <input type="range" min="0" max="100" id="sensSilder" value="10">
+                <input type="range" min="0"  max="100" step="0.01" id="sensSilder" value="10">
+            </div>
+        </div>
+    </div>
+    <div id="settingsBlock">
+        <div id="settingsHeaderBlock">
+            <label id="settingsBlockLbl">Audio</label>
+            <button id="onMenu">Menu</button>
+        </div>
+        <div id="settingsBodyBlock">
+            <div settingBlockName="Audio" class="settingsBlocks" id="audioSettingsBlock">
+                <div settingName="soundsVolume" defaultValue="10" class="settingsSliderBlocks">
+                    <label>Sounds Volume</label>
+                    <input class="settingSlider" type="range" min="0" max="100" value="50">
+                    <input class="settingInputs" type="number" value="10">
+                </div>
+                <div settingName="musicVolume" defaultValue="10" class="settingsSliderBlocks">
+                    <label>Music Volume</label>
+                    <input class="settingSlider" type="range" min="0" max="100" value="5">
+                    <input class="settingInputs" type="number" value="10">
+                </div>
+            </div>
+            <div settingBlockName="Sensetivity" id="sensetivityBlock">
+                <div class="headerSettingBlocks">
+                    <label>Sensetivity</label>
+                </div>
+                <div settingName="mouseSensitivity" defaultValue="1" class="settingsSliderBlocks">
+                    <label>Mouse Sensitivity</label>
+                    <input class="settingSlider" type="range" min="0" max="10" step="0.01" value="1">
+                    <input class="settingInputs" type="number" value="1.00">
+                </div>
+                <div settingName="mouseAxlerationX" defaultValue="1" class="settingsSliderBlocks">
+                    <label>Mouse Axleration X</label>
+                    <input class="settingSlider" type="range" min="0" max="10" step="0.01" value="1">
+                    <input class="settingInputs" type="number" value="1.00">
+                </div>
+                <div settingName="mouseAxlerationY" defaultValue="1" class="settingsSliderBlocks">
+                    <label>Mouse Axleration Y</label>
+                    <input class="settingSlider" type="range" min="0" max="10" step="0.01" value="1">
+                    <input class="settingInputs" type="number" value="1.00">
+                </div>
+            </div>
+            <div settingBlockName="Crosshair" id="crosshairBlock">
+                <div class="headerSettingBlocks">
+                    <label>Crosshair</label>
+                </div>
+                <div settingName="crosshairLength" defaultValue="5" class="settingsSliderBlocks">
+                    <label>Crosshair Length</label>
+                    <input class="settingSlider crosshairInput" type="range" min="0" max="50" step="0.01" value="5">
+                    <input class="settingInputs crosshairInput" type="number" step="0.01" value="10.00">
+                </div>
+                <div settingName="crosshairLineWidth" defaultValue="0.2" class="settingsSliderBlocks">
+                    <label>Crosshair Line Width</label>
+                    <input class="settingSlider crosshairInput" type="range" min="0" max="10" step="0.01" value="0.2">
+                    <input class="settingInputs crosshairInput" type="number" value="0.20">
+                </div>
+                <div settingName="crosshairGap" defaultValue="2" class="settingsSliderBlocks">
+                    <label>Crosshair Gap</label>
+                    <input class="settingSlider crosshairInput" type="range" min="0" max="100" step="0.01" value="2">
+                    <input class="settingInputs crosshairInput" type="number" value="10.00">
+                </div>
+                <div settingName="red" defaultValue="10" class="settingsSliderBlocks">
+                    <label>Red</label>
+                    <input class="settingSlider crosshairInput" type="range" min="0" max="255"  value="10">
+                    <input class="settingInputs crosshairInput" type="number" value="10">
+                </div>
+                <div settingName="green" defaultValue="255" class="settingsSliderBlocks">
+                    <label>Green</label>
+                    <input class="settingSlider crosshairInput" type="range" min="0" max="255" value="255">
+                    <input class="settingInputs crosshairInput" type="number" value="10">
+                </div>
+                <div settingName="blue" defaultValue="255" class="settingsSliderBlocks">
+                    <label>Blue</label>
+                    <input class="settingSlider crosshairInput" type="range" min="0" max="255" value="255">
+                    <input class="settingInputs crosshairInput" type="number" value="10">
+                </div>
+                <div settingName="alpha" defaultValue="1" class="settingsSliderBlocks">
+                    <label>Alpha</label>
+                    <input class="settingSlider crosshairInput" type="range" min="0" max="1" step="0.01" value="1">
+                    <input class="settingInputs crosshairInput" type="number" value="1.00">
+                </div>
+                <svg id="settingsCrosshair" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <line class="settingsLinesCrosshair" x1="0" y1="80" x2="100" y2="20" stroke="black" />
+                    <line class="settingsLinesCrosshair" x1="0" y1="80" x2="100" y2="20" stroke="black" />
+                    <line class="settingsLinesCrosshair" x1="0" y1="80" x2="100" y2="20" stroke="black" />
+                    <line class="settingsLinesCrosshair" x1="0" y1="80" x2="100" y2="20" stroke="black" />
+                </svg>
+            </div>
+            <div settingBlockName="Key Assignment" id="keyAssignmentBlock">
+                <div class="headerSettingBlocks">
+                    <label>Key Assignment</label>
+                </div>
+                <div class="settingsKeyAssignmentBlocks">
+                    <button defaultValue="KeyW" settingName="runningFoward" class="keyAssignmentsBtn">KeyW</button>
+                    <label>Running Foward</label>
+                </div>
+                <div class="settingsKeyAssignmentBlocks">
+                    <button defaultValue="KeyA" settingName="runningLeft" class="keyAssignmentsBtn">KeyA</button>
+                    <label>Running Left</label>
+                </div>
+                <div class="settingsKeyAssignmentBlocks">
+                    <button defaultValue="KeyD" settingName="runningRight" class="keyAssignmentsBtn">KeyD</button>
+                    <label>Running Right</label>
+                </div>
+                <div class="settingsKeyAssignmentBlocks">
+                    <button defaultValue="KeyS" settingName="runningBack" class="keyAssignmentsBtn">KeyS</button>
+                    <label>Running Back</label>
+                </div>
+                <div class="settingsKeyAssignmentBlocks">
+                    <button defaultValue="ShiftLeft" settingName="creeping" class="keyAssignmentsBtn">ShiftLeft</button>
+                    <label>Creeping</label>
+                </div>
+                <div class="settingsKeyAssignmentBlocks">
+                    <button defaultValue="ControlLeft" settingName="ducking" class="keyAssignmentsBtn">ControlLeft</button>
+                    <label>Ducking</label>
+                </div>
+                <div class="settingsKeyAssignmentBlocks">
+                    <button defaultValue="Space" settingName="space" class="keyAssignmentsBtn">Space</button>
+                    <label>Jumping</label>
+                </div>
+                <div class="settingsKeyAssignmentBlocks">
+                    <button defaultValue="KeyR" settingName="reloading" class="keyAssignmentsBtn">KeyR</button>
+                    <label>Reloading</label>
+                </div>
             </div>
         </div>
     </div>
@@ -101,7 +215,12 @@
         <label>speedZ</label>
         <label id="speedZ">0</label>
     </div>
-    <div id="crosshair">+</div>
+    <svg id="crosshair" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <line class="linesCrosshair" x1="0" y1="80" x2="100" y2="20" stroke="black" />
+        <line class="linesCrosshair" x1="0" y1="80" x2="100" y2="20" stroke="black" />
+        <line class="linesCrosshair" x1="0" y1="80" x2="100" y2="20" stroke="black" />
+        <line class="linesCrosshair" x1="0" y1="80" x2="100" y2="20" stroke="black" />
+    </svg>
     <div id="awpScope">
         <div id="verticalLine"></div>
         <div id="horizontalLine"></div>

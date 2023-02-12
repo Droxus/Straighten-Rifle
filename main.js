@@ -1050,6 +1050,7 @@ function onPlay(){
     audio.pause()
     audio = new Audio(`sounds/music${2+Math.round(Math.random())}.mp3`)
     audio.volume = musicVolume
+    audio.loop = true
     audio.play()
 }
 function checkIfNextRound(){
@@ -1171,6 +1172,7 @@ function onMenu(){
     audio.pause()
     audio = new Audio('sounds/music1.mp3')
     audio.volume = musicVolume
+    audio.loop = true
     audio.play()
 }
 function onGameMenu(){
@@ -1707,6 +1709,7 @@ audio.volume = musicVolume
 window.addEventListener('click', function onMusic() { 
     if (document.getElementById('menuBg').style.display !== 'none'){
         audio.scr = 'sounds/music1.mp3'
+        audio.loop = true
         audio.play()
     }
         window.removeEventListener('click', onMusic)

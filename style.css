@@ -56,7 +56,7 @@ body * {
     border: 4px solid #FF5900;
     color: #ff5900;
     place-self: center;
-    font-size: 36px;
+    font-size: 0.7em;
     cursor: pointer;
 }
 .gameName{
@@ -89,7 +89,7 @@ body * {
     grid-template-rows: 65% 35%;
 }
 #centrBodyBlock{
-    background: #191919;
+    background: #2b2b2b;
     display: grid;
     width: 80%;
     height: 90%;
@@ -125,7 +125,7 @@ body * {
 #nickNameBlock > label{
     width: 100%;
     height: 100%;
-    font-size: 32px;
+    font-size: 0.6em;
     text-align: center;
     display: flex;
     justify-content: center;
@@ -143,7 +143,7 @@ body * {
     background: #1F1F1F;
     border: none;
     color: #FF5900;
-    font-size: 28px;
+    font-size: 0.5em;
     font-weight: bold;
     outline: none;
 }
@@ -170,7 +170,7 @@ body * {
     justify-content: flex-start;
 }
 #onlineBlock > input{
-    background: #1F1F1F;
+    background: #3a3a3a;
     border: none;
     width: 70%;
     height: 20%;
@@ -194,7 +194,7 @@ body * {
     color: #ff5900;
     place-self: center;
     font-weight: normal;
-    font-size: 28px;
+    font-size: 0.5em;
     cursor: pointer;
 }
 #botDifficultSwitch{
@@ -210,7 +210,7 @@ body * {
     width: 100%;
     height: 20%;
     cursor: pointer;
-    font-size: 28px;
+    font-size: 0.6em;
     font-weight: bold;
     transition: .5s;
 }
@@ -224,7 +224,7 @@ body * {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 32px;
+    font-size: 0.6em;
 }
 #gameMenu{
     background: #1F1F1F;

@@ -1,3 +1,18 @@
+const menuBg = document.getElementById('menuBg')
+const weaponsBtns = Array.from(document.getElementsByClassName('weapons'))
+const activeBtnColor = 'rgb(255, 89, 0)'
+const playerScore = document.getElementById('playerScore')
+const enemyScore = document.getElementById('enemyScore')
+const healthPointsLbl = document.getElementById('healthPointsLbl')
+const healthBar = document.getElementById('healthBar')
+const easyDiff = document.getElementById('easyDiff')
+const mediumDiff = document.getElementById('mediumDiff')
+const hardDiff = document.getElementById('hardDiff')
+const playerNick = document.getElementById('playerNick')
+const enemyNick = document.getElementById('enemyNick')
+const playerNickname = document.getElementById('playerNickname')
+const enemyShowNick = document.getElementById('enemyShowNick')
+
 const defaultSpeed = 0.1;
 
 const cameraPOV = 45;
@@ -24,7 +39,8 @@ const euler = new THREE.Euler(0, 0, 0, 'YXZ');
 
 const peer = new Peer();
 
-let onlineMode, scoreboard = { player: 0, enemy: 0 }, inGame
+let onlineMode, inGame;
+const scoreboard = { player: 0, enemy: 0 };
 
 let soundVolume = 0.5
 let musicVolume = 0.5
@@ -146,7 +162,6 @@ let model, sniperRifle, famasRifle, rifle, pistol;
 
 const loader = new THREE.GLTFLoader();
 
-loadModels();
 async function loadModels() {
     await loadMap();
     await loadSniperRifleWeapon();
@@ -156,6 +171,7 @@ async function loadModels() {
 
     hideLoader();
 }
+loadModels();
 
 async function loadMap() {
     return new Promise((resolve) => {
@@ -505,16 +521,16 @@ function animate() {
 };
 animate();
 
-document.getElementById('playerNickname').value = localStorage.getItem('nick') || 'Player'
+playerNickname.value = localStorage.getItem('nick') || 'Player'
 window.addEventListener('resize', onResize)
 document.oncontextmenu = () => false;
 
 const downDirection = new THREE.Vector3(0, -1, 0);
 function isGrounded(model) {
     const raycaster = new THREE.Raycaster();
-    let raycasterPositions = [], intersects = [], position;
-    const { x, y, z } = model.position;
     const modelHalfSize = model.geometry.parameters.depth / 2;
+    const { x, y, z } = model.position;
+    let raycasterPositions = [], intersects = [], position;
 
     position = new THREE.Vector3(x + modelHalfSize, y, z + modelHalfSize);
     raycasterPositions.push(position);
@@ -543,16 +559,22 @@ function isGrounded(model) {
     position = new THREE.Vector3(x, y, z);
     raycasterPositions.push(position);
 
-    raycaster.far = model.geometry.parameters.height / 2 * model.scale.y + 0.1
+    const padding = 0.1;
+    raycaster.far = model.geometry.parameters.height / 2 * model.scale.y + padding;
     raycasterPositions.forEach(ray => {
         raycaster.set(ray, downDirection);
         intersects.push(raycaster.intersectObjects(scene.children));
     })
 
+    const raycasterFarKef = 0.85;
+
     intersects = intersects.flat(1)
-    intersects = intersects.filter(e => e.distance > raycaster.far * 0.85)
+    intersects = intersects.filter(e => e.distance > raycaster.far * raycasterFarKef);
     intersects = intersects.filter(e =>
-        e.object.name.slice(0, 4) !== 'Path' && e.object.name.slice(0, 10) !== 'SpawnEnemy' && e.object.name.slice(0, 5) !== 'Spawn')
+        e.object.name.slice(0, 4) !== 'Path' &&
+        e.object.name.slice(0, 10) !== 'SpawnEnemy' &&
+        e.object.name.slice(0, 5) !== 'Spawn'
+    );
 
     if (intersects[0]) {
         intersects.sort((a, b) => {
@@ -561,9 +583,16 @@ function isGrounded(model) {
             return 0
         })
 
-        model.position.y += (raycaster.far - 0.05) - intersects[0].distance
+        
+        model.position.y += (raycaster.far - padding/2) - intersects[0].distance
         if (onlineMode && model.name == 'playermodel') {
-            connection.send({ position: { y: playerModel.position.y, x: playerModel.position.x, z: playerModel.position.z } });
+            connection.send({ 
+                position: { 
+                    y: playerModel.position.y,
+                    x: playerModel.position.x,
+                    z: playerModel.position.z 
+                }
+            });
         }
         return true
     }
@@ -585,35 +614,53 @@ window.addEventListener('beforeunload', function (event) {
 
 let keys;
 let smoothGravityAttraction, velOfGravityAttractionIndex, isGravityAttractioning;
+const defaultPlayerModelScale = 1;
+const duckPlayerModelScale = 0.5;
+const gravityKef = 0.002;
+const notFullSizePlayerModelKef = 75;
 
 function gravityAttraction() {
     if (!isGrounded(playerModel) && !isFuseSpamSpace && !isGravityAttractioning) {
         clearInterval(smoothGravityAttraction)
+        
         isGravityAttractioning = true
         velOfGravityAttractionIndex = 0
+
         smoothGravityAttraction = setInterval(() => {
             if (!isGrounded(playerModel)) {
                 ++velOfGravityAttractionIndex
-                if (playerModel.scale.y > 0.5 && playerModel.scale.y < 1) {
-                    playerModel.position.y -= 0.002 * velOfGravityAttractionIndex - playerModel.geometry.parameters.depth / 75
+
+                if (playerModel.scale.y > duckPlayerModelScale &&
+                    playerModel.scale.y < defaultPlayerModelScale
+                ) {
+                    const playerModeSize = playerModel.geometry.parameters.depth;
+                    playerModel.position.y += gravityKef * -velOfGravityAttractionIndex - playerModeSize / notFullSizePlayerModelKef
                 } else {
-                    playerModel.position.y -= 0.002 * velOfGravityAttractionIndex
+                    playerModel.position.y += gravityKef * -velOfGravityAttractionIndex
                 }
             } else {
                 if (sounds.jump) {
                     if (soundPlayerSteps.isPlaying) {
                         soundPlayerSteps.stop();
                     }
+
                     soundPlayerSteps.setBuffer(sounds.jump);
                     soundPlayerSteps.setLoop(false);
                     soundPlayerSteps.setVolume(soundVolume / 8);
                     soundPlayerSteps.play();
                 }
+                
                 isGravityAttractioning = false
                 clearInterval(smoothGravityAttraction)
             }
             if (onlineMode) {
-                connection.send({ position: { y: playerModel.position.y, x: playerModel.position.x, z: playerModel.position.z } });
+                connection.send({
+                    position: {
+                        y: playerModel.position.y,
+                        x: playerModel.position.x,
+                        z: playerModel.position.z 
+                    }
+                });
             }
         }, 5)
     }
@@ -625,51 +672,73 @@ const inertiaSpeed = { x: 0, z: 0 };
 function playerMove() {
     clearInterval(inertiaSmothlyMove)
     clearInterval(smoothlyMove)
+    
     smoothlyMove = setInterval(() => {
         if (Math.abs(player.speed.x) + Math.abs(player.speed.z) > player.maxSpeed.x) {
-            player.speed.x = Math.abs(player.speed.x) > player.maxSpeed.x / 1.5 ? player.speed.x / 1.5 : player.speed.x
-            player.speed.z = Math.abs(player.speed.z) > player.maxSpeed.x / 1.5 ? player.speed.z / 1.5 : player.speed.z
+            player.speed.x = Math.abs(player.speed.x) > player.maxSpeed.x / 1.5 ?
+                                player.speed.x / 1.5 :
+                                player.speed.x
+
+            player.speed.z = Math.abs(player.speed.z) > player.maxSpeed.x / 1.5 ?
+                                player.speed.z / 1.5 :
+                                player.speed.z
         } else {
-            player.speed.x = Math.abs(player.speed.x) > 0 ? player.maxSpeed.x * (player.speed.x / Math.abs(player.speed.x)) : player.speed.x
-            player.speed.z = Math.abs(player.speed.z) > 0 ? player.maxSpeed.x * (player.speed.z / Math.abs(player.speed.z)) : player.speed.z
+            player.speed.x = Math.abs(player.speed.x) > 0 ?
+                                player.maxSpeed.x * (player.speed.x / Math.abs(player.speed.x)) :
+                                player.speed.x
+
+            player.speed.z = Math.abs(player.speed.z) > 0 ?
+                                player.maxSpeed.x * (player.speed.z / Math.abs(player.speed.z)) :
+                                player.speed.z
         }
+
         if (player.speed.x != 0 || player.speed.y != 0 || player.speed.z != 0) {
             if (isGrounded(playerModel)) {
                 checkCollision()
+
                 isOnLanding = false
+
                 player.flyHorizontalSpeed.x = player.realSpeed.x || 0
                 player.flyHorizontalSpeed.z = player.realSpeed.z || 0
+
                 playerModel.prevPosition = {
                     x: playerModel.position.x,
                     y: playerModel.position.y,
                     z: playerModel.position.z
                 }
+
                 if (player.speed.z > 0) {
                     player.realSpeed.z = Math.max(Math.min(player.speed.z, player.realSpeed.z + player.speed.z / 50), 0)
                     playerModel.position.x += Math.sin(camera.rotation.y) * -player.realSpeed.z
                     playerModel.position.z += Math.cos(Math.PI - camera.rotation.y) * player.realSpeed.z
                 }
+
                 if (player.speed.z < 0) {
                     player.realSpeed.z = Math.min(Math.max(player.speed.z, player.realSpeed.z + player.speed.z / 50), 0)
                     playerModel.position.x += Math.sin(camera.rotation.y) * -player.realSpeed.z
                     playerModel.position.z += -Math.cos(camera.rotation.y) * player.realSpeed.z
                 }
+
                 if (player.speed.x > 0) {
                     player.realSpeed.x = Math.max(Math.min(player.speed.x, player.realSpeed.x + player.speed.x / 50), 0)
                     playerModel.position.x += Math.sin(camera.rotation.y + Math.PI / 2) * player.realSpeed.x
                     playerModel.position.z += -Math.cos(camera.rotation.y + Math.PI / 2) * -player.realSpeed.x
                 }
+
                 if (player.speed.x < 0) {
                     player.realSpeed.x = Math.min(Math.max(player.speed.x, player.realSpeed.x + player.speed.x / 50), 0)
                     playerModel.position.x += Math.sin(camera.rotation.y - Math.PI / 2) * -player.realSpeed.x
                     playerModel.position.z += -Math.cos(camera.rotation.y - Math.PI / 2) * player.realSpeed.x
                 }
+
                 if (player.speed.x !== 0 && player.speed.z == 0) {
                     player.realSpeed.z = 0
                 }
+
                 if (player.speed.z !== 0 && player.speed.x == 0) {
                     player.realSpeed.x = 0
                 }
+
                 if (sounds.step) {
                     if (!soundPlayerSteps.isPlaying) {
                         soundPlayerSteps.setBuffer(sounds.step);
@@ -693,34 +762,45 @@ let inertiaSmothlyMove
 function inertiaMove() {
     inertiaSpeed.x = player.maxSpeed.x * player.realSpeed.x / Math.abs(player.realSpeed.x)
     inertiaSpeed.z = player.maxSpeed.x * player.realSpeed.z / Math.abs(player.realSpeed.z)
+
     clearInterval(inertiaSmothlyMove)
+
     inertiaSmothlyMove = setInterval(() => {
         if (isGrounded(playerModel)) {
             checkCollision()
+
             isOnLanding = false
+
             player.flyHorizontalSpeed.x = player.realSpeed.x || 0
             player.flyHorizontalSpeed.z = player.realSpeed.z || 0
+
             playerModel.prevPosition = {
                 x: playerModel.position.x,
                 y: playerModel.position.y,
                 z: playerModel.position.z
             }
-            if ((player.speed.x == 0 && player.speed.x !== player.realSpeed.x) || (player.speed.z == 0 && player.speed.z !== player.realSpeed.z)) {
+
+            if ((player.speed.x == 0 && player.speed.x !== player.realSpeed.x) ||
+                (player.speed.z == 0 && player.speed.z !== player.realSpeed.z)
+            ) {
                 if (inertiaSpeed.x > 0) {
                     player.realSpeed.x = Math.max(0, player.realSpeed.x - inertiaSpeed.x / 50)
                     playerModel.position.x += Math.sin(camera.rotation.y + Math.PI / 2) * player.realSpeed.x
                     playerModel.position.z += -Math.cos(camera.rotation.y + Math.PI / 2) * -player.realSpeed.x
                 }
+
                 if (inertiaSpeed.x < 0) {
                     player.realSpeed.x = Math.min(0, player.realSpeed.x - inertiaSpeed.x / 50)
                     playerModel.position.x += Math.sin(camera.rotation.y - Math.PI / 2) * -player.realSpeed.x
                     playerModel.position.z += -Math.cos(camera.rotation.y - Math.PI / 2) * player.realSpeed.x
                 }
+
                 if (inertiaSpeed.z > 0) {
                     player.realSpeed.z = Math.max(0, player.realSpeed.z - inertiaSpeed.z / 50)
                     playerModel.position.x += Math.sin(camera.rotation.y) * -player.realSpeed.z
                     playerModel.position.z += Math.cos(Math.PI - camera.rotation.y) * player.realSpeed.z
                 }
+                
                 if (inertiaSpeed.z < 0) {
                     player.realSpeed.z = Math.min(0, player.realSpeed.z - inertiaSpeed.z / 50)
                     playerModel.position.x += Math.sin(camera.rotation.y) * -player.realSpeed.z
@@ -739,123 +819,185 @@ function inertiaMove() {
 function checkCollision() {
     playerModel.userData.obb.copy(playerModel.geometry.userData.obb)
     playerModel.userData.obb.applyMatrix4(playerModel.matrixWorld)
+
     for (const obj of collisionResponsiveObjects) {
         obj.userData.obb.copy(obj.geometry.userData.obb)
         obj.userData.obb.applyMatrix4(obj.matrixWorld)
+
         if (obj.userData.obb.intersectsOBB(playerModel.userData.obb)) {
+            const { x, y, z } = playerModel.position
+            const [xPrev, zPrev] = [playerModel.prevPosition.x, playerModel.prevPosition.z]
             let objectPosition
+
             if (obj.geometry.boundingBox.max.x > obj.geometry.boundingBox.max.z) {
-                objectPosition = { x: playerModel.position.x, z: obj.position.z }
+                objectPosition = { x: x, z: obj.position.z }
             } else if (obj.geometry.boundingBox.max.x < obj.geometry.boundingBox.max.z) {
-                objectPosition = { x: obj.position.x, z: playerModel.position.z }
+                objectPosition = { x: obj.position.x, z: z }
             } else {
                 objectPosition = { x: obj.position.x, z: obj.position.z }
             }
-            let xDiff = Math.abs(playerModel.position.x - objectPosition.x)
-            let zDiff = Math.abs(playerModel.position.z - objectPosition.z)
+
+            let xDiff = Math.abs(x - objectPosition.x)
+            let zDiff = Math.abs(z - objectPosition.z)
+
             if (xDiff < zDiff) {
-                if (Math.abs(playerModel.position.z - obj.position.z) > Math.abs(playerModel.prevPosition.z - obj.position.z)) {
-                    playerModel.position.set(playerModel.position.x, playerModel.position.y, playerModel.position.z)
+                if (Math.abs(z - obj.position.z) > Math.abs(zPrev - obj.position.z)) {
+                    playerModel.position.set(x, y, z)
                 } else {
-                    playerModel.position.set(playerModel.position.x, playerModel.position.y, playerModel.prevPosition.z)
+                    playerModel.position.set(x, y, zPrev)
                 }
             } else if (xDiff > zDiff) {
-                if (Math.abs(playerModel.position.x - obj.position.x) > Math.abs(playerModel.prevPosition.x - obj.position.x)) {
-                    playerModel.position.set(playerModel.position.x, playerModel.position.y, playerModel.position.z)
+                if (Math.abs(x - obj.position.x) > Math.abs(xPrev - obj.position.x)) {
+                    playerModel.position.set(x, y, z)
                 } else {
-                    playerModel.position.set(playerModel.prevPosition.x, playerModel.position.y, playerModel.position.z)
+                    playerModel.position.set(xPrev, y, z)
                 }
             } else {
-                playerModel.position.set(playerModel.prevPosition.x, playerModel.position.y, playerModel.prevPosition.z)
+                playerModel.position.set(xPrev, y, zPrev)
             }
         }
     }
 }
+
 let isFuseSpamSpace, jumpHorizontalMoving, velOfJumpIndex
+const startJumpVelocity = 60;
+const jumpDuration = 240
+
 function makeJump() {
     if (isGrounded(playerModel) && !isFuseSpamSpace) {
         isFuseSpamSpace = true
+
         onLanding()
-        velOfJumpIndex = 60
+
+        velOfJumpIndex = startJumpVelocity
+
         setTimeout(() => {
             isFuseSpamSpace = false
+            
             clearInterval(smoothlyJump)
             gravityAttraction()
-        }, 240)
+        }, jumpDuration)
+
         smoothlyJump = setInterval(() => {
             if (onlineMode) {
-                connection.send({ position: { y: playerModel.position.y, x: playerModel.position.x, z: playerModel.position.z } });
+                connection.send({ 
+                    position: {
+                        y: playerModel.position.y,
+                        x: playerModel.position.x,
+                        z: playerModel.position.z 
+                    }
+                });
             }
             --velOfJumpIndex
-            playerModel.position.y += 0.002 * velOfJumpIndex
+            playerModel.position.y += gravityKef * velOfJumpIndex
         }, 5)
     }
 }
+
 let smoothDucking
+const scaleChangePerTick = 0.02
+const positionChangeKef = 50;
+
 function makeDuck(front) {
+    const playerModelSize = playerModel.geometry.parameters.depth
+
     if (front) {
         clearInterval(smoothDucking)
+
         smoothDucking = setInterval(() => {
-            if (playerModel.scale.y > 0.5) {
-                playerModel.scale.y -= 1 / 50
-                playerModel.position.y -= playerModel.geometry.parameters.depth / 50
+            if (playerModel.scale.y > duckPlayerModelScale) {
+                playerModel.scale.y -= scaleChangePerTick
+                playerModel.position.y -= playerModelSize / positionChangeKef
             } else {
-                playerModel.scale.y = 0.5
+                playerModel.scale.y = duckPlayerModelScale
                 clearInterval(smoothDucking)
             }
+
             if (onlineMode) {
-                connection.send({ position: { y: playerModel.position.y, x: playerModel.position.x, z: playerModel.position.z }, scale: { y: playerModel.scale.y } });
+                connection.send({
+                    position: {
+                        y: playerModel.position.y,
+                        x: playerModel.position.x,
+                        z: playerModel.position.z 
+                    }, 
+                    scale: { 
+                        y: playerModel.scale.y 
+                    } 
+                });
             }
         }, 5)
-
     } else {
         clearInterval(smoothDucking)
+
         smoothDucking = setInterval(() => {
-            if (playerModel.scale.y < 1) {
-                playerModel.scale.y += 1 / 50
-                playerModel.position.y += playerModel.geometry.parameters.depth / 50
+            if (playerModel.scale.y < defaultPlayerModelScale) {
+                playerModel.scale.y += scaleChangePerTick
+                playerModel.position.y += playerModelSize / positionChangeKef
             } else {
-                playerModel.scale.y = 1
+                playerModel.scale.y = defaultPlayerModelScale
                 clearInterval(smoothDucking)
             }
+            
             if (onlineMode) {
-                connection.send({ position: { y: playerModel.position.y, x: playerModel.position.x, z: playerModel.position.z }, scale: { y: playerModel.scale.y } });
+                connection.send({
+                    position: {
+                        y: playerModel.position.y,
+                        x: playerModel.position.x,
+                        z: playerModel.position.z 
+                    }, 
+                    scale: {
+                        y: playerModel.scale.y 
+                    } 
+                });
             }
         }, 5)
     }
 }
+
 let onLandingInterval, isOnLanding
+
 function onLanding() {
     if (!isOnLanding) {
         isOnLanding = true
+
         clearInterval(onLandingInterval)
+
         onLandingInterval = setInterval(() => {
-            if (Math.abs(player.flyHorizontalSpeed.z) + Math.abs(player.flyHorizontalSpeed.x) > player.maxSpeed.x) {
+            const speedSum = Math.abs(player.flyHorizontalSpeed.z) + Math.abs(player.flyHorizontalSpeed.x)
+            if (speedSum > player.maxSpeed.x) {
                 player.flyHorizontalSpeed.z = player.flyHorizontalSpeed.z / 2
                 player.flyHorizontalSpeed.x = player.flyHorizontalSpeed.x / 2
             }
+
             if (!isGrounded(playerModel)) {
                 checkCollision()
+
                 playerModel.prevPosition = {
                     x: playerModel.position.x,
                     y: playerModel.position.y,
                     z: playerModel.position.z
                 }
-                if (player.flyHorizontalSpeed.z > 0) {
-                    playerModel.position.x += Math.sin(camera.rotation.y) * -player.flyHorizontalSpeed.z
-                    playerModel.position.z += Math.cos(Math.PI - camera.rotation.y) * player.flyHorizontalSpeed.z
+
+                const [xSpeed, zSpeed] = [player.flyHorizontalSpeed.x, player.flyHorizontalSpeed.z]
+
+                if (zSpeed > 0) {
+                    playerModel.position.x += Math.sin(camera.rotation.y) * -zSpeed
+                    playerModel.position.z += Math.cos(Math.PI - camera.rotation.y) * zSpeed
                 }
-                if (player.flyHorizontalSpeed.z < 0) {
-                    playerModel.position.x += Math.sin(camera.rotation.y) * -player.flyHorizontalSpeed.z
-                    playerModel.position.z += -Math.cos(camera.rotation.y) * player.flyHorizontalSpeed.z
+
+                if (zSpeed < 0) {
+                    playerModel.position.x += Math.sin(camera.rotation.y) * -zSpeed
+                    playerModel.position.z += -Math.cos(camera.rotation.y) * zSpeed
                 }
-                if (player.flyHorizontalSpeed.x > 0) {
-                    playerModel.position.x += Math.sin(camera.rotation.y + Math.PI / 2) * player.flyHorizontalSpeed.x
-                    playerModel.position.z += -Math.cos(camera.rotation.y + Math.PI / 2) * -player.flyHorizontalSpeed.x
+
+                if (xSpeed > 0) {
+                    playerModel.position.x += Math.sin(camera.rotation.y + Math.PI / 2) * xSpeed
+                    playerModel.position.z += -Math.cos(camera.rotation.y + Math.PI / 2) * -xSpeed
                 }
-                if (player.flyHorizontalSpeed.x < 0) {
-                    playerModel.position.x += Math.sin(camera.rotation.y - Math.PI / 2) * -player.flyHorizontalSpeed.x
-                    playerModel.position.z += -Math.cos(camera.rotation.y - Math.PI / 2) * player.flyHorizontalSpeed.x
+
+                if (xSpeed < 0) {
+                    playerModel.position.x += Math.sin(camera.rotation.y - Math.PI / 2) * -xSpeed
+                    playerModel.position.z += -Math.cos(camera.rotation.y - Math.PI / 2) * xSpeed
                 }
             } else {
                 inertiaMove()
@@ -866,34 +1008,27 @@ function onLanding() {
 }
 function offKeyboard(event) {
     event.preventDefault();
+
     switch (event.code) {
         case localStorage.getItem('runningFoward'):
-            if (keys[localStorage.getItem('runningBack')]) {
-                player.speed.z = -player.maxSpeed.x
-            } else {
+            keys[localStorage.getItem('runningBack')] ?
+                player.speed.z = -player.maxSpeed.x :
                 player.speed.z = 0
-            }
             break;
         case localStorage.getItem('runningLeft'):
-            if (keys[localStorage.getItem('runningRight')]) {
-                player.speed.x = player.maxSpeed.x
-            } else {
+            keys[localStorage.getItem('runningRight')] ?
+                player.speed.x = player.maxSpeed.x :
                 player.speed.x = 0
-            }
             break;
         case localStorage.getItem('runningBack'):
-            if (keys[localStorage.getItem('runningFoward')]) {
-                player.speed.z = player.maxSpeed.x
-            } else {
+            keys[localStorage.getItem('runningFoward')] ?
+                player.speed.z = player.maxSpeed.x :
                 player.speed.z = 0
-            }
             break;
         case localStorage.getItem('runningRight'):
-            if (keys[localStorage.getItem('runningLeft')]) {
-                player.speed.x = -player.maxSpeed.x
-            } else {
+            keys[localStorage.getItem('runningLeft')] ?
+                player.speed.x = -player.maxSpeed.x :
                 player.speed.x = 0
-            }
             break;
         case localStorage.getItem('ducking'):
             if (!isFuseSpamCtrl && keys[localStorage.getItem('ducking')]) {
@@ -913,7 +1048,12 @@ function offKeyboard(event) {
     }
     keys[event.code] = false
 }
+
 let isFuseSpamCtrl, isCtrlStamina
+const staminaDuration = 500
+const maxSpeedDucking = 0.06
+const maxSpeedCreeping = 0.08
+
 function onKeyboard(event) {
     event.preventDefault();
     if (!keys[event.code]) {
@@ -936,19 +1076,22 @@ function onKeyboard(event) {
                 playerMove()
                 break;
             case localStorage.getItem('ducking'):
-                if (!isCtrlStamina && Math.round(playerModel.geometry.parameters.height) == 4) {
+                if (!isCtrlStamina && Math.round(playerModel.geometry.parameters.height) == modelHeight) {
                     isCtrlStamina = true
-                    player.maxSpeed.x = 0.06
+
+                    player.maxSpeed.x = maxSpeedDucking
+
                     makeDuck(true)
+
                     setTimeout(() => {
                         isCtrlStamina = false
-                    }, 500)
+                    }, staminaDuration)
                 } else {
                     keys[event.code] = false
                 }
                 break;
             case localStorage.getItem('creeping'):
-                player.maxSpeed.x = 0.08
+                player.maxSpeed.x = maxSpeedCreeping
                 break;
             case localStorage.getItem('space'):
                 makeJump()
@@ -959,47 +1102,65 @@ function onKeyboard(event) {
         }
     }
 }
+
 let reloadingTime, isReloading = false
+const milesecondsInSecond = 1000
+
 function makeReload() {
-    if (weapons[randomWeapon].ammo < weapons[randomWeapon].characteristics.ammo && !isReloading) {
+    const weapon = weapons[randomWeapon]
+    const [currentAmmo, maxAmmo] = [weapon.ammo, weapon.characteristics.ammo]
+    const { reloadTime } = weapon.characteristics
+    const reloadDuration = reloadTime * milesecondsInSecond - 500
+    const weaponRotationSpeed = 0.05
+    const reloadSoundDuration = 400
+
+    if (currentAmmo < maxAmmo && !isReloading) {
         isReloading = true
+
         clearInterval(reloadingTime)
+
         setTimeout(() => {
             if (sounds.fullReload) {
                 if (soundPlayerShoot.isPlaying) {
                     soundPlayerShoot.stop();
                 }
+
                 soundPlayerShoot.setBuffer(sounds.fullReload);
                 soundPlayerShoot.setLoop(false);
                 soundPlayerShoot.setVolume(soundVolume / 2);
                 soundPlayerShoot.play();
             }
-        }, 400)
+        }, reloadSoundDuration)
+
         let rotateToReload = setInterval(() => {
-            if (weapons[randomWeapon].rotationZ > -Math.PI / 4) {
-                weapons[randomWeapon].rotationZ += -0.05
+            if (weapon.rotationZ > -Math.PI / 4) {
+                weapon.rotationZ += -weaponRotationSpeed
             } else {
                 clearInterval(rotateToReload)
             }
         }, 5)
+
         setTimeout(() => {
             let rotateBack = setInterval(() => {
-                if (weapons[randomWeapon].rotationZ < 0) {
-                    weapons[randomWeapon].rotationZ += 0.05
+                if (weapon.rotationZ < 0) {
+                    weapon.rotationZ += weaponRotationSpeed
                 } else {
                     soundPlayerShoot.stop();
                     clearInterval(rotateBack)
                 }
             }, 5)
-        }, (weapons[randomWeapon].characteristics.reloadTime * 1000) - 500)
+        }, reloadDuration)
+
         reloadingTime = setTimeout(() => {
-            weapons[randomWeapon].ammo = weapons[randomWeapon].characteristics.ammo
-            document.getElementById('amountAmmo').innerText = weapons[randomWeapon].ammo
+            weapon.ammo = weapon.characteristics.ammo
+            document.getElementById('amountAmmo').innerText = weapon.ammo
             isReloading = false
-        }, weapons[randomWeapon].characteristics.reloadTime * 1000)
+        }, reloadTime * milesecondsInSecond)
     }
 }
+
 let mouseClick = true
+
 function onMouseClick(event) {
     switch (event.button) {
         case 0:
@@ -1011,6 +1172,7 @@ function onMouseClick(event) {
             break;
     }
 }
+
 function onMouseUp(event) {
     switch (event.button) {
         case 0:
@@ -1018,172 +1180,270 @@ function onMouseUp(event) {
             break;
     }
 }
+
 let fireShootInterval, fireRate
+
 function onFireAttack() {
-    if (weapons[randomWeapon].canShoot && !isReloading) {
-        switch (weapons[randomWeapon].name) {
+    const weapon = weapons[randomWeapon];
+    const famasTimeOnSingleShoot = 100
+
+    if (weapon.canShoot && !isReloading) {
+        switch (weapon.name) {
             case 'sniperRifle':
                 makeShoot()
+
                 fireRate = setTimeout(() => {
                     sniperRifle.canShoot = true
-                }, sniperRifle.characteristics.fireRate * 1000)
+                }, sniperRifle.characteristics.fireRate * milesecondsInSecond)
                 break;
             case 'famasRifle':
                 makeShoot()
+
                 setTimeout(() => {
                     makeShoot()
-                }, 100)
+                }, famasTimeOnSingleShoot)
+
                 setTimeout(() => {
                     makeShoot()
-                }, 100)
+                }, famasTimeOnSingleShoot)
+
                 fireRate = setTimeout(() => {
                     famasRifle.canShoot = true
-                }, famasRifle.characteristics.fireRate * 1000)
+                }, famasRifle.characteristics.fireRate * milesecondsInSecond)
                 break;
             case 'rifle':
                 makeShoot()
+
                 clearInterval(fireShootInterval)
+
                 fireRate = setTimeout(() => {
                     rifle.canShoot = true
-                }, rifle.characteristics.fireRate * 1000)
+                }, rifle.characteristics.fireRate * milesecondsInSecond)
+
                 fireShootInterval = setInterval(() => {
                     if (mouseClick) {
                         clearTimeout(fireRate)
                         makeShoot()
                     } else {
                         rifle.canShoot = true
+                        
                         clearInterval(fireShootInterval)
                     }
-                }, rifle.characteristics.fireRate * 1000)
+                }, rifle.characteristics.fireRate * milesecondsInSecond)
                 break;
             case 'pistol':
                 makeShoot()
                 fireRate = setTimeout(() => {
                     pistol.canShoot = true
-                }, pistol.characteristics.fireRate * 1000)
+                }, pistol.characteristics.fireRate * milesecondsInSecond)
                 break;
         }
     }
 }
+
 function onScope() {
-    if (weapons[randomWeapon].name == 'sniperRifle') {
+    const weapon = weapons[randomWeapon];
+    const firtstScope = 2
+    const secondScope = 5
+
+    if (weapon.name == 'sniperRifle') {
         if (sounds.sniperZoom) {
             if (soundPlayerScope.isPlaying) {
                 soundPlayerScope.stop();
             }
+
             soundPlayerScope.setBuffer(sounds.sniperZoom);
             soundPlayerScope.setLoop(false);
             soundPlayerScope.setVolume(soundVolume / 4);
             soundPlayerScope.play();
         }
+
         if (document.getElementById('awpScope').style.display !== 'none') {
-            if (camera.zoom == 2) {
-                camera.zoom = 5
+            if (camera.zoom == firtstScope) {
+                camera.zoom = secondScope
+
                 camera.updateProjectionMatrix();
+
                 sensitivity /= 2.5
             } else {
                 sensitivity *= camera.zoom
+
                 camera.zoom = 1
                 camera.updateProjectionMatrix();
+
                 document.getElementById('awpScope').style.display = 'none'
             }
         } else {
-            camera.zoom = 2
+            camera.zoom = firtstScope
             camera.updateProjectionMatrix();
+
             document.getElementById('awpScope').style.display = 'grid'
+
             sensitivity /= 2
         }
     }
 }
+
 let timeToRestoreInterval, timeToRestore = 0
+
 function makeShoot() {
-    if (weapons[randomWeapon].ammo > 0 && !isReloading) {
+    const weapon = weapons[randomWeapon];
+    const {timeToRestore, recoil, damage} = weapon.characteristics
+    const recoilKef = 250
+    const recoilUnderSpeedKeft = 10
+    const flyingRecord = 10
+    const maxBulletsOnScene = 50
+
+    if (weapon.ammo > 0 && !isReloading) {
         clearInterval(timeToRestoreInterval)
+
         timeToRestoreInterval = setInterval(() => {
-            if (timeToRestore < weapons[randomWeapon].characteristics.timeToRestore * 1000) {
-                timeToRestore += 5
+            if (timeToRestore < timeToRestore * milesecondsInSecond) {
+                weapon.characteristicstimeToRestore += 5
             } else {
                 clearInterval(timeToRestoreInterval)
             }
         }, 5)
-        let recoil = ((weapons[randomWeapon].characteristics.timeToRestore * 1000 - timeToRestore) * weapons[randomWeapon].characteristics.recoil) / 250
+
+        let mainRecoil = ((timeToRestore * milesecondsInSecond - timeToRestore) * recoil) / recoilKef
         if (!isGrounded(playerModel)) {
-            recoil += 10
+            mainRecoil += flyingRecord
         }
-        recoil += ((Math.abs(player.realSpeed.x) + Math.abs(player.realSpeed.z)) / defaultSpeed) * 10
-        let recoilY = (recoil * 4) * (Math.random() + 0.5) * 2
-        let recoilX = recoil * (Math.random() - 0.5) * 5
-        if (bullets.length > 50) {
+
+        mainRecoil += ((Math.abs(player.realSpeed.x) + Math.abs(player.realSpeed.z)) / defaultSpeed) * recoilUnderSpeedKeft
+
+        let recoilY = (mainRecoil * 4) * (Math.random() + 0.5) * 2
+        let recoilX = mainRecoil * (Math.random() - 0.5) * 5
+
+        if (bullets.length > maxBulletsOnScene) {
             scene.remove(bullets[0])
             bullets.splice(0, 1)
         }
-        let bullet = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.2), new THREE.MeshBasicMaterial({ color: '#ff5900' }));
+
+        const bulletColor = '#ff5900'
+        const bulletSize = 0.1
+        const bulletGeometery = new THREE.BoxGeometry(bulletSize, bulletSize, bulletSize * 2)
+        const bulletMaterial = new THREE.MeshBasicMaterial({color: bulletColor})
+        let bullet = new THREE.Mesh(bulletGeometery, bulletMaterial);
+
         bullet.position.copy(camera.position)
         bullet.quaternion.copy(camera.quaternion)
         bullet.name = "bullet"
         bullets.push(bullet)
         scene.add(bullet)
+
         const raycaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
+
         raycaster.far = 500
+
         pointer.x = ((window.innerWidth / 2 + recoilX) / window.innerWidth) * 2 - 1;
         pointer.y = - (((window.innerHeight) / 2 - recoilY) / window.innerHeight) * 2 + 1;
+
         raycaster.setFromCamera(pointer, camera);
+
         const intersects = raycaster.intersectObjects(scene.children);
-        let intersetsFiltered = intersects.filter(e => e.object.name !== 'bullet' && e.object.name !== 'playermodel' && e.object.name !== 'hitbox' && e.object.name !== 'bbox' && e.object.name !== 'modelForBotTarget' && e.object.name !== 'enemymodel')
+        
+        let intersetsFiltered = intersects
+            .filter(e =>    e.object.name !== 'bullet' &&
+                            e.object.name !== 'playermodel' &&
+                            e.object.name !== 'hitbox' &&
+                            e.object.name !== 'bbox' &&
+                            e.object.name !== 'modelForBotTarget' &&
+                            e.object.name !== 'enemymodel'
+            )
+
         if (intersetsFiltered[0]) {
             let distanceToEndPosition = intersetsFiltered[0].distance
+
             bullet.endPosition = {
                 x: intersetsFiltered[0].point.x,
                 y: intersetsFiltered[0].point.y,
                 z: intersetsFiltered[0].point.z,
             }
+
             bullet.cameraPosition = {
                 x: camera.rotation.x,
                 y: camera.rotation.y
             }
+
             if (onlineMode) {
                 connection.send({
                     bullet: {
                         startPosition: {
-                            x: weapons[randomWeapon].position.x + Math.sin(camera.rotation.y) * -2, y: weapons[randomWeapon].position.y + Math.tan(camera.rotation.x) * 1,
+                            x: weapons[randomWeapon].position.x + Math.sin(camera.rotation.y) * -2, 
+                            y: weapons[randomWeapon].position.y + Math.tan(camera.rotation.x) * 1,
                             z: weapons[randomWeapon].position.z + Math.cos(Math.PI - camera.rotation.y) * 2
-                        }, endPosition: { x: intersetsFiltered[0].point.x, y: intersetsFiltered[0].point.y, z: intersetsFiltered[0].point.z }
+                        }, 
+                        endPosition: { 
+                            x: intersetsFiltered[0].point.x,
+                            y: intersetsFiltered[0].point.y,
+                            z: intersetsFiltered[0].point.z 
+                        }
                     }
                 });
             }
+
             if (sounds[weapons[randomWeapon].name]) {
                 if (soundPlayerShoot.isPlaying) {
                     soundPlayerShoot.stop();
                 }
+
                 soundPlayerShoot.setBuffer(sounds[weapons[randomWeapon].name]);
                 soundPlayerShoot.setLoop(false);
                 soundPlayerShoot.setVolume(soundVolume / 8);
                 soundPlayerShoot.play();
             }
+
+            const sniperRifleReloadDuration = 750
+
             if (weapons[randomWeapon].name == 'sniperRifle') {
                 setTimeout(() => {
                     if (sounds.miniReload) {
                         if (soundPlayerShoot.isPlaying) {
                             soundPlayerShoot.stop();
                         }
+                        
                         soundPlayerShoot.setBuffer(sounds.miniReload);
                         soundPlayerShoot.setLoop(false);
                         soundPlayerShoot.setVolume(soundVolume / 4);
                         soundPlayerShoot.play();
                     }
-                }, 750)
+                }, sniperRifleReloadDuration)
             }
-            let velocity = 500 / 200
-            let time = distanceToEndPosition / velocity
-            let bulletSpeedX = (bullet.endPosition.x - weapons[randomWeapon].position.x + Math.sin(camera.rotation.y) * -2) / time
-            let bulletSpeedY = (bullet.endPosition.y - weapons[randomWeapon].position.y + Math.tan(camera.rotation.x) * 1) / time
-            let bulletSpeedZ = (bullet.endPosition.z - weapons[randomWeapon].position.z + Math.cos(Math.PI - camera.rotation.y) * 2) / time
-            bullet.position.set(weapons[randomWeapon].position.x + Math.sin(camera.rotation.y) * -2, weapons[randomWeapon].position.y + Math.tan(camera.rotation.x) * 1, weapons[randomWeapon].position.z + Math.cos(Math.PI - camera.rotation.y) * 2)
-            let smoothBulletShooting = setInterval(() => {
-                let distanceBtwBulletAndPlayer = Math.sqrt(Math.pow(bullet.position.x - enemyModel.position.x, 2) + Math.pow(bullet.position.z - enemyModel.position.z, 2) + Math.pow(bullet.position.y - enemyModel.position.y, 2))
-                let distanceBtwBulletAndEndPos = Math.sqrt(Math.pow(bullet.position.x - bullet.endPosition.x, 2) + Math.pow(bullet.position.z - bullet.endPosition.z, 2) + Math.pow(bullet.position.y - bullet.endPosition.y, 2))
-                if (distanceBtwBulletAndPlayer > velocity / 1.25 && distanceBtwBulletAndEndPos > velocity / 1.25 && Math.abs(bullet.position.x) < 300 && Math.abs(bullet.position.z) < 300 && Math.abs(bullet.position.y) < 20) {
+
+            const velocity = 500 / 200
+            const time = distanceToEndPosition / velocity
+
+            const bulletX = weapon.position.x + Math.sin(camera.rotation.y) * -2
+            const bulletY = weapon.position.y + Math.tan(camera.rotation.x) * 1
+            const bulletZ = weapon.position.z + Math.cos(Math.PI - camera.rotation.y) * 2
+
+            const bulletSpeedX = (bullet.endPosition.x - bulletX) / time
+            const bulletSpeedY = (bullet.endPosition.y - bulletY) / time
+            const bulletSpeedZ = (bullet.endPosition.z - bulletZ) / time
+
+            bullet.position.set(bulletX, bulletY, bulletZ)
+            
+            const smoothBulletShooting = setInterval(() => {
+                const xDistanceToEnemy = Math.pow(bullet.position.x - enemyModel.position.x, 2)
+                const yDistanceToEnemy = Math.pow(bullet.position.y - enemyModel.position.y, 2)
+                const zDistanceToEnemy = Math.pow(bullet.position.z - enemyModel.position.z, 2)
+
+                const distanceBtwBulletAndPlayer = Math.sqrt(xDistanceToEnemy + yDistanceToEnemy + zDistanceToEnemy)
+
+                const xDistanceToEnd = Math.pow(bullet.position.x - bullet.endPosition.x, 2)
+                const yDistanceToEnd = Math.pow(bullet.position.y - bullet.endPosition.y, 2)
+                const zDistanceToEnd = Math.pow(bullet.position.z - bullet.endPosition.z, 2)
+
+                const distanceBtwBulletAndEndPos = Math.sqrt(xDistanceToEnd + yDistanceToEnd + zDistanceToEnd)
+
+                if (distanceBtwBulletAndPlayer > velocity / 1.25 &&
+                    distanceBtwBulletAndEndPos > velocity / 1.25 &&
+                    Math.abs(bullet.position.x) < 300 &&
+                    Math.abs(bullet.position.z) < 300 &&
+                    Math.abs(bullet.position.y) < 20
+                ) {
                     bullet.position.x += bulletSpeedX
                     bullet.position.y += bulletSpeedY
                     bullet.position.z += bulletSpeedZ
@@ -1192,48 +1452,69 @@ function makeShoot() {
                         if (onlineMode) {
                             connection.send({ hit: true });
                         }
-                        enemyModel.healthPoints -= weapons[randomWeapon].characteristics.damage
+
+                        enemyModel.healthPoints -= damage
+
                         if (sounds.enemyHit) {
                             if (soundEnemyHit.isPlaying) {
                                 soundEnemyHit.stop();
                             }
+
                             soundEnemyHit.setBuffer(sounds.enemyHit);
                             soundEnemyHit.setLoop(false);
                             soundEnemyHit.setVolume(soundVolume / 4);
                             soundEnemyHit.play();
                         }
+
                         checkIfNextRound()
                     }
+
                     bullet.position.set(bullet.endPosition.x, bullet.endPosition.y, bullet.endPosition.z)
                     clearInterval(smoothBulletShooting)
                 }
             }, 5)
         }
-        weapons[randomWeapon].canShoot = false
-        timeToRestore = 0
-        weapons[randomWeapon].ammo--
-        document.getElementById('amountAmmo').innerText = weapons[randomWeapon].ammo
-        if (weapons[randomWeapon].ammo < 1 && !isReloading) {
+
+        weapon.canShoot = false
+
+        weapon.characteristics.timeToRestore = 0
+
+        weapon.ammo--
+
+        document.getElementById('amountAmmo').innerText = weapon.ammo
+
+        const lastBullet = 1
+
+        if (weapon.ammo < lastBullet && !isReloading) {
             makeReload()
         }
     } else {
         makeReload()
     }
 }
-document.getElementById('onPlay').addEventListener('click', onPlay)
+
+const onPlayBtn = document.getElementById('onPlay')
+onPlayBtn.addEventListener('click', onPlay)
 let randomWeapon = 0
+
 function onPlay() {
-    document.getElementById('menuBg').style.display = 'none'
+    const canvas = document.querySelector('canvas')
+    menuBg.style.display = hideDisplay
+
     player.maxSpeed.x = defaultSpeed
-    document.querySelector('canvas').requestPointerLock = document.querySelector('canvas').requestPointerLock ||
-        document.querySelector('canvas').mozRequestPointerLock ||
-        document.querySelector('canvas').webkitRequestPointerLock;
-    document.querySelector('canvas').requestPointerLock()
+
+    canvas.requestPointerLock = canvas.requestPointerLock ||
+        canvas.mozRequestPointerLock ||
+        canvas.webkitRequestPointerLock;
+
+    canvas.requestPointerLock()
+
     window.addEventListener('mousemove', onMouseMove)
     window.addEventListener('keydown', onKeyboard, false)
     window.addEventListener('keyup', offKeyboard, false)
     window.addEventListener('mousedown', onMouseClick)
     window.addEventListener('mouseup', onMouseUp)
+
     if (document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen();
     } else if (document.documentElement.msRequestFullscreen) {
@@ -1243,36 +1524,57 @@ function onPlay() {
     } else if (document.documentElement.webkitRequestFullscreen) {
         document.documentElement.webkitRequestFullscreen();
     }
+
     scoreboard.player = 0
     scoreboard.enemy = 0
-    document.getElementById('playerScore').innerText = scoreboard.player
-    document.getElementById('enemyScore').innerText = scoreboard.enemy
-    playerModel.healthPoints = 100
-    document.getElementById('healthPointsLbl').innerText = playerModel.healthPoints
-    document.getElementById('healthBar').style.width = `${playerModel.healthPoints}%`
-    let btnWeapons = Array.from(document.getElementsByClassName('weapons')).filter(e => e.style.color == 'rgb(255, 89, 0)').map(e => e.id)
+
+    playerScore.innerText = scoreboard.player
+    enemyScore.innerText = scoreboard.enemy
+
+    playerModel.healthPoints = maxHealthPoints
+
+    healthPointsLbl.innerText = playerModel.healthPoints
+    healthBar.style.width = `${playerModel.healthPoints}%`
+
+    let btnWeapons = weaponsBtns
+        .filter(e => e.style.color == activeBtnColor)
+        .map(e => e.id)
+
     if (btnWeapons.length > 0) {
         weapons = allWeapons.filter(e => btnWeapons.includes(e.name));
     } else {
         weapons = allWeapons
     }
-    if (document.getElementById('easyDiff').style.color == 'rgb(255, 89, 0)') { botDifficult = 1 }
-    if (document.getElementById('mediumDiff').style.color == 'rgb(255, 89, 0)') { botDifficult = 4 }
-    if (document.getElementById('hardDiff').style.color == 'rgb(255, 89, 0)') { botDifficult = 10 }
+
+    if (easyDiff.style.color == activeBtnColor) {
+        botDifficult = 1 
+    }
+
+    if (mediumDiff.style.color == activeBtnColor) {
+        botDifficult = 4
+    }
+
+    if (hardDiff.style.color == activeBtnColor) {
+        botDifficult = 10
+    }
+
     randomWeapon = Math.floor(Math.random() * weapons.length);
     onNextRound()
-    document.getElementById('playerNick').innerText = document.getElementById('playerNickname').value.slice(0, 12) || 'Player'
-    document.getElementById('enemyNick').innerText = document.getElementById('enemyShowNick').innerText.slice(0, 12) || 'Enemy'
+
+    playerNick.innerText = playerNickname.value.slice(0, 12) || 'Player'
+    enemyNick.innerText = enemyShowNick.innerText.slice(0, 12) || 'Enemy'
+
     audio.pause()
     audio = new Audio(`sounds/music${2 + Math.round(Math.random())}.mp3`)
     audio.volume = musicVolume
     audio.loop = true
     audio.play()
 }
+
 function checkIfNextRound() {
     if (inGame) {
-        document.getElementById('healthPointsLbl').innerText = playerModel.healthPoints
-        document.getElementById('healthBar').style.width = `${playerModel.healthPoints}%`
+        healthPointsLbl.innerText = playerModel.healthPoints
+        healthBar.style.width = `${playerModel.healthPoints}%`
         if (enemyModel.healthPoints < 1) {
             scoreboard.player++
             randomWeapon = Math.floor(Math.random() * weapons.length)
@@ -1291,57 +1593,91 @@ function checkIfNextRound() {
         }
     }
 }
+
 let onNextRoundTimeOut
+
 function onNextRound() {
     if (weapons[randomWeapon].name == 'sniperRifle') {
         document.getElementById('crosshair').style.display = 'none'
     } else {
         document.getElementById('crosshair').style.display = 'initial'
     }
-    document.getElementById('playerScore').innerText = scoreboard.player
-    document.getElementById('enemyScore').innerText = scoreboard.enemy
+
+    playerScore.innerText = scoreboard.player
+    enemyScore.innerText = scoreboard.enemy
+
     bullets.forEach(e => scene.remove(e))
     bullets = []
+
     player.speed.z = 0
     player.speed.x = 0
     player.realSpeed.z = 0
     player.realSpeed.x = 0
     playerModel.scale.y = 1
+    
     isCtrlStamina = false
     isFuseSpamCtrl = false
+
     player.maxSpeed.x = defaultSpeed
+
     if (onlineMode) {
-        connection.send({ position: { y: playerModel.position.y, x: playerModel.position.x, z: playerModel.position.z }, scale: { y: playerModel.scale.y } });
+        connection.send({ 
+            position: { 
+                y: playerModel.position.y,
+                x: playerModel.position.x,
+                z: playerModel.position.z 
+            }, 
+            scale: { 
+                y: playerModel.scale.y 
+            } 
+        });
     }
+
     keyAssignmentsUp()
+
     clearInterval(fireShootInterval)
     clearInterval(timeToRestoreInterval)
+
     weapons[randomWeapon].ammo = weapons[randomWeapon].characteristics.ammo
     weapons[randomWeapon].canShoot = true
+
     enemyModel.visible = true
+
     nextRoundTransition()
+
     clearTimeout(onNextRoundTimeOut)
+
     onNextRoundTimeOut = setTimeout(() => {
         nextRoundTransitionHide()
+
         weapons.forEach(e => e.visible = false)
         weapons[randomWeapon].visible = true
+
         document.getElementById('awpScope').style.display = 'none'
+
         sensitivity *= camera.zoom
         camera.zoom = 1
+
         camera.updateProjectionMatrix();
+
         document.getElementById('amountAmmo').innerText = weapons[randomWeapon].ammo
         document.getElementById('totalAmmo').innerText = weapons[randomWeapon].characteristics.ammo
+
         timeToRestore = weapons[randomWeapon].characteristics.timeToRestore * 1000
+
         playerModel.healthPoints = 100
         enemyModel.healthPoints = 100
-        document.getElementById('healthPointsLbl').innerText = playerModel.healthPoints
-        document.getElementById('healthBar').style.width = `${playerModel.healthPoints}%`
+
+        healthPointsLbl.innerText = playerModel.healthPoints
+        healthBar.style.width = `${playerModel.healthPoints}%`
         spawnModels()
+
         if (!onlineMode) {
             botLifeCycle()
         }
     }, 3000)
 }
+
 function nextRoundTransition() {
     document.getElementById('nextRoundTransitionBlock').classList.add('nextRoundBlackout')
     setTimeout(() => { document.getElementById('nextRoundTransitionBlock').classList.remove('nextRoundBlackout') }, 3000)
@@ -1354,6 +1690,7 @@ function nextRoundTransition() {
     clearInterval(smoothlyMove)
     inGame = false
 }
+
 function nextRoundTransitionHide() {
     document.getElementById('nextRoundAnnounceBlock').classList.add('nextRoundAnnounce')
     setTimeout(() => { document.getElementById('nextRoundAnnounceBlock').classList.remove('nextRoundAnnounce') }, 5000)
@@ -1364,6 +1701,7 @@ function nextRoundTransitionHide() {
     window.addEventListener('mouseup', onMouseUp)
     inGame = true
 }
+
 function onMenu() {
     inGame = false
     bullets.forEach(e => scene.remove(e))
@@ -1382,15 +1720,16 @@ function onMenu() {
     enemyModel.visible = false
     playerModel.healthPoints = 100
     enemyModel.healthPoints = 100
-    document.getElementById('playerNickname').value = localStorage.getItem('nick') || 'Player'
+    playerNickname.value = localStorage.getItem('nick') || 'Player'
     document.getElementById('enemyAvatar').setAttribute('src', 'img/robot.png')
-    document.getElementById('enemyNick').innerText = 'Robot'
+    enemyNick.innerText = 'Robot'
     audio.pause()
     audio = new Audio('sounds/music1.mp3')
     audio.volume = musicVolume
     audio.loop = true
     audio.play()
 }
+
 function onGameMenu() {
     document.getElementById('gameMenu').style.display = 'grid'
     inGame = false
@@ -1403,6 +1742,7 @@ function onGameMenu() {
     player.speed.x = 0
     keyAssignmentsUp()
 }
+
 function onLeaveGameBtn() {
     document.getElementById('gameMenu').style.display = 'none'
     if (onlineMode) {
@@ -1410,18 +1750,25 @@ function onLeaveGameBtn() {
     }
     onMenu()
 }
+
 function onResumeGameBtn() {
+    const canvas = document.querySelector('canvas')
+
     document.getElementById('gameMenu').style.display = 'none'
     inGame = true
+
     window.addEventListener('mousemove', onMouseMove)
     window.addEventListener('keydown', onKeyboard)
     window.addEventListener('keyup', offKeyboard)
     window.addEventListener('mousedown', onMouseClick)
     window.addEventListener('mouseup', onMouseUp)
-    document.querySelector('canvas').requestPointerLock = document.querySelector('canvas').requestPointerLock ||
-        document.querySelector('canvas').mozRequestPointerLock ||
-        document.querySelector('canvas').webkitRequestPointerLock;
-    document.querySelector('canvas').requestPointerLock()
+
+    canvas.requestPointerLock = canvas.requestPointerLock ||
+        canvas.mozRequestPointerLock ||
+        canvas.webkitRequestPointerLock;
+
+    canvas.requestPointerLock()
+
     if (document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen();
     } else if (document.documentElement.msRequestFullscreen) {
@@ -1432,12 +1779,15 @@ function onResumeGameBtn() {
         document.documentElement.webkitRequestFullscreen();
     }
 }
+
 function spawnModels() {
     let randomSpawnIndex = Math.floor(Math.random() * 4)
     let randomSpawn = spawnArea[randomSpawnIndex]
     let randomPositionX = randomSpawn.position.x + randomSpawn.scale.x * (Math.random() - 0.5) * 2
     let randomPositionZ = randomSpawn.position.z + randomSpawn.scale.z * (Math.random() - 0.5) * 2
+    
     playerModel.position.set(randomPositionX, randomSpawn.position.y + 2, randomPositionZ)
+
     if (!onlineMode) {
         randomSpawnIndex = Math.floor(Math.random() * 4)
         randomSpawn = spawnEnemyAndPath.filter(e => e.name.slice(0, 10) == 'SpawnEnemy')[randomSpawnIndex]
@@ -1447,72 +1797,116 @@ function spawnModels() {
         enemyModel.zoneName = randomSpawn.name
         enemyModel.visible = true
     }
+
     gravityAttraction()
     playerModel.updateMatrixWorld()
     enemyModel.updateMatrixWorld()
 }
+
 function checkBotVisionContact() {
     let intersects = [], direction
     const raycaster = new THREE.Raycaster();
+
     raycaster.far = 400
-    direction = new THREE.Vector3((playerModel.position.x + playerModel.geometry.parameters.width / 2) - enemyModel.position.x, playerModel.position.y - enemyModel.position.y, (playerModel.position.z + playerModel.geometry.parameters.depth / 2) - enemyModel.position.z)
+    direction = new THREE.Vector3(
+        (playerModel.position.x + playerModel.geometry.parameters.width / 2) - enemyModel.position.x, 
+        playerModel.position.y - enemyModel.position.y, 
+        (playerModel.position.z + playerModel.geometry.parameters.depth / 2) - enemyModel.position.z
+    )
     direction.normalize()
+
     raycaster.set(new THREE.Vector3(enemyModel.position.x, enemyModel.position.y + 3, enemyModel.position.z), direction);
     intersects.push(raycaster.intersectObjects(scene.children))
-    direction = new THREE.Vector3((playerModel.position.x + playerModel.geometry.parameters.width / 2) - enemyModel.position.x, playerModel.position.y - enemyModel.position.y, (playerModel.position.z - playerModel.geometry.parameters.depth / 2) - enemyModel.position.z)
+    direction = new THREE.Vector3(
+        (playerModel.position.x + playerModel.geometry.parameters.width / 2) - enemyModel.position.x,
+        playerModel.position.y - enemyModel.position.y,
+        (playerModel.position.z - playerModel.geometry.parameters.depth / 2) - enemyModel.position.z
+    )
     direction.normalize()
+
     raycaster.set(new THREE.Vector3(enemyModel.position.x, enemyModel.position.y + 3, enemyModel.position.z), direction);
     intersects.push(raycaster.intersectObjects(scene.children))
-    direction = new THREE.Vector3((playerModel.position.x - playerModel.geometry.parameters.width / 2) - enemyModel.position.x, playerModel.position.y - enemyModel.position.y, (playerModel.position.z + playerModel.geometry.parameters.depth / 2) - enemyModel.position.z)
+    direction = new THREE.Vector3(
+        (playerModel.position.x - playerModel.geometry.parameters.width / 2) - enemyModel.position.x,
+        playerModel.position.y - enemyModel.position.y,
+        (playerModel.position.z + playerModel.geometry.parameters.depth / 2) - enemyModel.position.z
+    )
     direction.normalize()
+
     raycaster.set(new THREE.Vector3(enemyModel.position.x, enemyModel.position.y + 3, enemyModel.position.z), direction);
     intersects.push(raycaster.intersectObjects(scene.children))
-    direction = new THREE.Vector3((playerModel.position.x - playerModel.geometry.parameters.width / 2) - enemyModel.position.x, playerModel.position.y - enemyModel.position.y, (playerModel.position.z - playerModel.geometry.parameters.depth / 2) - enemyModel.position.z)
+    direction = new THREE.Vector3(
+        (playerModel.position.x - playerModel.geometry.parameters.width / 2) - enemyModel.position.x,
+        playerModel.position.y - enemyModel.position.y,
+        (playerModel.position.z - playerModel.geometry.parameters.depth / 2) - enemyModel.position.z
+    )
     direction.normalize()
+
     raycaster.set(new THREE.Vector3(enemyModel.position.x, enemyModel.position.y + 3, enemyModel.position.z), direction);
+
     intersects.push(raycaster.intersectObjects(scene.children))
     intersects = intersects.flat(1)
+
     intersects.sort((a, b) => {
         if (a.distance > b.distance) return 1
         if (a.distance < b.distance) return -1
         return 0
     })
+    
     intersects = intersects.filter(e => e.object.name !== 'enemymodel')
-    intersects = intersects[0].object.name == 'playermodel' || intersects[0].object.name == 'modelForBotTarget' ? [intersects[0]] : []
-    if (intersects[0]) return true
+    intersects = intersects[0].object.name == 'playermodel' ||
+                intersects[0].object.name == 'modelForBotTarget' ?
+                                            [intersects[0]] : 
+                                            []
+
+    if (intersects[0]) 
+        return true
     return false
 }
+
 let botTargetPosition, pathToAnyBotZone = ['SpawnEnemy002', 'SpawnEnemy001', 'Path003', 'SpawnEnemy', 'Path002', 'Path001', 'Path', 'Path004', 'SpawnEnemy006']
+
 function generateBotTargetPosition() {
     let currentZonePositionIndex = pathToAnyBotZone.findIndex(e => e == enemyModel.zoneName)
     let randomTargetPositionIndex = Math.round((Math.random() - 0.5) * 3) + currentZonePositionIndex
     let randomTargetPosition = pathToAnyBotZone[Math.max(Math.min(randomTargetPositionIndex, pathToAnyBotZone.length - 1), 0)]
+
     randomTargetPosition = spawnEnemyAndPath.find(e => e.name == randomTargetPosition)
+
     let randomPositionX = randomTargetPosition.position.x + randomTargetPosition.scale.x * (Math.random() - 0.5) * 2
     let randomPositionZ = randomTargetPosition.position.z + randomTargetPosition.scale.z * (Math.random() - 0.5) * 2
+
     return botTargetPosition = new THREE.Vector3(randomPositionX, randomTargetPosition.position.y + 2, randomPositionZ)
 }
 function checkZoneOfBotPosition() {
     for (let i = 0; i < spawnEnemyAndPath.length; i++) {
-        if (spawnEnemyAndPath[i].position.x + spawnEnemyAndPath[i].scale.x > enemyModel.position.x && spawnEnemyAndPath[i].position.x - spawnEnemyAndPath[i].scale.x < enemyModel.position.x
-            && spawnEnemyAndPath[i].position.z + spawnEnemyAndPath[i].scale.z > enemyModel.position.z && spawnEnemyAndPath[i].position.z - spawnEnemyAndPath[i].scale.z < enemyModel.position.z) {
+        if (spawnEnemyAndPath[i].position.x + spawnEnemyAndPath[i].scale.x > enemyModel.position.x &&
+            spawnEnemyAndPath[i].position.x - spawnEnemyAndPath[i].scale.x < enemyModel.position.x &&
+            spawnEnemyAndPath[i].position.z + spawnEnemyAndPath[i].scale.z > enemyModel.position.z &&
+            spawnEnemyAndPath[i].position.z - spawnEnemyAndPath[i].scale.z < enemyModel.position.z
+        ) {
             enemyModel.zoneName = spawnEnemyAndPath[i].name
             break
         }
     }
 }
+
 let botMakeSmoothlyMove, smoothBotGravityAttraction, BotGravityAttraction
+
 function botMakeMove(targetPosition) {
     let distance = Math.sqrt(Math.pow(targetPosition.x - enemyModel.position.x, 2) + Math.pow(targetPosition.z - enemyModel.position.z, 2))
     let time = distance / (defaultSpeed / 1.5)
     let botSpeedX = (targetPosition.x - enemyModel.position.x) / time
     let botSpeedZ = (targetPosition.z - enemyModel.position.z) / time
+
     clearInterval(botMakeSmoothlyMove)
+
     botMakeSmoothlyMove = setInterval(() => {
         if (!onlineMode) {
             if (!isGrounded(enemyModel) && !BotGravityAttraction) {
                 BotGravityAttraction = true
                 let velOfBotGravityAttractionIndex = 0
+
                 smoothBotGravityAttraction = setInterval(() => {
                     if (!isGrounded(enemyModel)) {
                         ++velOfBotGravityAttractionIndex
@@ -1523,6 +1917,7 @@ function botMakeMove(targetPosition) {
                     }
                 }, 5)
             }
+
             if (!checkBotVisionContact() && Math.floor(enemyModel.position.x) !== Math.floor(targetPosition.x) && Math.floor(enemyModel.position.z) !== Math.floor(targetPosition.z)) {
                 enemyModel.position.x += botSpeedX
                 enemyModel.position.z += botSpeedZ
@@ -1533,49 +1928,67 @@ function botMakeMove(targetPosition) {
         }
     }, 5)
 }
+
 function makeBotShoot() {
     if (bullets.length > 50) {
         scene.remove(bullets[0])
         bullets.splice(0, 1)
     }
+
     let bullet = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.2), new THREE.MeshBasicMaterial({ color: '#ff5900' }));
     bullet.position.copy(enemyModel.position)
     bullet.name = "bullet"
     bullets.push(bullet)
     scene.add(bullet)
+
     bullet.position.set(enemyModel.position.x, enemyModel.position.y + 2, enemyModel.position.z)
     if (sondEnemyShoot.isPlaying) {
         sondEnemyShoot.stop();
     }
+
     sondEnemyShoot.setBuffer(sounds[weapons[randomWeapon].name]);
     sondEnemyShoot.setLoop(false);
     sondEnemyShoot.setVolume(soundVolume / 4);
     sondEnemyShoot.setRefDistance(40);
     sondEnemyShoot.play();
+
     let velocity = 500 / 200
     let distance = Math.sqrt(Math.pow(playerModel.position.x - enemyModel.position.x, 2) + Math.pow(playerModel.position.z - enemyModel.position.z, 2) + Math.pow(playerModel.position.y - enemyModel.position.y, 2))
     let time = distance / velocity
+
     bullet.endPosition = {
         x: playerModel.position.x,
         y: playerModel.position.y,
         z: playerModel.position.z
     }
+
     bullet.startPosition = {
         x: enemyModel.position.x,
         y: enemyModel.position.y + 2,
         z: enemyModel.position.z
     }
+
     let bulletSpeedX = (playerModel.position.x - enemyModel.position.x) / time
     let bulletSpeedZ = (playerModel.position.z - enemyModel.position.z) / time
     let bulletSpeedY = (playerModel.position.y - enemyModel.position.y) / time
+
     let bulletMakeSmoothlyMove = setInterval(() => {
         if (!inGame) {
             scene.remove(bullet)
             bullets.splice(bullets.length - 1, 1)
             clearInterval(bulletMakeSmoothlyMove)
         }
-        let distanceBtwBulletAndPlayer = Math.sqrt(Math.pow(bullet.position.x - playerModel.position.x, 2) + Math.pow(bullet.position.z - playerModel.position.z, 2) + Math.pow(bullet.position.y - playerModel.position.y, 2))
-        if (distanceBtwBulletAndPlayer > velocity && Math.abs(bullet.position.x) < 300 && Math.abs(bullet.position.z) < 300 && Math.abs(bullet.position.y) < 20) {
+
+        const xPos = Math.pow(bullet.position.x - playerModel.position.x, 2)
+        const yPos = Math.pow(bullet.position.y - playerModel.position.y, 2)
+        const zPos = Math.pow(bullet.position.z - playerModel.position.z, 2)
+        let distanceBtwBulletAndPlayer = Math.sqrt(xPos + yPos + zPos)
+
+        if (distanceBtwBulletAndPlayer > velocity
+            && Math.abs(bullet.position.x) < 300
+            && Math.abs(bullet.position.z) < 300
+            && Math.abs(bullet.position.y) < 20
+        ) {
             bullet.position.x += bulletSpeedX
             bullet.position.y += bulletSpeedY
             bullet.position.z += bulletSpeedZ
@@ -1583,19 +1996,24 @@ function makeBotShoot() {
             if (distanceBtwBulletAndPlayer < velocity) {
                 if (!onlineMode) {
                     playerModel.healthPoints -= weapons[randomWeapon].characteristics.damage
+
                     if (sounds.playerHit) {
                         if (soundPlayerHit.isPlaying) {
                             soundPlayerHit.stop();
                         }
+
                         soundPlayerHit.setBuffer(sounds.playerHit);
                         soundPlayerHit.setLoop(false);
                         soundPlayerHit.setVolume(soundVolume / 4);
                         soundPlayerHit.play();
                     }
+
                     document.getElementById('hitEventShow').classList.add('hitEventShow')
+
                     setTimeout(() => {
                         document.getElementById('hitEventShow').classList.remove('hitEventShow')
                     }, 500)
+
                     checkIfNextRound()
                 }
             }
@@ -1604,27 +2022,34 @@ function makeBotShoot() {
             clearInterval(bulletMakeSmoothlyMove)
         }
     }, 5)
+
     botLifeCycle()
 }
+
 function makeEnemyShoot(startPosition, endPosition) {
     if (bullets.length > 50) {
         scene.remove(bullets[0])
         bullets.splice(0, 1)
     }
+
     let bullet = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.2), new THREE.MeshBasicMaterial({ color: '#ff5900' }));
     bullet.position.set(startPosition.x, startPosition.y, startPosition.z)
     bullet.name = "bullet"
     bullets.push(bullet)
     scene.add(bullet)
+
     bullet.position.set(enemyModel.position.x, enemyModel.position.y + 2, enemyModel.position.z)
+
     if (sondEnemyShoot.isPlaying) {
         sondEnemyShoot.stop();
     }
+
     sondEnemyShoot.setBuffer(sounds[weapons[randomWeapon].name]);
     sondEnemyShoot.setLoop(false);
     sondEnemyShoot.setVolume(soundVolume / 4);
     sondEnemyShoot.setRefDistance(40);
     sondEnemyShoot.play();
+
     let velocity = 500 / 200
     let distance = Math.sqrt(Math.pow(startPosition.x - endPosition.x, 2) + Math.pow(startPosition.z - endPosition.z, 2) + Math.pow(startPosition.y - endPosition.y, 2))
     let time = distance / velocity
@@ -1633,9 +2058,19 @@ function makeEnemyShoot(startPosition, endPosition) {
     let bulletSpeedX = (endPosition.x - startPosition.x) / time
     let bulletSpeedZ = (endPosition.z - startPosition.z) / time
     let bulletSpeedY = (endPosition.y - startPosition.y) / time
+
     let bulletMakeSmoothlyMove = setInterval(() => {
-        let distanceBtwBulletAndPlayer = Math.sqrt(Math.pow(bullet.position.x - playerModel.position.x, 2) + Math.pow(bullet.position.z - playerModel.position.z, 2) + Math.pow(bullet.position.y - playerModel.position.y, 2))
-        if (distanceBtwBulletAndPlayer > velocity && Math.abs(bullet.position.x) < 300 && Math.abs(bullet.position.z) < 300 && Math.abs(bullet.position.y) < 20) {
+        const xPos = Math.pow(bullet.position.x - playerModel.position.x, 2)
+        const yPos = Math.pow(bullet.position.y - playerModel.position.y, 2)
+        const zPos = Math.pow(bullet.position.z - playerModel.position.z, 2)
+
+        let distanceBtwBulletAndPlayer = Math.sqrt(xPos + yPos + zPos)
+
+        if (distanceBtwBulletAndPlayer > velocity &&
+            Math.abs(bullet.position.x) < 300 &&
+            Math.abs(bullet.position.z) < 300 &&
+            Math.abs(bullet.position.y) < 20
+        ) {
             bullet.position.x += bulletSpeedX
             bullet.position.y += bulletSpeedY
             bullet.position.z += bulletSpeedZ
@@ -1646,14 +2081,17 @@ function makeEnemyShoot(startPosition, endPosition) {
             } else {
                 bullet.position.set(bullet.endPosition.x, bullet.endPosition.y, bullet.endPosition.z)
             }
+
             clearInterval(bulletMakeSmoothlyMove)
         }
     }, 5)
 }
+
 function botLifeCycle() {
     if (!onlineMode && inGame) {
         setTimeout(() => {
             checkZoneOfBotPosition()
+
             if (checkBotVisionContact()) {
                 let direction = new THREE.Vector3(playerModel.position.x - enemyModel.position.x, playerModel.position.y - enemyModel.position.y, playerModel.position.z - enemyModel.position.z)
                 makeBotShoot(direction)
@@ -1663,6 +2101,7 @@ function botLifeCycle() {
         }, 2100 / botDifficult)
     }
 }
+
 function onMouseMove(event) {
     const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
     const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
@@ -1691,9 +2130,11 @@ if ("onpointerlockchange" in document) {
 }
 
 function lockChangeAlert() {
-    if (document.pointerLockElement === document.querySelector('canvas') ||
-        document.mozPointerLockElement === document.querySelector('canvas') ||
-        document.webkitPointerLockElement === document.querySelector('canvas')) {
+    const canvas = document.querySelector('canvas')
+
+    if (document.pointerLockElement === canvas ||
+        document.mozPointerLockElement === canvas ||
+        document.webkitPointerLockElement === canvas) {
 
     } else {
         onGameMenu()
@@ -1714,18 +2155,23 @@ function onSensSilder() {
     document.getElementById('sensInp').value = document.getElementById('sensSilder').value / 10
     sensitivity = document.getElementById('sensInp').value
 }
+
 function onSensInp() {
     document.getElementById('sensSilder').value = document.getElementById('sensInp').value * 10
     sensitivity = document.getElementById('sensInp').value
 }
+
 function getAdvancedData() {
     document.getElementById('xCords').innerText = String(camera.position.x).slice(0, 5)
     document.getElementById('zCords').innerText = String(camera.position.z).slice(0, 5)
     document.getElementById('yCords').innerText = String(camera.position.y).slice(0, 5)
+
     document.getElementById('povX').innerText = String(camera.rotation.x / (Math.PI * 2) * 100).slice(0, 5)
     document.getElementById('povY').innerText = String(camera.rotation.y / (Math.PI * 2) * 100).slice(0, 5)
     document.getElementById('povZ').innerText = String(camera.rotation.z / (Math.PI * 2) * 100).slice(0, 5)
+
     let povY = camera.rotation.y / (Math.PI * 2) - Math.floor(camera.rotation.y / (Math.PI * 2))
+
     if (povY > 0.875) {
         document.getElementById('axis').innerText = 'x'
     } else if (povY > 0.625) {
@@ -1737,32 +2183,43 @@ function getAdvancedData() {
     } else {
         document.getElementById('axis').innerText = 'x'
     }
+
     if (player) {
         document.getElementById('speedX').innerText = player.realSpeed.x
         document.getElementById('speedZ').innerText = player.realSpeed.z
     }
 }
+
 peer.on('open', function (id) {
     document.getElementById('yourCode').value = id
 });
+
 document.getElementById('ConnectBtn').addEventListener('click', onConnectBtn)
+
 let connection
+
 function onConnectBtn() {
     connection = peer.connect(document.getElementById('enemyCode').value);
     onConnectionOpen()
 }
+
 peer.on('connection', function (conn) {
     connection = conn
     onConnectionOpen()
 });
+
 function onConnectionOpen() {
     onlineMode = true
+
     enemyModel.visible = true
+
     document.getElementById('enemyAvatar').setAttribute('src', 'img/human.png')
-    connection.on('open', () => { connection.send({ nickname: document.getElementById('playerNickname').value }) })
+
+    connection.on('open', () => { connection.send({ nickname: playerNickname.value }) })
+
     connection.on('data', function (data) {
         if (data.nickname) {
-            document.getElementById('enemyShowNick').innerText = data.nickname
+            enemyShowNick.innerText = data.nickname
         }
         if (data.position) {
             enemyModel.position.x = -data.position.x || enemyModel.position.x
@@ -1802,19 +2259,26 @@ function onConnectionOpen() {
         }
     });
 }
+
 function onConnectionClose() {
     onlineMode = false
     onMenu()
 }
+
 peer.on('disconnected', function () {
     onConnectionClose()
     onMenu()
 });
+
 peer.on('close', function () {
     onConnectionClose()
     onMenu()
 });
-document.getElementById('copyCodeBtn').addEventListener('click', (e) => { navigator.clipboard.writeText(document.getElementById('yourCode').value); e.target.innerText = 'Copied'; setTimeout(() => { e.target.innerText = 'Copy' }, 2000) })
+
+document.getElementById('copyCodeBtn').addEventListener('click', (e) => { 
+    navigator.clipboard.writeText(document.getElementById('yourCode').value); e.target.innerText = 'Copied'; 
+    setTimeout(() => { e.target.innerText = 'Copy' }, 2000) 
+})
 
 const listener = new THREE.AudioListener();
 camera.add(listener);
@@ -1847,16 +2311,22 @@ audioLoader.load('sounds/sniperZoom.mp3', function (buffer) { sounds.sniperZoom 
 audioLoader.load('sounds/fullReload.mp3', function (buffer) { sounds.fullReload = buffer });
 audioLoader.load('sounds/miniReload.mp3', function (buffer) { sounds.miniReload = buffer });
 
-Array.from(document.getElementsByClassName('weapons')).forEach(e => e.addEventListener('click', (event) => event.target.style.color = event.target.style.color == 'rgb(12, 12, 12)' ? 'rgb(255, 89, 0)' : 'rgb(12, 12, 12)'))
-Array.from(document.getElementsByClassName('weapons')).forEach(e => e.style.color = 'rgb(255, 89, 0)')
-Array.from(document.getElementsByClassName('botDiffs')).forEach(e => e.addEventListener('click', (event) => { Array.from(document.getElementsByClassName('botDiffs')).forEach(e => e.style.color = 'rgb(12, 12, 12)'); event.target.style.color = 'rgb(255, 89, 0)' }))
+weaponsBtns.forEach(e => e.addEventListener('click', (event) => 
+    event.target.style.color = event.target.style.color == 'rgb(12, 12, 12)' ? activeBtnColor : 'rgb(12, 12, 12)'))
+weaponsBtns.forEach(e => e.style.color = activeBtnColor)
+
+Array.from(document.getElementsByClassName('botDiffs')).forEach(e => e.addEventListener('click', (event) => { 
+    Array.from(document.getElementsByClassName('botDiffs')).forEach(e => e.style.color = 'rgb(12, 12, 12)')
+    event.target.style.color = activeBtnColor 
+}))
+
 Array.from(document.getElementsByClassName('botDiffs')).forEach(e => e.style.color = 'rgb(12, 12, 12)')
-Array.from(document.getElementsByClassName('botDiffs'))[0].style.color = 'rgb(255, 89, 0)'
+Array.from(document.getElementsByClassName('botDiffs'))[0].style.color = activeBtnColor
 
 document.getElementById('leaveGameBtn').addEventListener('click', onLeaveGameBtn)
 document.getElementById('resumeGameBtn').addEventListener('click', onResumeGameBtn)
 
-document.getElementById('playerNickname').addEventListener('change', (e) => { localStorage.setItem('nick', e.target.value) })
+playerNickname.addEventListener('change', (e) => { localStorage.setItem('nick', e.target.value) })
 
 document.getElementById('onSettings').addEventListener('click', onSettings)
 document.getElementById('onMenu').addEventListener('click', onMainMenu)
@@ -1865,6 +2335,7 @@ function onSettings() {
     document.getElementById('menuBg').style.display = 'none'
     document.getElementById('settingsBlock').style.display = 'grid'
 }
+
 function onMainMenu() {
     document.getElementById('menuBg').style.display = 'grid'
     document.getElementById('settingsBlock').style.display = 'none'
@@ -1874,9 +2345,14 @@ function drawCrosshair() {
     let lineWidth = Number(localStorage.getItem('crosshairLineWidth'))
     let length = Number(localStorage.getItem('crosshairLength'))
     let gap = Number(localStorage.getItem('crosshairGap')) + length
-    let r = Number(localStorage.getItem('red')), g = Number(localStorage.getItem('green')), b = Number(localStorage.getItem('blue')), a = Number(localStorage.getItem('alpha'))
+    let r = Number(localStorage.getItem('red')), 
+    g = Number(localStorage.getItem('green')), 
+    b = Number(localStorage.getItem('blue')), 
+    a = Number(localStorage.getItem('alpha'))
+
     let lines1 = Array.from(document.getElementsByClassName('linesCrosshair'))
     let lines2 = Array.from(document.getElementsByClassName('settingsLinesCrosshair'))
+
     lines2[0].setAttribute('x1', 100 / 2 + gap / 2)
     lines2[0].setAttribute('x2', 100 / 2 + gap / 2)
     lines2[0].setAttribute('y1', 100 / 2 - lineWidth / 2)
@@ -1964,6 +2440,7 @@ Array.from(document.getElementsByClassName('keyAssignmentsBtn')).forEach(e => e.
     settingedButton = event.target
     window.addEventListener('keydown', onSettingsKeyboard, false)
 }))
+
 function onSettingsKeyboard(event) {
     event.preventDefault()
     localStorage.setItem(settingedButton.getAttribute('settingName'), event.code)
@@ -1971,6 +2448,7 @@ function onSettingsKeyboard(event) {
     keyAssignmentsUp()
     window.removeEventListener('keydown', onSettingsKeyboard, false)
 }
+
 settingsUp()
 function settingsUp() {
     soundVolume = localStorage.getItem('soundsVolume') / 100
@@ -1980,6 +2458,7 @@ function settingsUp() {
     sensitivityX = localStorage.getItem('mouseAxlerationX')
     sensitivityY = localStorage.getItem('mouseAxlerationY')
 }
+
 keyAssignmentsUp()
 function keyAssignmentsUp() {
     keys = {
@@ -1994,10 +2473,12 @@ function keyAssignmentsUp() {
         [localStorage.getItem('runningFoward')]: false
     }
 }
+
 document.getElementById('settingsBodyBlock').addEventListener('scroll', () => {
     let element = document.elementFromPoint(document.getElementById('settingsBodyBlock').offsetLeft, document.getElementById('settingsBodyBlock').offsetTop)
     if (element.getAttribute('settingBlockName')) {
         document.getElementById('settingsBlockLbl').innerText = element.getAttribute('settingBlockName')
     }
 })
+
 drawCrosshair()
